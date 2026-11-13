@@ -234,6 +234,35 @@ fn bumping_an_artifact_version_requires_allow_drops() {
     assert_eq!(accepted.status, stuff::publish::Status::Published, "{accepted:?}");
 }
 
+struct PanickingAcquire;
+
+impl Acquire for PanickingAcquire {
+    fn fetch(&self, url: &str) -> Result<Vec<u8>, Error> {
+        panic!("unexpected upstream request {url}");
+    }
+}
+
+#[test]
+fn an_unchanged_mirror_does_not_touch_the_upstream() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().unwrap();
+    let manifest = setup(work.path());
+    let environment = environment(work.path(), &fake);
+    let first = publish(&manifest, false, false, &environment, &acquire(work.path())).unwrap();
+    assert_eq!(first.status, stuff::publish::Status::Published);
+    let rebuilt = stuff::publish::mirror::publish_with_acquire(
+        &stuff::publish::MirrorPublish {
+            manifest: Some(manifest.to_string_lossy().into_owned()),
+            allow_drops: false,
+        },
+        stuff::publish::Options::default(),
+        &environment,
+        &PanickingAcquire,
+    )
+    .unwrap();
+    assert_eq!(rebuilt.status, stuff::publish::Status::Unchanged, "{rebuilt:?}");
+}
+
 #[test]
 fn republish_rebuilds_from_the_manifest() {
     let fake = FakeS3::start_verified();

@@ -1,12 +1,13 @@
 #![forbid(unsafe_code)]
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use mymirror::{Acquire, HttpsAcquire};
 
 use crate::publish::config::Config;
 use crate::publish::paths::Paths;
 use crate::publish::r2::credentials;
+use crate::publish::r2::promote;
 use crate::publish::staging::{prune_stale_generations, Staging};
 use crate::publish::transaction::{Staged, Transaction, TransactionOptions};
 use crate::publish::{Environment, MirrorPublish, Options, Outcome, PublishError, Registry};
@@ -117,7 +118,43 @@ fn run_publication(
         pending
     };
     let mut packages = Vec::new();
-    let report = pending.publish(|_pending| {
+    let report = pending.publish(|pending| {
+        let generation = mymirror::generation_id(&manifest, &base_url)
+            .map_err(|error| PublishError::Usage(error.to_string()))?;
+        let marker = promote::read_marker(pending.client(), &bucket)?;
+        let live = marker.as_ref().map(|marker| marker.generation.as_str());
+        let expected_keys = expected_generation_keys(&manifest, &generation);
+        let remote = pending.snapshot().metadata();
+        if live == Some(generation.as_str())
+            && expected_keys.iter().all(|key| remote.contains_key(key))
+        {
+            ensure_current(&site_dir, &generation)?;
+            prune_stale_generations(&site_dir)?;
+            packages = manifest
+                .artifacts
+                .iter()
+                .map(|artifact| artifact.id.clone())
+                .collect();
+            let known = expected_keys
+                .into_iter()
+                .filter_map(|key| {
+                    remote.get(&key).map(|object| {
+                        (
+                            key,
+                            crate::publish::r2::client::ObjectMeta {
+                                size: object.size,
+                                etag: object.etag.clone(),
+                                content_type: None,
+                            },
+                        )
+                    })
+                })
+                .collect();
+            return Ok(Staged {
+                site: site_dir.clone(),
+                known,
+            });
+        }
         let built = mymirror::build(&manifest, &base_url, acquire, Some(&objects), &artifacts_dir)
             .map_err(mirror_error)?;
         mymirror::assemble(&site_dir, &built).map_err(mirror_error)?;
@@ -128,6 +165,45 @@ fn run_publication(
     let mut outcome = report.outcome();
     outcome.packages = packages;
     Ok(outcome)
+}
+
+fn expected_generation_keys(manifest: &mymirror::manifest::Manifest, generation: &str) -> Vec<String> {
+    let mut keys = vec![
+        format!("generations/{generation}/catalog.json"),
+        format!("generations/{generation}/SHA256SUMS"),
+        format!("manifests/{generation}.json"),
+    ];
+    for artifact in &manifest.artifacts {
+        keys.push(format!("generations/{generation}/{}.zip", artifact.id));
+    }
+    keys
+}
+
+fn ensure_current(site_dir: &Path, generation: &str) -> Result<(), PublishError> {
+    let generations = site_dir.join("generations").join(generation);
+    std::fs::create_dir_all(&generations).map_err(|error| {
+        PublishError::Config(format!("could not create {}: {error}", generations.display()))
+    })?;
+    let current = site_dir.join("current");
+    let target = format!("generations/{generation}");
+    let up_to_date = std::fs::read_link(&current)
+        .map(|existing| existing.to_string_lossy() == target)
+        .unwrap_or(false);
+    if up_to_date {
+        return Ok(());
+    }
+    if let Err(error) = std::fs::remove_file(&current)
+        && error.kind() != std::io::ErrorKind::NotFound
+    {
+        return Err(PublishError::Config(format!(
+            "could not remove {}: {error}",
+            current.display()
+        )));
+    }
+    std::os::unix::fs::symlink(&target, &current).map_err(|error| {
+        PublishError::Config(format!("could not link {} to {}: {error}", current.display(), target))
+    })?;
+    Ok(())
 }
 
 fn resolve_manifest(manifest: Option<&str>) -> Result<PathBuf, PublishError> {
