@@ -841,3 +841,373 @@ fn plan_is_read_only() {
     assert_eq!(output.status.code(), Some(2));
 }
 
+
+fn sync_output(inventory: &Path, lock: &Path, state: &Path, extra: &[&str]) -> std::process::Output {
+    let mut argv = vec![
+        "mirror".to_string(),
+        "sync".to_string(),
+        "--config".to_string(),
+        path(inventory).to_string(),
+        "--lock".to_string(),
+        path(lock).to_string(),
+        "--state-dir".to_string(),
+        path(state).to_string(),
+        "--locked".to_string(),
+    ];
+    argv.extend(extra.iter().map(|value| value.to_string()));
+    myoci_args(&argv)
+}
+
+fn read_blob_digests(state: &Path) -> Vec<String> {
+    myoci::state::State::new(state.to_path_buf())
+        .read_blobs()
+        .unwrap()
+        .into_iter()
+        .map(|digest| digest.as_str().to_string())
+        .collect()
+}
+
+#[test]
+fn locked_acquisition() {
+    let layer_a: &[u8] = b"acquisition layer A";
+    let layer_b: &[u8] = b"acquisition layer B";
+    let layer_c: &[u8] = b"acquisition layer C";
+    let attestation_layer: &[u8] = b"in-toto attestation payload";
+
+    let workspace = tempfile::tempdir().unwrap();
+    let dir = workspace.path();
+    let fixture = Fixture::new("example/app");
+
+    // Image A: single-platform manifest with an attestation referrer.
+    let (config_a, _layer_a_bytes, _manifest_a) = image_bytes("linux", "amd64", None, layer_a);
+    let config_a_digest = fixture.add_config(&config_a);
+    fixture.add_blob(layer_a, OCI_LAYER_GZIP);
+    let manifest_a = manifest_json(
+        &config_a_digest,
+        config_a.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_a), layer_a.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let a_size = manifest_a.len() as u64;
+    let a_root = fixture.add_manifest(manifest_a.clone(), OCI_MANIFEST);
+    fixture.add_tag("stable", &a_root);
+    let att_layer_digest = fixture.add_blob(attestation_layer, IN_TOTO);
+    let att_config = config_json("unknown", "unknown", None);
+    let att_config_digest = fixture.add_config(&att_config);
+    let att = manifest_json(
+        &att_config_digest,
+        att_config.len() as u64,
+        OCI_CONFIG,
+        &[(att_layer_digest.clone(), attestation_layer.len() as u64, IN_TOTO.to_string())],
+        Some((&a_root, a_size, OCI_MANIFEST)),
+        Some(IN_TOTO),
+    );
+    let att_size = att.len() as u64;
+    let att_digest = fixture.add_manifest(att.clone(), OCI_MANIFEST);
+    fixture.add_referrer(&a_root, referrer_descriptor(OCI_MANIFEST, &att_digest, att_size, Some(IN_TOTO)));
+
+    // Image B exists upstream but must not be acquired by the locked sync after re-tagging.
+    let (config_b, _layer_b_bytes, _manifest_b) = image_bytes("linux", "amd64", None, layer_b);
+    let config_b_digest = fixture.add_config(&config_b);
+    fixture.add_blob(layer_b, OCI_LAYER_GZIP);
+    let manifest_b = manifest_json(
+        &config_b_digest,
+        config_b.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_b), layer_b.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let b_root = fixture.add_manifest(manifest_b, OCI_MANIFEST);
+
+    // Image C is unreferenced by the lock; it must not be acquired.
+    let (config_c, _layer_c_bytes, _manifest_c) = image_bytes("linux", "amd64", None, layer_c);
+    let config_c_digest = fixture.add_config(&config_c);
+    fixture.add_blob(layer_c, OCI_LAYER_GZIP);
+    let manifest_c = manifest_json(
+        &config_c_digest,
+        config_c.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_c), layer_c.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let c_root = fixture.add_manifest(manifest_c, OCI_MANIFEST);
+    fixture.add_tag("unrelated", &c_root);
+
+    let destination = "docker.io/example/app";
+    let source = format!("{}/example/app:stable", fixture.address);
+    let inventory = write_inventory(
+        dir,
+        &[mirror_entry("app", &source, destination, "\"pinned\"", "\"linux/amd64\"", "snapshot")],
+    );
+    let lock = lock_path(dir);
+    let state = dir.join("state");
+    let output = resolve(&inventory, &lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+
+    let before = fixture.counts();
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let after = fixture.counts();
+    assert_eq!(after.blob_get - before.blob_get, 2, "root layer and attestation payload are acquired");
+    assert_eq!(after.config_get - before.config_get, 2, "image and attestation configs are acquired");
+    let blobs = read_blob_digests(&state);
+    assert!(blobs.contains(&digest(layer_a)));
+    assert!(blobs.contains(&att_layer_digest));
+    assert!(blobs.contains(&config_a_digest));
+    assert!(blobs.contains(&att_config_digest));
+    assert!(!blobs.contains(&digest(layer_b)));
+    assert!(!blobs.contains(&digest(layer_c)));
+
+    let output = myoci_args(&["verify".to_string(), "--state-dir".to_string(), path(&state).to_string()]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+
+    // The second sync transfers zero bodies.
+    let before = fixture.counts();
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let after = fixture.counts();
+    assert_eq!(after.blob_get, before.blob_get);
+    assert_eq!(after.config_get, before.config_get);
+    assert_eq!(after.manifest_get, before.manifest_get);
+
+    // The tag moved to B after the lock; the locked sync must still acquire A.
+    fixture.add_tag("stable", &b_root);
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let blobs = read_blob_digests(&state);
+    assert!(!blobs.contains(&digest(layer_b)), "locked sync acquired the new tag");
+    assert!(blobs.contains(&digest(layer_a)));
+
+    // An attachment added after resolve is not acquired.
+    let att2 = manifest_json(
+        &att_config_digest,
+        att_config.len() as u64,
+        OCI_CONFIG,
+        &[(att_layer_digest.clone(), attestation_layer.len() as u64, IN_TOTO.to_string())],
+        Some((&a_root, a_size, OCI_MANIFEST)),
+        Some("application/vnd.other+json"),
+    );
+    let att2_size = att2.len() as u64;
+    let att2_digest = fixture.add_manifest(att2.clone(), OCI_MANIFEST);
+    fixture.add_referrer(&a_root, referrer_descriptor(OCI_MANIFEST, &att2_digest, att2_size, Some("application/vnd.other+json")));
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert!(!state.join("manifests/sha256").join(att2_digest.trim_start_matches("sha256:")).is_file(),
+        "attachment added after resolve leaked into the acquisition");
+    fixture.add_tag("stable", &a_root);
+    let output = resolve(&inventory, &lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert!(state.join("manifests/sha256").join(att2_digest.trim_start_matches("sha256:")).is_file());
+
+    // Embedded attestations and nested indexes retain the root digest.
+    let graph_fixture = Fixture::new("example/graph");
+    graph_fixture.add_blob(attestation_layer, IN_TOTO);
+    graph_fixture.add_config(&att_config);
+    let (arm_config, _arm_layer, _arm_manifest) = image_bytes("linux", "arm", Some("v8"), b"arm layer bytes");
+    let arm_config_digest = graph_fixture.add_config(&arm_config);
+    let arm_layer_digest = graph_fixture.add_blob(b"arm layer bytes", OCI_LAYER_GZIP);
+    let arm_manifest = manifest_json(
+        &arm_config_digest,
+        arm_config.len() as u64,
+        OCI_CONFIG,
+        &[(arm_layer_digest.clone(), b"arm layer bytes".len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let arm_size = arm_manifest.len() as u64;
+    let arm_root = graph_fixture.add_manifest(arm_manifest.clone(), OCI_MANIFEST);
+    let attestation = manifest_json(
+        &att_config_digest,
+        att_config.len() as u64,
+        OCI_CONFIG,
+        &[(att_layer_digest.clone(), attestation_layer.len() as u64, IN_TOTO.to_string())],
+        Some((&arm_root, arm_size, OCI_MANIFEST)),
+        Some(IN_TOTO),
+    );
+    let attestation_size = attestation.len() as u64;
+    let attestation_digest = graph_fixture.add_manifest(attestation.clone(), OCI_MANIFEST);
+    let root_index = index_json(
+        &[
+            (&arm_root, arm_size, OCI_MANIFEST, Some(("linux", "arm", Some("v8")))),
+            (&attestation_digest, attestation_size, OCI_MANIFEST, Some(("unknown", "unknown", None))),
+        ],
+        None,
+        None,
+    );
+    let graph_root = graph_fixture.add_manifest(root_index, OCI_INDEX);
+    graph_fixture.add_tag("stable", &graph_root);
+    let graph_destination = "docker.io/example/graph";
+    let graph_inventory = write_inventory(
+        &dir.join("graph"),
+        &[mirror_entry("graph", &format!("{}/example/graph:stable", graph_fixture.address), graph_destination, "", "\"linux/arm/v8\"", "snapshot")],
+    );
+    let graph_lock = lock_path(&dir.join("graph"));
+    let graph_state = dir.join("graph-state");
+    let output = resolve(&graph_inventory, &graph_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let output = sync_output(&graph_inventory, &graph_lock, &graph_state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert!(graph_state.join("manifests/sha256").join(graph_root.trim_start_matches("sha256:")).is_file());
+    assert!(graph_state.join("manifests/sha256").join(attestation_digest.trim_start_matches("sha256:")).is_file());
+    assert!(graph_state.join("manifests/sha256").join(arm_root.trim_start_matches("sha256:")).is_file());
+
+    // Offline replay fails with the missing identity, then succeeds after re-acquiring.
+    let missing_blob = digest(layer_a);
+    let blob_path = state.join("blobs/sha256").join(missing_blob.trim_start_matches("sha256:"));
+    let saved = std::fs::read(&blob_path).unwrap();
+    std::fs::remove_file(&blob_path).unwrap();
+    let output = sync_output(&inventory, &lock, &state, &["--offline"]);
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains(&missing_blob), "{stderr}");
+    let output = myoci_args(&["verify".to_string(), "--state-dir".to_string(), path(&state).to_string()]);
+    assert_ne!(output.status.code(), Some(0), "offline failure left a corrupt state that verifies");
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert_eq!(std::fs::read(&blob_path).unwrap(), saved);
+    let output = sync_output(&inventory, &lock, &state, &["--offline"]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+
+    // Historical attachments remain even after they disappear from the registry.
+    fixture.clear_referrers(&a_root);
+    let output = sync_output(&inventory, &lock, &state, &["--offline"]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert!(state.join("manifests/sha256").join(att_digest.trim_start_matches("sha256:")).is_file());
+
+    // A missing descendant is repaired even with the root present.
+    let manifest_path = state.join("manifests/sha256").join(att_digest.trim_start_matches("sha256:"));
+    let saved_manifest = std::fs::read(&manifest_path).unwrap();
+    std::fs::remove_file(&manifest_path).unwrap();
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert_eq!(std::fs::read(&manifest_path).unwrap(), saved_manifest);
+
+    // The shared layer is fetched once across entries in one sync.
+    let dual = Fixture::new("example/dual");
+    let (dual_config_a, _bytes, _manifest) = image_bytes("linux", "amd64", None, layer_a);
+    let dual_config_a_digest = dual.add_config(&dual_config_a);
+    dual.add_blob(layer_a, OCI_LAYER_GZIP);
+    let dual_manifest_a = manifest_json(
+        &dual_config_a_digest,
+        dual_config_a.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_a), layer_a.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let dual_a = dual.add_manifest(dual_manifest_a, OCI_MANIFEST);
+    dual.add_tag("a", &dual_a);
+    let dual_destination = "docker.io/example/dual-a";
+    let dual_inventory = write_inventory(
+        &dir.join("dual"),
+        &[
+            mirror_entry("dual-a", &format!("{}/example/dual:a", dual.address), dual_destination, "", "\"linux/amd64\"", "none"),
+            mirror_entry("dual-a-again", &format!("{}/example/dual:a", dual.address), "docker.io/example/dual-b", "", "\"linux/amd64\"", "none"),
+        ],
+    );
+    let dual_lock = lock_path(&dir.join("dual"));
+    let output = resolve(&dual_inventory, &dual_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let dual_state = dir.join("dual-state");
+    let before = dual.counts();
+    let output = sync_output(&dual_inventory, &dual_lock, &dual_state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let after = dual.counts();
+    assert_eq!(after.blob_get - before.blob_get, 1, "the shared layer is fetched once");
+
+    // Unsupported content fails.
+    let unsupported_fixture = Fixture::new("example/unsupported");
+    let (unsupported_config, _layer, _manifest) = image_bytes("linux", "amd64", None, b"unsupported layer");
+    let unsupported_config_digest = unsupported_fixture.add_config(&unsupported_config);
+    unsupported_fixture.add_blob(b"unsupported layer", OCI_LAYER_GZIP);
+    let unsupported_manifest = manifest_json(
+        &unsupported_config_digest,
+        unsupported_config.len() as u64,
+        OCI_CONFIG,
+        &[(digest(b"unsupported layer"), b"unsupported layer".len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let unsupported_size = unsupported_manifest.len() as u64;
+    let unsupported_root = unsupported_fixture.add_manifest(unsupported_manifest, OCI_MANIFEST);
+    unsupported_fixture.add_tag("stable", &unsupported_root);
+    unsupported_fixture.add_config(&att_config);
+    unsupported_fixture.add_blob(attestation_layer, IN_TOTO);
+    let unsupported_att = manifest_json(
+        &unsupported_config_digest,
+        att_config.len() as u64,
+        OCI_CONFIG,
+        &[(att_layer_digest.clone(), attestation_layer.len() as u64, IN_TOTO.to_string())],
+        Some((&unsupported_root, unsupported_size, OCI_MANIFEST)),
+        Some(IN_TOTO),
+    );
+    let unsupported_att_size = unsupported_att.len() as u64;
+    let unsupported_att_digest = unsupported_fixture.add_manifest(unsupported_att, OCI_MANIFEST);
+    unsupported_fixture.add_referrer(&unsupported_root, referrer_descriptor(OCI_MANIFEST, &unsupported_att_digest, unsupported_att_size, Some(IN_TOTO)));
+    let unsupported = write_inventory(
+        &dir.join("unsupported"),
+        &[mirror_entry("unsupported", &format!("{}/example/unsupported:stable", unsupported_fixture.address), "docker.io/example/unsupported", "", "\"linux/amd64\"", "snapshot")],
+    );
+    let unsupported_lock = lock_path(&dir.join("unsupported"));
+    let unsupported_state = dir.join("unsupported-state");
+    let output = resolve(&unsupported, &unsupported_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let lock_text = std::fs::read_to_string(&unsupported_lock).unwrap();
+    let media_type_line = "media_type = \"application/vnd.oci.image.manifest.v1+json\"";
+    let mut in_referrer = false;
+    let mut replaced = false;
+    let mut lines: Vec<String> = lock_text.lines().map(str::to_string).collect();
+    for line in &mut lines {
+        if line == "[[entries.referrer]]" {
+            in_referrer = true;
+        } else if line.starts_with("[[entries]]") {
+            in_referrer = false;
+        } else if in_referrer && line == media_type_line {
+            *line = "media_type = \"application/vnd.oci.artifact.manifest.v1+json\"".to_string();
+            replaced = true;
+        }
+    }
+    assert!(replaced, "seed lock carried no referrer with the expected media type");
+    std::fs::write(&unsupported_lock, lines.join("\n") + "\n").unwrap();
+    let output = sync_output(&unsupported, &unsupported_lock, &unsupported_state, &[]);
+    assert_ne!(output.status.code(), Some(0));
+
+    // Corrupt content fails before anything is stored.
+    let corrupt_fixture = Fixture::new("example/corrupt");
+    let (corrupt_config, _corrupt_layer, _corrupt_manifest) = image_bytes("linux", "amd64", None, b"corrupt layer");
+    let corrupt_config_digest = corrupt_fixture.add_config(&corrupt_config);
+    corrupt_fixture.add_blob(b"corrupt layer", OCI_LAYER_GZIP);
+    let corrupt_manifest = manifest_json(
+        &corrupt_config_digest,
+        corrupt_config.len() as u64,
+        OCI_CONFIG,
+        &[(digest(b"corrupt layer"), b"corrupt layer".len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let corrupt_root = corrupt_fixture.add_manifest(corrupt_manifest, OCI_MANIFEST);
+    corrupt_fixture.add_tag("stable", &corrupt_root);
+    let corrupt_inventory = write_inventory(
+        &dir.join("corrupt"),
+        &[mirror_entry("corrupt", &format!("{}/example/corrupt:stable", corrupt_fixture.address), "docker.io/example/corrupt", "", "\"linux/amd64\"", "snapshot")],
+    );
+    let corrupt_lock = lock_path(&dir.join("corrupt"));
+    let corrupt_state = dir.join("corrupt-state");
+    let output = resolve(&corrupt_inventory, &corrupt_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    corrupt_fixture.tamper_manifest(&corrupt_root);
+    let output = sync_output(&corrupt_inventory, &corrupt_lock, &corrupt_state, &[]);
+    assert_ne!(output.status.code(), Some(0));
+    let manifest_count = if corrupt_state.join("manifests/sha256").is_dir() {
+        std::fs::read_dir(corrupt_state.join("manifests/sha256")).unwrap().count()
+    } else {
+        0
+    };
+    assert_eq!(manifest_count, 0, "corrupt acquisition stored a manifest");
+}

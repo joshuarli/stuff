@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod acquire;
 pub mod cache;
 pub mod graph;
 pub mod http;

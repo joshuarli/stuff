@@ -276,8 +276,10 @@ fn parse_referrers(table: &toml_edit::Table, context: &str) -> Result<Vec<Locked
         let subject = Digest::parse(&string_field(referrer, "subject", &rctx)?)
             .map_err(|error| Error::Input(format!("{rctx} subject: {error}")))?;
         let media_type = string_field(referrer, "media_type", &rctx)?;
-        if media_type.is_empty() {
-            return Err(Error::Input(format!("{rctx}: media_type must not be empty")));
+        if !stuff_oci::is_manifest_or_index(&media_type) {
+            return Err(Error::Input(format!(
+                "{rctx}: referrer {media_type:?} is not a supported manifest or index media type"
+            )));
         }
         let digest = Digest::parse(&string_field(referrer, "digest", &rctx)?)
             .map_err(|error| Error::Input(format!("{rctx} digest: {error}")))?;

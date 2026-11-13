@@ -132,6 +132,20 @@ impl Fixture {
             .push(descriptor_json);
     }
 
+    pub fn tamper_manifest(&self, digest: &str) {
+        let hex = digest.trim_start_matches("sha256:").to_string();
+        let mut state = self.state.lock().unwrap();
+        if let Some((bytes, media_type)) = state.manifests.get_mut(&hex) {
+            *bytes = b"tampered manifest bytes".to_vec();
+            let _ = media_type;
+        }
+    }
+
+    pub fn clear_referrers(&self, subject: &str) {
+        let hex = subject.trim_start_matches("sha256:").to_string();
+        self.state.lock().unwrap().referrers.remove(&hex);
+    }
+
     pub fn set_referrers_status(&self, status: u16) {
         self.state.lock().unwrap().referrers_status = status;
     }
