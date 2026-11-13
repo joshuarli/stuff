@@ -1,7 +1,11 @@
 use std::io::{BufRead, BufReader, Read, Write};
-use std::net::TcpStream;
+use std::net::{SocketAddr, TcpStream};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::time::Duration;
+
+const READY_LINE_TIMEOUT: Duration = Duration::from_secs(30);
+const IO_TIMEOUT: Duration = Duration::from_secs(30);
 
 const ROOT_DIGEST: &str = "sha256:04237663eeeaf2ee4f6dec1a5d23c8a7c1bc70275cbfa205e6f35377603c6388";
 const ARM64_DIGEST: &str = "sha256:576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4";
@@ -55,10 +59,24 @@ impl Daemon {
             .stderr(Stdio::null())
             .spawn()
             .unwrap();
-        let mut line = String::new();
-        BufReader::new(child.stdout.as_mut().unwrap())
-            .read_line(&mut line)
-            .unwrap();
+        let stdout = child.stdout.take().unwrap();
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let mut line = String::new();
+            let result = BufReader::new(stdout).read_line(&mut line).map(|_| line);
+            let _ = tx.send(result);
+        });
+        let line = match rx.recv_timeout(READY_LINE_TIMEOUT) {
+            Ok(Ok(line)) => line,
+            Ok(Err(error)) => {
+                let _ = child.kill();
+                panic!("could not read the startup line from myoci {args:?}: {error}");
+            }
+            Err(_) => {
+                let _ = child.kill();
+                panic!("myoci {args:?} did not print \"listening on ...\" within {READY_LINE_TIMEOUT:?}");
+            }
+        };
         let address = line
             .trim()
             .strip_prefix("listening on ")
@@ -97,7 +115,13 @@ impl Response {
 }
 
 fn http(address: &str, method: &str, target: &str, headers: &[(&str, &str)], body: &[u8]) -> Response {
-    let mut stream = TcpStream::connect(address).unwrap();
+    let socket: SocketAddr = address
+        .parse()
+        .unwrap_or_else(|error| panic!("invalid address {address:?}: {error}"));
+    let mut stream = TcpStream::connect_timeout(&socket, IO_TIMEOUT)
+        .unwrap_or_else(|error| panic!("could not connect to {address}: {error}"));
+    stream.set_read_timeout(Some(IO_TIMEOUT)).unwrap();
+    stream.set_write_timeout(Some(IO_TIMEOUT)).unwrap();
     let mut request = format!("{method} {target} HTTP/1.1\r\nhost: {address}\r\nconnection: close\r\ncontent-length: {}\r\n", body.len());
     for (name, value) in headers {
         request.push_str(&format!("{name}: {value}\r\n"));
