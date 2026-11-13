@@ -52,7 +52,7 @@
    "display_name": "@napi-rs/wasm-runtime",
    "ecosystem": "npm",
    "name": "@napi-rs/wasm-runtime",
-   "purl": "pkg:npm/%40napi-rs/wasm-runtime"
+   "purl": "pkg:npm/%40napi-rs/wasm-runtime?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcc971cc2994e01b81f663bbde485076b32e7c7d4403ed3cdd981895c8e946eb81e691f507cf8c6ad02fa11191202d9d5080e10fbcdc0a46c9a5f9cdda4268a91.tgz"
   },
   {
    "display_name": "@oxc-project/types",
@@ -289,6 +289,12 @@
    "purl": "pkg:npm/%40pnpm/exe.linux-x64-musl"
   },
   {
+   "display_name": "@pnpm/exe.netbsd-x64",
+   "ecosystem": "npm",
+   "name": "@pnpm/exe.netbsd-x64",
+   "purl": "pkg:npm/%40pnpm/exe.netbsd-x64"
+  },
+  {
    "display_name": "@pnpm/exe.win32-arm64",
    "ecosystem": "npm",
    "name": "@pnpm/exe.win32-arm64",
@@ -397,12 +403,6 @@
    "purl": "pkg:npm/%40rolldown/pluginutils"
   },
   {
-   "display_name": "@solidjs/compiler",
-   "ecosystem": "npm",
-   "name": "@solidjs/compiler",
-   "purl": "pkg:npm/%40solidjs/compiler"
-  },
-  {
    "display_name": "@solidjs/compiler-darwin-arm64",
    "ecosystem": "npm",
    "name": "@solidjs/compiler-darwin-arm64",
@@ -430,13 +430,19 @@
    "display_name": "@solidjs/compiler-wasm32-wasi",
    "ecosystem": "npm",
    "name": "@solidjs/compiler-wasm32-wasi",
-   "purl": "pkg:npm/%40solidjs/compiler-wasm32-wasi"
+   "purl": "pkg:npm/%40solidjs/compiler-wasm32-wasi?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F81079aa83a227b6c2087ca61d938bcf6616206d8559aad045982f91deb08e392b936fbeb96f69fb59b3466ddd595542bbf3efd03b38b2a11d7fb6683e8fbe7cc.tgz"
   },
   {
    "display_name": "@solidjs/compiler-win32-x64-msvc",
    "ecosystem": "npm",
    "name": "@solidjs/compiler-win32-x64-msvc",
    "purl": "pkg:npm/%40solidjs/compiler-win32-x64-msvc"
+  },
+  {
+   "display_name": "@solidjs/compiler",
+   "ecosystem": "npm",
+   "name": "@solidjs/compiler",
+   "purl": "pkg:npm/%40solidjs/compiler?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F9e1239a02471f80ad4c5c26d9deb116fba40acee7385377f85e7f623e7410f5d0c630ad034cedfb690dd355bfb7d087f747e71bea027a56378b548596afa389e.tgz"
   },
   {
    "display_name": "@solidjs/signals",
@@ -448,55 +454,49 @@
    "display_name": "@solidjs/vite-plugin",
    "ecosystem": "npm",
    "name": "@solidjs/vite-plugin",
-   "purl": "pkg:npm/%40solidjs/vite-plugin"
+   "purl": "pkg:npm/%40solidjs/vite-plugin?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz"
   },
   {
    "display_name": "@solidjs/web",
    "ecosystem": "npm",
    "name": "@solidjs/web",
-   "purl": "pkg:npm/%40solidjs/web"
+   "purl": "pkg:npm/%40solidjs/web?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F0021946755c13718879d65b6ef89dafb52597ee221892fc13795ccef6c1528d612a2947f3728d53d1e0efe7bec86d6d894493594a27d775b816970dacfa75d62.tgz"
   },
   {
    "display_name": "@tsrs/darwin-arm64",
    "ecosystem": "npm",
    "name": "@tsrs/darwin-arm64",
-   "purl": "pkg:npm/%40tsrs/darwin-arm64"
+   "purl": "pkg:npm/%40tsrs/darwin-arm64?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Ffa962843e02aa5d52894ee24241425426c3124ea1ce4836ebacc3fd806674787eb7e7c951b36be8049f46ebf19d0b3a4ee792542e20bb8c287f77054de1a47bc.tgz"
   },
   {
    "display_name": "@tsrs/darwin-x64",
    "ecosystem": "npm",
    "name": "@tsrs/darwin-x64",
-   "purl": "pkg:npm/%40tsrs/darwin-x64"
+   "purl": "pkg:npm/%40tsrs/darwin-x64?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F3270f906fe3c4dd21c4e935abec83b3d5e9152ec002a1a33276f4264394aabaa19c068c6ba57102c8dd2a24e8cbef086ed4eafe25f5138d28ef0184d5c2cadbd.tgz"
   },
   {
    "display_name": "@tsrs/linux-arm64-gnu",
    "ecosystem": "npm",
    "name": "@tsrs/linux-arm64-gnu",
-   "purl": "pkg:npm/%40tsrs/linux-arm64-gnu"
+   "purl": "pkg:npm/%40tsrs/linux-arm64-gnu?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F31cfd8b8541aec03c3b97dfd50cafc34c4072a408e984c7c49f5175677b0ede9632472a7524a4b1e9a1015003468a9f322a0c0c6736e757848581d038d9117d8.tgz"
   },
   {
    "display_name": "@tsrs/linux-arm64-musl",
    "ecosystem": "npm",
    "name": "@tsrs/linux-arm64-musl",
-   "purl": "pkg:npm/%40tsrs/linux-arm64-musl"
+   "purl": "pkg:npm/%40tsrs/linux-arm64-musl?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F65367122ffd6e2a8aa0c109770396bf266bbe8908ed034076d4ba4ba1a52a4a1f3dc4da6e450b02dcadafcd4ea0159e2c8b53afd18c838221c0d1a5542faba71.tgz"
   },
   {
    "display_name": "@tsrs/linux-x64-gnu",
    "ecosystem": "npm",
    "name": "@tsrs/linux-x64-gnu",
-   "purl": "pkg:npm/%40tsrs/linux-x64-gnu"
+   "purl": "pkg:npm/%40tsrs/linux-x64-gnu?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F74646fb9bc5641734fddaa30f912e01406d6de9478a10f943dfc2b4a076080a08a28bf6c00fafc9c5198339d095808aa190612c11265e3c033202edb1ee43671.tgz"
   },
   {
    "display_name": "@tsrs/linux-x64-musl",
    "ecosystem": "npm",
    "name": "@tsrs/linux-x64-musl",
-   "purl": "pkg:npm/%40tsrs/linux-x64-musl"
-  },
-  {
-   "display_name": "@tsrs/win32-x64",
-   "ecosystem": "npm",
-   "name": "@tsrs/win32-x64",
-   "purl": "pkg:npm/%40tsrs/win32-x64"
+   "purl": "pkg:npm/%40tsrs/linux-x64-musl?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fce6f3d1d8a5702fdfa5ee5eb12c7f10049864de858e4ad0bdbbfad166273c57d82a8bc248b4017e05180efc172f7bc7c624f24391f0524edb14ef496f6f5c122.tgz"
   },
   {
    "display_name": "@tybys/wasm-util",
@@ -526,7 +526,7 @@
    "display_name": "@vitest/mocker",
    "ecosystem": "npm",
    "name": "@vitest/mocker",
-   "purl": "pkg:npm/%40vitest/mocker"
+   "purl": "pkg:npm/%40vitest/mocker?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz"
   },
   {
    "display_name": "@vitest/spy",
@@ -580,7 +580,7 @@
    "display_name": "fdir",
    "ecosystem": "npm",
    "name": "fdir",
-   "purl": "pkg:npm/fdir"
+   "purl": "pkg:npm/fdir?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb486d8b596ee70eb340511aa3c992c84951874bf920c7edd54cf208f2f84469dd60148cb105244fb4da46a7c87b708d63a7c2b298062c0098cd29e242c90275e.tgz"
   },
   {
    "display_name": "fsevents",
@@ -691,16 +691,16 @@
    "purl": "pkg:npm/obug"
   },
   {
-   "display_name": "oxlint",
-   "ecosystem": "npm",
-   "name": "oxlint",
-   "purl": "pkg:npm/oxlint"
-  },
-  {
    "display_name": "oxlint-tsgolint",
    "ecosystem": "npm",
    "name": "oxlint-tsgolint",
    "purl": "pkg:npm/oxlint-tsgolint"
+  },
+  {
+   "display_name": "oxlint",
+   "ecosystem": "npm",
+   "name": "oxlint",
+   "purl": "pkg:npm/oxlint?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz"
   },
   {
    "display_name": "picocolors",
@@ -754,13 +754,13 @@
    "display_name": "seroval-plugins",
    "ecosystem": "npm",
    "name": "seroval-plugins",
-   "purl": "pkg:npm/seroval-plugins"
+   "purl": "pkg:npm/seroval-plugins?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F58ce2b02b7cfb4b66b893bb10b90c1bcdba513001a45c8cd7bf76430e11eb0e72ebd77f99c4c0a7f9070dc04fdd961e886a71ce39fb9ec676db02b814c8d268f.tgz"
   },
   {
    "display_name": "solid-js",
    "ecosystem": "npm",
    "name": "solid-js",
-   "purl": "pkg:npm/solid-js"
+   "purl": "pkg:npm/solid-js?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F17168423b2c7ba97a116847d8f609f240182a118222a078d9738a2e2ccd44ba9670fc464a5db6f5f593a5851bbd6f9796ec917451b261105405ec6c87a640ebb.tgz"
   },
   {
    "display_name": "source-map-js",
@@ -790,7 +790,7 @@
    "display_name": "tinyglobby",
    "ecosystem": "npm",
    "name": "tinyglobby",
-   "purl": "pkg:npm/tinyglobby"
+   "purl": "pkg:npm/tinyglobby?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fc1747f758a5ca8a99f5a911d66388a24ec023459dd0f40cc9eb5bf7188d51adb449017d581c2c51e836b963e3b9a339589cf72c8dbbae5a96c805e0d4324dada.tgz"
   },
   {
    "display_name": "tslib",
@@ -802,25 +802,25 @@
    "display_name": "tsrs",
    "ecosystem": "npm",
    "name": "tsrs",
-   "purl": "pkg:npm/tsrs"
+   "purl": "pkg:npm/tsrs?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F27b780924ae22301c4c57d93cf04d6e9f949fdf9a0dd4f850d0c264d492f6989a8d368af6baf583e6c456825c660896c103de5d406bada14ac10325ec01ac828.tgz"
   },
   {
    "display_name": "vite",
    "ecosystem": "npm",
    "name": "vite",
-   "purl": "pkg:npm/vite"
+   "purl": "pkg:npm/vite?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz"
   },
   {
    "display_name": "vitefu",
    "ecosystem": "npm",
    "name": "vitefu",
-   "purl": "pkg:npm/vitefu"
+   "purl": "pkg:npm/vitefu?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb9be28907ed9e4a2e36fa843ca3aab197a96b56be861d5372069bf368ae98079dc2a82d309f4486ef961066eebd18b2d21a411625a78c846c5a8370a4b35d24a.tgz"
   },
   {
    "display_name": "vitest",
    "ecosystem": "npm",
    "name": "vitest",
-   "purl": "pkg:npm/vitest"
+   "purl": "pkg:npm/vitest?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz"
   },
   {
    "display_name": "why-is-node-running",
@@ -875,8 +875,8 @@
    "resolution": "resolved",
    "resolved_version": "3.0.0-next.57",
    "scope": "dev",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)"
+   "source_kind": "url",
+   "to": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)"
   },
   {
    "condition": null,
@@ -893,26 +893,8 @@
    "resolution": "resolved",
    "resolved_version": "2.0.0-rc.20",
    "scope": "dev",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40solidjs/web@2.0.0-rc.20#(solid-js@2.0.0-rc.20)"
-  },
-  {
-   "condition": null,
-   "constraint": "7.0.2006",
-   "evidence": [
-    {
-     "locator": "importers[.].devDependencies.oxlint-tsgolint",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": ".:npm",
-   "optional": false,
-   "relation": "direct",
-   "resolution": "resolved",
-   "resolved_version": "7.0.2006",
-   "scope": "dev",
-   "source_kind": "registry",
-   "to": "pkg:npm/oxlint-tsgolint@7.0.2006#"
+   "source_kind": "url",
+   "to": "pkg:npm/%40solidjs/web@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F0021946755c13718879d65b6ef89dafb52597ee221892fc13795ccef6c1528d612a2947f3728d53d1e0efe7bec86d6d894493594a27d775b816970dacfa75d62.tgz#(solid-js@2.0.0-rc.20)"
   },
   {
    "condition": null,
@@ -929,12 +911,12 @@
    "resolution": "resolved",
    "resolved_version": "1.93.0",
    "scope": "dev",
-   "source_kind": "registry",
-   "to": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)"
+   "source_kind": "url",
+   "to": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)"
   },
   {
    "condition": null,
-   "constraint": "12.18.0",
+   "constraint": "12.20.0",
    "evidence": [
     {
      "locator": "importers[.].packageManagerDependencies.pnpm",
@@ -945,10 +927,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "toolchain",
    "source_kind": "registry",
-   "to": "pkg:npm/pnpm@12.18.0#"
+   "to": "pkg:npm/pnpm@12.20.0#"
   },
   {
    "condition": null,
@@ -965,12 +947,12 @@
    "resolution": "resolved",
    "resolved_version": "2.0.0-rc.20",
    "scope": "dev",
-   "source_kind": "registry",
-   "to": "pkg:npm/solid-js@2.0.0-rc.20#"
+   "source_kind": "url",
+   "to": "pkg:npm/solid-js@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F17168423b2c7ba97a116847d8f609f240182a118222a078d9738a2e2ccd44ba9670fc464a5db6f5f593a5851bbd6f9796ec917451b261105405ec6c87a640ebb.tgz#"
   },
   {
    "condition": null,
-   "constraint": "0.24.0-ts7.1.0-beta",
+   "constraint": "0.25.0-ts7.1.0-beta",
    "evidence": [
     {
      "locator": "importers[.].devDependencies.tsrs",
@@ -981,10 +963,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-ts7.1.0-beta",
+   "resolved_version": "0.25.0-ts7.1.0-beta",
    "scope": "dev",
-   "source_kind": "registry",
-   "to": "pkg:npm/tsrs@0.24.0-ts7.1.0-beta#"
+   "source_kind": "url",
+   "to": "pkg:npm/tsrs@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F27b780924ae22301c4c57d93cf04d6e9f949fdf9a0dd4f850d0c264d492f6989a8d368af6baf583e6c456825c660896c103de5d406bada14ac10325ec01ac828.tgz#"
   },
   {
    "condition": null,
@@ -1001,8 +983,8 @@
    "resolution": "resolved",
    "resolved_version": "8.3.8",
    "scope": "dev",
-   "source_kind": "registry",
-   "to": "pkg:npm/vite@8.3.8#"
+   "source_kind": "url",
+   "to": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz#"
   },
   {
    "condition": null,
@@ -1019,12 +1001,12 @@
    "resolution": "resolved",
    "resolved_version": "5.1.0",
    "scope": "dev",
-   "source_kind": "registry",
-   "to": "pkg:npm/vitest@5.1.0#(vite@8.3.8)"
+   "source_kind": "url",
+   "to": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)"
   },
   {
    "condition": null,
-   "constraint": "26.13.0",
+   "constraint": "26.13.1",
    "evidence": [
     {
      "locator": "L1",
@@ -1035,14 +1017,14 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "26.13.0",
+   "resolved_version": "26.13.1",
    "scope": "toolchain",
    "source_kind": "url",
-   "to": "pkg:toolchain/node@26.13.0#"
+   "to": "pkg:toolchain/node@26.13.1#"
   },
   {
    "condition": null,
-   "constraint": "pnpm@12.18.0",
+   "constraint": "pnpm@12.20.0",
    "evidence": [
     {
      "locator": "packageManager",
@@ -1053,10 +1035,10 @@
    "optional": false,
    "relation": "direct",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "toolchain",
    "source_kind": "url",
-   "to": "pkg:toolchain/pnpm@12.18.0#"
+   "to": "pkg:toolchain/pnpm@12.20.0#"
   },
   {
    "condition": null,
@@ -1247,7 +1229,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7#(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)",
+   "from": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcc971cc2994e01b81f663bbde485076b32e7c7d4403ed3cdd981895c8e946eb81e691f507cf8c6ad02fa11191202d9d5080e10fbcdc0a46c9a5f9cdda4268a91.tgz#(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1265,7 +1247,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7#(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)",
+   "from": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcc971cc2994e01b81f663bbde485076b32e7c7d4403ed3cdd981895c8e946eb81e691f507cf8c6ad02fa11191202d9d5080e10fbcdc0a46c9a5f9cdda4268a91.tgz#(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1283,7 +1265,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7#(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)",
+   "from": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcc971cc2994e01b81f663bbde485076b32e7c7d4403ed3cdd981895c8e946eb81e691f507cf8c6ad02fa11191202d9d5080e10fbcdc0a46c9a5f9cdda4268a91.tgz#(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1319,7 +1301,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/compiler-wasm32-wasi@2.0.0-rc.21#",
+   "from": "pkg:npm/%40solidjs/compiler-wasm32-wasi@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F81079aa83a227b6c2087ca61d938bcf6616206d8559aad045982f91deb08e392b936fbeb96f69fb59b3466ddd595542bbf3efd03b38b2a11d7fb6683e8fbe7cc.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1337,7 +1319,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/compiler-wasm32-wasi@2.0.0-rc.21#",
+   "from": "pkg:npm/%40solidjs/compiler-wasm32-wasi@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F81079aa83a227b6c2087ca61d938bcf6616206d8559aad045982f91deb08e392b936fbeb96f69fb59b3466ddd595542bbf3efd03b38b2a11d7fb6683e8fbe7cc.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1355,14 +1337,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/compiler-wasm32-wasi@2.0.0-rc.21#",
+   "from": "pkg:npm/%40solidjs/compiler-wasm32-wasi@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F81079aa83a227b6c2087ca61d938bcf6616206d8559aad045982f91deb08e392b936fbeb96f69fb59b3466ddd595542bbf3efd03b38b2a11d7fb6683e8fbe7cc.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "1.2.7",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7#(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)"
+   "source_kind": "url",
+   "to": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcc971cc2994e01b81f663bbde485076b32e7c7d4403ed3cdd981895c8e946eb81e691f507cf8c6ad02fa11191202d9d5080e10fbcdc0a46c9a5f9cdda4268a91.tgz#(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)"
   },
   {
    "condition": null,
@@ -1373,7 +1355,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21#",
+   "from": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F9e1239a02471f80ad4c5c26d9deb116fba40acee7385377f85e7f623e7410f5d0c630ad034cedfb690dd355bfb7d087f747e71bea027a56378b548596afa389e.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1391,7 +1373,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21#",
+   "from": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F9e1239a02471f80ad4c5c26d9deb116fba40acee7385377f85e7f623e7410f5d0c630ad034cedfb690dd355bfb7d087f747e71bea027a56378b548596afa389e.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1409,7 +1391,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21#",
+   "from": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F9e1239a02471f80ad4c5c26d9deb116fba40acee7385377f85e7f623e7410f5d0c630ad034cedfb690dd355bfb7d087f747e71bea027a56378b548596afa389e.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1427,7 +1409,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21#",
+   "from": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F9e1239a02471f80ad4c5c26d9deb116fba40acee7385377f85e7f623e7410f5d0c630ad034cedfb690dd355bfb7d087f747e71bea027a56378b548596afa389e.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1445,14 +1427,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21#",
+   "from": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F9e1239a02471f80ad4c5c26d9deb116fba40acee7385377f85e7f623e7410f5d0c630ad034cedfb690dd355bfb7d087f747e71bea027a56378b548596afa389e.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "2.0.0-rc.21",
    "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40solidjs/compiler-wasm32-wasi@2.0.0-rc.21#"
+   "source_kind": "url",
+   "to": "pkg:npm/%40solidjs/compiler-wasm32-wasi@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F81079aa83a227b6c2087ca61d938bcf6616206d8559aad045982f91deb08e392b936fbeb96f69fb59b3466ddd595542bbf3efd03b38b2a11d7fb6683e8fbe7cc.tgz#"
   },
   {
    "condition": null,
@@ -1463,7 +1445,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21#",
+   "from": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F9e1239a02471f80ad4c5c26d9deb116fba40acee7385377f85e7f623e7410f5d0c630ad034cedfb690dd355bfb7d087f747e71bea027a56378b548596afa389e.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1481,7 +1463,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1499,14 +1481,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "2.0.0-rc.21",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21#"
+   "source_kind": "url",
+   "to": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F9e1239a02471f80ad4c5c26d9deb116fba40acee7385377f85e7f623e7410f5d0c630ad034cedfb690dd355bfb7d087f747e71bea027a56378b548596afa389e.tgz#"
   },
   {
    "condition": null,
@@ -1517,14 +1499,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "2.0.0-rc.20",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40solidjs/web@2.0.0-rc.20#(solid-js@2.0.0-rc.20)"
+   "source_kind": "url",
+   "to": "pkg:npm/%40solidjs/web@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F0021946755c13718879d65b6ef89dafb52597ee221892fc13795ccef6c1528d612a2947f3728d53d1e0efe7bec86d6d894493594a27d775b816970dacfa75d62.tgz#(solid-js@2.0.0-rc.20)"
   },
   {
    "condition": null,
@@ -1535,7 +1517,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1553,7 +1535,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1571,14 +1553,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "2.0.0-rc.20",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/solid-js@2.0.0-rc.20#"
+   "source_kind": "url",
+   "to": "pkg:npm/solid-js@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F17168423b2c7ba97a116847d8f609f240182a118222a078d9738a2e2ccd44ba9670fc464a5db6f5f593a5851bbd6f9796ec917451b261105405ec6c87a640ebb.tgz#"
   },
   {
    "condition": null,
@@ -1589,14 +1571,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "8.3.8",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/vite@8.3.8#"
+   "source_kind": "url",
+   "to": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz#"
   },
   {
    "condition": null,
@@ -1607,14 +1589,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
+   "from": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "1.1.3",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/vitefu@1.1.3#(vite@8.3.8)"
+   "source_kind": "url",
+   "to": "pkg:npm/vitefu@1.1.3?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb9be28907ed9e4a2e36fa843ca3aab197a96b56be861d5372069bf368ae98079dc2a82d309f4486ef961066eebd18b2d21a411625a78c846c5a8370a4b35d24a.tgz#(vite@8.3.8)"
   },
   {
    "condition": null,
@@ -1625,14 +1607,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/web@2.0.0-rc.20#(solid-js@2.0.0-rc.20)",
+   "from": "pkg:npm/%40solidjs/web@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F0021946755c13718879d65b6ef89dafb52597ee221892fc13795ccef6c1528d612a2947f3728d53d1e0efe7bec86d6d894493594a27d775b816970dacfa75d62.tgz#(solid-js@2.0.0-rc.20)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "1.7.0",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/seroval-plugins@1.7.0#(seroval@1.7.0)"
+   "source_kind": "url",
+   "to": "pkg:npm/seroval-plugins@1.7.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F58ce2b02b7cfb4b66b893bb10b90c1bcdba513001a45c8cd7bf76430e11eb0e72ebd77f99c4c0a7f9070dc04fdd961e886a71ce39fb9ec676db02b814c8d268f.tgz#(seroval@1.7.0)"
   },
   {
    "condition": null,
@@ -1643,7 +1625,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/web@2.0.0-rc.20#(solid-js@2.0.0-rc.20)",
+   "from": "pkg:npm/%40solidjs/web@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F0021946755c13718879d65b6ef89dafb52597ee221892fc13795ccef6c1528d612a2947f3728d53d1e0efe7bec86d6d894493594a27d775b816970dacfa75d62.tgz#(solid-js@2.0.0-rc.20)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1661,14 +1643,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40solidjs/web@2.0.0-rc.20#(solid-js@2.0.0-rc.20)",
+   "from": "pkg:npm/%40solidjs/web@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F0021946755c13718879d65b6ef89dafb52597ee221892fc13795ccef6c1528d612a2947f3728d53d1e0efe7bec86d6d894493594a27d775b816970dacfa75d62.tgz#(solid-js@2.0.0-rc.20)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "2.0.0-rc.20",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/solid-js@2.0.0-rc.20#"
+   "source_kind": "url",
+   "to": "pkg:npm/solid-js@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F17168423b2c7ba97a116847d8f609f240182a118222a078d9738a2e2ccd44ba9670fc464a5db6f5f593a5851bbd6f9796ec917451b261105405ec6c87a640ebb.tgz#"
   },
   {
    "condition": null,
@@ -1733,7 +1715,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/%40vitest/mocker@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1751,7 +1733,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/%40vitest/mocker@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1769,7 +1751,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/%40vitest/mocker@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1787,7 +1769,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/%40vitest/mocker@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -1805,14 +1787,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/%40vitest/mocker@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz#(vite@8.3.8)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "8.3.8",
    "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/vite@8.3.8#"
+   "source_kind": "url",
+   "to": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz#"
   },
   {
    "condition": null,
@@ -1841,7 +1823,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/fdir@6.5.0#(picomatch@4.0.7)",
+   "from": "pkg:npm/fdir@6.5.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb486d8b596ee70eb340511aa3c992c84951874bf920c7edd54cf208f2f84469dd60148cb105244fb4da46a7c87b708d63a7c2b298062c0098cd29e242c90275e.tgz#(picomatch@4.0.7)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2237,7 +2219,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2255,7 +2237,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2273,7 +2255,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2291,7 +2273,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2309,7 +2291,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2327,7 +2309,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2345,7 +2327,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2363,7 +2345,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2381,7 +2363,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2399,7 +2381,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2417,7 +2399,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2435,7 +2417,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2453,7 +2435,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2471,7 +2453,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2489,7 +2471,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2507,7 +2489,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2525,7 +2507,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2543,7 +2525,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2561,7 +2543,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2579,7 +2561,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
+   "from": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -2611,252 +2593,270 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.android-arm64'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.android-arm64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.android-arm64@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.android-arm64@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.android-x64'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.android-x64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.android-x64@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.android-x64@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.darwin-arm64'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.darwin-arm64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.darwin-arm64@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.darwin-arm64@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.darwin-x64'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.darwin-x64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.darwin-x64@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.darwin-x64@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.freebsd-x64'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.freebsd-x64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.freebsd-x64@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.freebsd-x64@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.linux-arm64-musl'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.linux-arm64-musl'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.linux-arm64-musl@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.linux-arm64-musl@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.linux-arm64'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.linux-arm64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.linux-arm64@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.linux-arm64@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.linux-ppc64'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.linux-ppc64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.linux-ppc64@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.linux-ppc64@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.linux-riscv64'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.linux-riscv64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.linux-riscv64@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.linux-riscv64@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.linux-s390x'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.linux-s390x'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.linux-s390x@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.linux-s390x@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.linux-x64-musl'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.linux-x64-musl'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.linux-x64-musl@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.linux-x64-musl@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.linux-x64'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.linux-x64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.linux-x64@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.linux-x64@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.win32-arm64'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.netbsd-x64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.win32-arm64@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.netbsd-x64@12.20.0#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[pnpm@12.18.0].optionalDependencies.'@pnpm/exe.win32-x64'",
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.win32-arm64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/pnpm@12.18.0#",
+   "from": "pkg:npm/pnpm@12.20.0#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "12.18.0",
+   "resolved_version": "12.20.0",
    "scope": "optional",
    "source_kind": "registry",
-   "to": "pkg:npm/%40pnpm/exe.win32-x64@12.18.0#"
+   "to": "pkg:npm/%40pnpm/exe.win32-arm64@12.20.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "snapshots[pnpm@12.20.0].optionalDependencies.'@pnpm/exe.win32-x64'",
+     "path": "pnpm-lock.yaml"
+    }
+   ],
+   "from": "pkg:npm/pnpm@12.20.0#",
+   "optional": true,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "12.20.0",
+   "scope": "optional",
+   "source_kind": "registry",
+   "to": "pkg:npm/%40pnpm/exe.win32-x64@12.20.0#"
   },
   {
    "condition": null,
@@ -3227,7 +3227,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/seroval-plugins@1.7.0#(seroval@1.7.0)",
+   "from": "pkg:npm/seroval-plugins@1.7.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F58ce2b02b7cfb4b66b893bb10b90c1bcdba513001a45c8cd7bf76430e11eb0e72ebd77f99c4c0a7f9070dc04fdd961e886a71ce39fb9ec676db02b814c8d268f.tgz#(seroval@1.7.0)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3245,7 +3245,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/solid-js@2.0.0-rc.20#",
+   "from": "pkg:npm/solid-js@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F17168423b2c7ba97a116847d8f609f240182a118222a078d9738a2e2ccd44ba9670fc464a5db6f5f593a5851bbd6f9796ec917451b261105405ec6c87a640ebb.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3263,7 +3263,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/solid-js@2.0.0-rc.20#",
+   "from": "pkg:npm/solid-js@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F17168423b2c7ba97a116847d8f609f240182a118222a078d9738a2e2ccd44ba9670fc464a5db6f5f593a5851bbd6f9796ec917451b261105405ec6c87a640ebb.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3281,14 +3281,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/solid-js@2.0.0-rc.20#",
+   "from": "pkg:npm/solid-js@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F17168423b2c7ba97a116847d8f609f240182a118222a078d9738a2e2ccd44ba9670fc464a5db6f5f593a5851bbd6f9796ec917451b261105405ec6c87a640ebb.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "1.7.0",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/seroval-plugins@1.7.0#(seroval@1.7.0)"
+   "source_kind": "url",
+   "to": "pkg:npm/seroval-plugins@1.7.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F58ce2b02b7cfb4b66b893bb10b90c1bcdba513001a45c8cd7bf76430e11eb0e72ebd77f99c4c0a7f9070dc04fdd961e886a71ce39fb9ec676db02b814c8d268f.tgz#(seroval@1.7.0)"
   },
   {
    "condition": null,
@@ -3299,7 +3299,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/solid-js@2.0.0-rc.20#",
+   "from": "pkg:npm/solid-js@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F17168423b2c7ba97a116847d8f609f240182a118222a078d9738a2e2ccd44ba9670fc464a5db6f5f593a5851bbd6f9796ec917451b261105405ec6c87a640ebb.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3317,14 +3317,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/tinyglobby@0.2.17#",
+   "from": "pkg:npm/tinyglobby@0.2.17?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fc1747f758a5ca8a99f5a911d66388a24ec023459dd0f40cc9eb5bf7188d51adb449017d581c2c51e836b963e3b9a339589cf72c8dbbae5a96c805e0d4324dada.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "6.5.0",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/fdir@6.5.0#(picomatch@4.0.7)"
+   "source_kind": "url",
+   "to": "pkg:npm/fdir@6.5.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb486d8b596ee70eb340511aa3c992c84951874bf920c7edd54cf208f2f84469dd60148cb105244fb4da46a7c87b708d63a7c2b298062c0098cd29e242c90275e.tgz#(picomatch@4.0.7)"
   },
   {
    "condition": null,
@@ -3335,7 +3335,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/tinyglobby@0.2.17#",
+   "from": "pkg:npm/tinyglobby@0.2.17?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fc1747f758a5ca8a99f5a911d66388a24ec023459dd0f40cc9eb5bf7188d51adb449017d581c2c51e836b963e3b9a339589cf72c8dbbae5a96c805e0d4324dada.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3349,126 +3349,108 @@
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[tsrs@0.24.0-ts7.1.0-beta].optionalDependencies.'@tsrs/darwin-arm64'",
+     "locator": "snapshots[tsrs@0.25.0-ts7.1.0-beta].optionalDependencies.'@tsrs/darwin-arm64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/tsrs@0.24.0-ts7.1.0-beta#",
+   "from": "pkg:npm/tsrs@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F27b780924ae22301c4c57d93cf04d6e9f949fdf9a0dd4f850d0c264d492f6989a8d368af6baf583e6c456825c660896c103de5d406bada14ac10325ec01ac828.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-ts7.1.0-beta",
+   "resolved_version": "0.25.0-ts7.1.0-beta",
    "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40tsrs/darwin-arm64@0.24.0-ts7.1.0-beta#"
+   "source_kind": "url",
+   "to": "pkg:npm/%40tsrs/darwin-arm64@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Ffa962843e02aa5d52894ee24241425426c3124ea1ce4836ebacc3fd806674787eb7e7c951b36be8049f46ebf19d0b3a4ee792542e20bb8c287f77054de1a47bc.tgz#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[tsrs@0.24.0-ts7.1.0-beta].optionalDependencies.'@tsrs/darwin-x64'",
+     "locator": "snapshots[tsrs@0.25.0-ts7.1.0-beta].optionalDependencies.'@tsrs/darwin-x64'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/tsrs@0.24.0-ts7.1.0-beta#",
+   "from": "pkg:npm/tsrs@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F27b780924ae22301c4c57d93cf04d6e9f949fdf9a0dd4f850d0c264d492f6989a8d368af6baf583e6c456825c660896c103de5d406bada14ac10325ec01ac828.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-ts7.1.0-beta",
+   "resolved_version": "0.25.0-ts7.1.0-beta",
    "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40tsrs/darwin-x64@0.24.0-ts7.1.0-beta#"
+   "source_kind": "url",
+   "to": "pkg:npm/%40tsrs/darwin-x64@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F3270f906fe3c4dd21c4e935abec83b3d5e9152ec002a1a33276f4264394aabaa19c068c6ba57102c8dd2a24e8cbef086ed4eafe25f5138d28ef0184d5c2cadbd.tgz#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[tsrs@0.24.0-ts7.1.0-beta].optionalDependencies.'@tsrs/linux-arm64-gnu'",
+     "locator": "snapshots[tsrs@0.25.0-ts7.1.0-beta].optionalDependencies.'@tsrs/linux-arm64-gnu'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/tsrs@0.24.0-ts7.1.0-beta#",
+   "from": "pkg:npm/tsrs@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F27b780924ae22301c4c57d93cf04d6e9f949fdf9a0dd4f850d0c264d492f6989a8d368af6baf583e6c456825c660896c103de5d406bada14ac10325ec01ac828.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-ts7.1.0-beta",
+   "resolved_version": "0.25.0-ts7.1.0-beta",
    "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40tsrs/linux-arm64-gnu@0.24.0-ts7.1.0-beta#"
+   "source_kind": "url",
+   "to": "pkg:npm/%40tsrs/linux-arm64-gnu@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F31cfd8b8541aec03c3b97dfd50cafc34c4072a408e984c7c49f5175677b0ede9632472a7524a4b1e9a1015003468a9f322a0c0c6736e757848581d038d9117d8.tgz#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[tsrs@0.24.0-ts7.1.0-beta].optionalDependencies.'@tsrs/linux-arm64-musl'",
+     "locator": "snapshots[tsrs@0.25.0-ts7.1.0-beta].optionalDependencies.'@tsrs/linux-arm64-musl'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/tsrs@0.24.0-ts7.1.0-beta#",
+   "from": "pkg:npm/tsrs@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F27b780924ae22301c4c57d93cf04d6e9f949fdf9a0dd4f850d0c264d492f6989a8d368af6baf583e6c456825c660896c103de5d406bada14ac10325ec01ac828.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-ts7.1.0-beta",
+   "resolved_version": "0.25.0-ts7.1.0-beta",
    "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40tsrs/linux-arm64-musl@0.24.0-ts7.1.0-beta#"
+   "source_kind": "url",
+   "to": "pkg:npm/%40tsrs/linux-arm64-musl@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F65367122ffd6e2a8aa0c109770396bf266bbe8908ed034076d4ba4ba1a52a4a1f3dc4da6e450b02dcadafcd4ea0159e2c8b53afd18c838221c0d1a5542faba71.tgz#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[tsrs@0.24.0-ts7.1.0-beta].optionalDependencies.'@tsrs/linux-x64-gnu'",
+     "locator": "snapshots[tsrs@0.25.0-ts7.1.0-beta].optionalDependencies.'@tsrs/linux-x64-gnu'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/tsrs@0.24.0-ts7.1.0-beta#",
+   "from": "pkg:npm/tsrs@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F27b780924ae22301c4c57d93cf04d6e9f949fdf9a0dd4f850d0c264d492f6989a8d368af6baf583e6c456825c660896c103de5d406bada14ac10325ec01ac828.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-ts7.1.0-beta",
+   "resolved_version": "0.25.0-ts7.1.0-beta",
    "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40tsrs/linux-x64-gnu@0.24.0-ts7.1.0-beta#"
+   "source_kind": "url",
+   "to": "pkg:npm/%40tsrs/linux-x64-gnu@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F74646fb9bc5641734fddaa30f912e01406d6de9478a10f943dfc2b4a076080a08a28bf6c00fafc9c5198339d095808aa190612c11265e3c033202edb1ee43671.tgz#"
   },
   {
    "condition": null,
    "constraint": null,
    "evidence": [
     {
-     "locator": "snapshots[tsrs@0.24.0-ts7.1.0-beta].optionalDependencies.'@tsrs/linux-x64-musl'",
+     "locator": "snapshots[tsrs@0.25.0-ts7.1.0-beta].optionalDependencies.'@tsrs/linux-x64-musl'",
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/tsrs@0.24.0-ts7.1.0-beta#",
+   "from": "pkg:npm/tsrs@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F27b780924ae22301c4c57d93cf04d6e9f949fdf9a0dd4f850d0c264d492f6989a8d368af6baf583e6c456825c660896c103de5d406bada14ac10325ec01ac828.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
-   "resolved_version": "0.24.0-ts7.1.0-beta",
+   "resolved_version": "0.25.0-ts7.1.0-beta",
    "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40tsrs/linux-x64-musl@0.24.0-ts7.1.0-beta#"
-  },
-  {
-   "condition": null,
-   "constraint": null,
-   "evidence": [
-    {
-     "locator": "snapshots[tsrs@0.24.0-ts7.1.0-beta].optionalDependencies.'@tsrs/win32-x64'",
-     "path": "pnpm-lock.yaml"
-    }
-   ],
-   "from": "pkg:npm/tsrs@0.24.0-ts7.1.0-beta#",
-   "optional": true,
-   "relation": "transitive",
-   "resolution": "resolved",
-   "resolved_version": "0.24.0-ts7.1.0-beta",
-   "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40tsrs/win32-x64@0.24.0-ts7.1.0-beta#"
+   "source_kind": "url",
+   "to": "pkg:npm/%40tsrs/linux-x64-musl@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fce6f3d1d8a5702fdfa5ee5eb12c7f10049864de858e4ad0bdbbfad166273c57d82a8bc248b4017e05180efc172f7bc7c624f24391f0524edb14ef496f6f5c122.tgz#"
   },
   {
    "condition": null,
@@ -3479,7 +3461,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vite@8.3.8#",
+   "from": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz#",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3497,7 +3479,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vite@8.3.8#",
+   "from": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3515,7 +3497,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vite@8.3.8#",
+   "from": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3533,7 +3515,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vite@8.3.8#",
+   "from": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3551,7 +3533,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vite@8.3.8#",
+   "from": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3569,14 +3551,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vite@8.3.8#",
+   "from": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz#",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "0.2.17",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/tinyglobby@0.2.17#"
+   "source_kind": "url",
+   "to": "pkg:npm/tinyglobby@0.2.17?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fc1747f758a5ca8a99f5a911d66388a24ec023459dd0f40cc9eb5bf7188d51adb449017d581c2c51e836b963e3b9a339589cf72c8dbbae5a96c805e0d4324dada.tgz#"
   },
   {
    "condition": null,
@@ -3587,14 +3569,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitefu@1.1.3#(vite@8.3.8)",
+   "from": "pkg:npm/vitefu@1.1.3?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb9be28907ed9e4a2e36fa843ca3aab197a96b56be861d5372069bf368ae98079dc2a82d309f4486ef961066eebd18b2d21a411625a78c846c5a8370a4b35d24a.tgz#(vite@8.3.8)",
    "optional": true,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "8.3.8",
    "scope": "optional",
-   "source_kind": "registry",
-   "to": "pkg:npm/vite@8.3.8#"
+   "source_kind": "url",
+   "to": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz#"
   },
   {
    "condition": null,
@@ -3605,7 +3587,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3623,14 +3605,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "5.1.0",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)"
+   "source_kind": "url",
+   "to": "pkg:npm/%40vitest/mocker@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz#(vite@8.3.8)"
   },
   {
    "condition": null,
@@ -3641,7 +3623,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3659,7 +3641,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3677,7 +3659,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3695,7 +3677,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3713,7 +3695,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3731,7 +3713,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3749,7 +3731,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3767,7 +3749,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3785,7 +3767,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3803,14 +3785,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "0.2.17",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/tinyglobby@0.2.17#"
+   "source_kind": "url",
+   "to": "pkg:npm/tinyglobby@0.2.17?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fc1747f758a5ca8a99f5a911d66388a24ec023459dd0f40cc9eb5bf7188d51adb449017d581c2c51e836b963e3b9a339589cf72c8dbbae5a96c805e0d4324dada.tgz#"
   },
   {
    "condition": null,
@@ -3821,14 +3803,14 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
    "resolved_version": "8.3.8",
    "scope": "runtime",
-   "source_kind": "registry",
-   "to": "pkg:npm/vite@8.3.8#"
+   "source_kind": "url",
+   "to": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz#"
   },
   {
    "condition": null,
@@ -3839,7 +3821,7 @@
      "path": "pnpm-lock.yaml"
     }
    ],
-   "from": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
+   "from": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
    "optional": false,
    "relation": "transitive",
    "resolution": "resolved",
@@ -3851,7 +3833,7 @@
  ],
  "inputs": [
   {
-   "blob": "1dda03ddb06ad1c7da5b913539290187eb7fc5aa",
+   "blob": "a2e8115a72f5caabe937810c73de1f7f637f7fe3",
    "path": ".node-version"
   },
   {
@@ -3859,15 +3841,15 @@
    "path": "Makefile"
   },
   {
-   "blob": "20d8525ccec4d52311f2d5e460917f7efd51e980",
+   "blob": "2c28df038803ecc788c5eddc09b7ba9bcda2619d",
    "path": "package.json"
   },
   {
-   "blob": "d6cf1ad716080b562cd24f3b346a1dad352bdfa0",
+   "blob": "04d7a45383d9050c1efe1215f71b7a8af5968e15",
    "path": "pnpm-lock.yaml"
   }
  ],
- "inputs_fingerprint": "02da5cf75ded3eb12549256840b0da7f58a2530b346060fd2a275ea31b02a267",
+ "inputs_fingerprint": "3dfaa2baad20cbf527e26d75ccdb8dbb1f5bf9d24d98226786199fca2c9c09ad",
  "instances": [
   {
    "commit": null,
@@ -3975,27 +3957,27 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40napi-rs/wasm-runtime",
+   "component": "pkg:npm/%40napi-rs/wasm-runtime?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcc971cc2994e01b81f663bbde485076b32e7c7d4403ed3cdd981895c8e946eb81e691f507cf8c6ad02fa11191202d9d5080e10fbcdc0a46c9a5f9cdda4268a91.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7#",
-   "purl": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcc971cc2994e01b81f663bbde485076b32e7c7d4403ed3cdd981895c8e946eb81e691f507cf8c6ad02fa11191202d9d5080e10fbcdc0a46c9a5f9cdda4268a91.tgz#",
+   "purl": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcc971cc2994e01b81f663bbde485076b32e7c7d4403ed3cdd981895c8e946eb81e691f507cf8c6ad02fa11191202d9d5080e10fbcdc0a46c9a5f9cdda4268a91.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "1.2.7"
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40napi-rs/wasm-runtime",
+   "component": "pkg:npm/%40napi-rs/wasm-runtime?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcc971cc2994e01b81f663bbde485076b32e7c7d4403ed3cdd981895c8e946eb81e691f507cf8c6ad02fa11191202d9d5080e10fbcdc0a46c9a5f9cdda4268a91.tgz",
    "context": "(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)",
    "first_party": false,
-   "id": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7#(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)",
-   "purl": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcc971cc2994e01b81f663bbde485076b32e7c7d4403ed3cdd981895c8e946eb81e691f507cf8c6ad02fa11191202d9d5080e10fbcdc0a46c9a5f9cdda4268a91.tgz#(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)",
+   "purl": "pkg:npm/%40napi-rs/wasm-runtime@1.2.7?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcc971cc2994e01b81f663bbde485076b32e7c7d4403ed3cdd981895c8e946eb81e691f507cf8c6ad02fa11191202d9d5080e10fbcdc0a46c9a5f9cdda4268a91.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "1.2.7"
   },
@@ -4355,182 +4337,195 @@
    "component": "pkg:npm/%40pnpm/exe.android-arm64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.android-arm64@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.android-arm64@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.android-arm64@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.android-arm64@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.android-x64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.android-x64@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.android-x64@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.android-x64@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.android-x64@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.darwin-arm64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.darwin-arm64@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.darwin-arm64@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.darwin-arm64@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.darwin-arm64@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.darwin-x64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.darwin-x64@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.darwin-x64@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.darwin-x64@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.darwin-x64@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.freebsd-x64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.freebsd-x64@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.freebsd-x64@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.freebsd-x64@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.freebsd-x64@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.linux-arm64-musl",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.linux-arm64-musl@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.linux-arm64-musl@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.linux-arm64-musl@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.linux-arm64-musl@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.linux-arm64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.linux-arm64@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.linux-arm64@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.linux-arm64@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.linux-arm64@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.linux-ppc64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.linux-ppc64@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.linux-ppc64@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.linux-ppc64@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.linux-ppc64@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.linux-riscv64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.linux-riscv64@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.linux-riscv64@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.linux-riscv64@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.linux-riscv64@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.linux-s390x",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.linux-s390x@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.linux-s390x@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.linux-s390x@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.linux-s390x@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.linux-x64-musl",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.linux-x64-musl@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.linux-x64-musl@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.linux-x64-musl@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.linux-x64-musl@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.linux-x64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.linux-x64@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.linux-x64@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.linux-x64@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.linux-x64@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:npm/%40pnpm/exe.netbsd-x64",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:npm/%40pnpm/exe.netbsd-x64@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.netbsd-x64@12.20.0",
+   "registry_url": "https://npm.17166969.xyz/current/",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.win32-arm64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.win32-arm64@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.win32-arm64@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.win32-arm64@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.win32-arm64@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
    "component": "pkg:npm/%40pnpm/exe.win32-x64",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40pnpm/exe.win32-x64@12.18.0#",
-   "purl": "pkg:npm/%40pnpm/exe.win32-x64@12.18.0",
+   "id": "pkg:npm/%40pnpm/exe.win32-x64@12.20.0#",
+   "purl": "pkg:npm/%40pnpm/exe.win32-x64@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
@@ -4794,14 +4789,14 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40solidjs/compiler-wasm32-wasi",
+   "component": "pkg:npm/%40solidjs/compiler-wasm32-wasi?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F81079aa83a227b6c2087ca61d938bcf6616206d8559aad045982f91deb08e392b936fbeb96f69fb59b3466ddd595542bbf3efd03b38b2a11d7fb6683e8fbe7cc.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40solidjs/compiler-wasm32-wasi@2.0.0-rc.21#",
-   "purl": "pkg:npm/%40solidjs/compiler-wasm32-wasi@2.0.0-rc.21",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40solidjs/compiler-wasm32-wasi@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F81079aa83a227b6c2087ca61d938bcf6616206d8559aad045982f91deb08e392b936fbeb96f69fb59b3466ddd595542bbf3efd03b38b2a11d7fb6683e8fbe7cc.tgz#",
+   "purl": "pkg:npm/%40solidjs/compiler-wasm32-wasi@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F81079aa83a227b6c2087ca61d938bcf6616206d8559aad045982f91deb08e392b936fbeb96f69fb59b3466ddd595542bbf3efd03b38b2a11d7fb6683e8fbe7cc.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "2.0.0-rc.21"
   },
@@ -4820,14 +4815,14 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40solidjs/compiler",
+   "component": "pkg:npm/%40solidjs/compiler?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F9e1239a02471f80ad4c5c26d9deb116fba40acee7385377f85e7f623e7410f5d0c630ad034cedfb690dd355bfb7d087f747e71bea027a56378b548596afa389e.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21#",
-   "purl": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F9e1239a02471f80ad4c5c26d9deb116fba40acee7385377f85e7f623e7410f5d0c630ad034cedfb690dd355bfb7d087f747e71bea027a56378b548596afa389e.tgz#",
+   "purl": "pkg:npm/%40solidjs/compiler@2.0.0-rc.21?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F9e1239a02471f80ad4c5c26d9deb116fba40acee7385377f85e7f623e7410f5d0c630ad034cedfb690dd355bfb7d087f747e71bea027a56378b548596afa389e.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "2.0.0-rc.21"
   },
@@ -4846,146 +4841,133 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40solidjs/vite-plugin",
+   "component": "pkg:npm/%40solidjs/vite-plugin?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#",
-   "purl": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz#",
+   "purl": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "3.0.0-next.57"
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40solidjs/vite-plugin",
+   "component": "pkg:npm/%40solidjs/vite-plugin?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz",
    "context": "(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
    "first_party": false,
-   "id": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
-   "purl": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz#(@solidjs/web@2.0.0-rc.20(solid-js@2.0.0-rc.20))(solid-js@2.0.0-rc.20)(vite@8.3.8)",
+   "purl": "pkg:npm/%40solidjs/vite-plugin@3.0.0-next.57?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fcf4e42b97c6d1d44987ca070f0f8ab2295e48d29aa7af522ca06ea20cc4299cf99096e31d9dfb5cc7c3b9ddf7c35d42c3405085c98abdc698cee7ddffe3d2366.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "3.0.0-next.57"
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40solidjs/web",
+   "component": "pkg:npm/%40solidjs/web?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F0021946755c13718879d65b6ef89dafb52597ee221892fc13795ccef6c1528d612a2947f3728d53d1e0efe7bec86d6d894493594a27d775b816970dacfa75d62.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40solidjs/web@2.0.0-rc.20#",
-   "purl": "pkg:npm/%40solidjs/web@2.0.0-rc.20",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40solidjs/web@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F0021946755c13718879d65b6ef89dafb52597ee221892fc13795ccef6c1528d612a2947f3728d53d1e0efe7bec86d6d894493594a27d775b816970dacfa75d62.tgz#",
+   "purl": "pkg:npm/%40solidjs/web@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F0021946755c13718879d65b6ef89dafb52597ee221892fc13795ccef6c1528d612a2947f3728d53d1e0efe7bec86d6d894493594a27d775b816970dacfa75d62.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "2.0.0-rc.20"
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40solidjs/web",
+   "component": "pkg:npm/%40solidjs/web?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F0021946755c13718879d65b6ef89dafb52597ee221892fc13795ccef6c1528d612a2947f3728d53d1e0efe7bec86d6d894493594a27d775b816970dacfa75d62.tgz",
    "context": "(solid-js@2.0.0-rc.20)",
    "first_party": false,
-   "id": "pkg:npm/%40solidjs/web@2.0.0-rc.20#(solid-js@2.0.0-rc.20)",
-   "purl": "pkg:npm/%40solidjs/web@2.0.0-rc.20",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40solidjs/web@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F0021946755c13718879d65b6ef89dafb52597ee221892fc13795ccef6c1528d612a2947f3728d53d1e0efe7bec86d6d894493594a27d775b816970dacfa75d62.tgz#(solid-js@2.0.0-rc.20)",
+   "purl": "pkg:npm/%40solidjs/web@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F0021946755c13718879d65b6ef89dafb52597ee221892fc13795ccef6c1528d612a2947f3728d53d1e0efe7bec86d6d894493594a27d775b816970dacfa75d62.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "2.0.0-rc.20"
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40tsrs/darwin-arm64",
+   "component": "pkg:npm/%40tsrs/darwin-arm64?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Ffa962843e02aa5d52894ee24241425426c3124ea1ce4836ebacc3fd806674787eb7e7c951b36be8049f46ebf19d0b3a4ee792542e20bb8c287f77054de1a47bc.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40tsrs/darwin-arm64@0.24.0-ts7.1.0-beta#",
-   "purl": "pkg:npm/%40tsrs/darwin-arm64@0.24.0-ts7.1.0-beta",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40tsrs/darwin-arm64@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Ffa962843e02aa5d52894ee24241425426c3124ea1ce4836ebacc3fd806674787eb7e7c951b36be8049f46ebf19d0b3a4ee792542e20bb8c287f77054de1a47bc.tgz#",
+   "purl": "pkg:npm/%40tsrs/darwin-arm64@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Ffa962843e02aa5d52894ee24241425426c3124ea1ce4836ebacc3fd806674787eb7e7c951b36be8049f46ebf19d0b3a4ee792542e20bb8c287f77054de1a47bc.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
-   "version": "0.24.0-ts7.1.0-beta"
+   "version": "0.25.0-ts7.1.0-beta"
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40tsrs/darwin-x64",
+   "component": "pkg:npm/%40tsrs/darwin-x64?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F3270f906fe3c4dd21c4e935abec83b3d5e9152ec002a1a33276f4264394aabaa19c068c6ba57102c8dd2a24e8cbef086ed4eafe25f5138d28ef0184d5c2cadbd.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40tsrs/darwin-x64@0.24.0-ts7.1.0-beta#",
-   "purl": "pkg:npm/%40tsrs/darwin-x64@0.24.0-ts7.1.0-beta",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40tsrs/darwin-x64@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F3270f906fe3c4dd21c4e935abec83b3d5e9152ec002a1a33276f4264394aabaa19c068c6ba57102c8dd2a24e8cbef086ed4eafe25f5138d28ef0184d5c2cadbd.tgz#",
+   "purl": "pkg:npm/%40tsrs/darwin-x64@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F3270f906fe3c4dd21c4e935abec83b3d5e9152ec002a1a33276f4264394aabaa19c068c6ba57102c8dd2a24e8cbef086ed4eafe25f5138d28ef0184d5c2cadbd.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
-   "version": "0.24.0-ts7.1.0-beta"
+   "version": "0.25.0-ts7.1.0-beta"
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40tsrs/linux-arm64-gnu",
+   "component": "pkg:npm/%40tsrs/linux-arm64-gnu?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F31cfd8b8541aec03c3b97dfd50cafc34c4072a408e984c7c49f5175677b0ede9632472a7524a4b1e9a1015003468a9f322a0c0c6736e757848581d038d9117d8.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40tsrs/linux-arm64-gnu@0.24.0-ts7.1.0-beta#",
-   "purl": "pkg:npm/%40tsrs/linux-arm64-gnu@0.24.0-ts7.1.0-beta",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40tsrs/linux-arm64-gnu@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F31cfd8b8541aec03c3b97dfd50cafc34c4072a408e984c7c49f5175677b0ede9632472a7524a4b1e9a1015003468a9f322a0c0c6736e757848581d038d9117d8.tgz#",
+   "purl": "pkg:npm/%40tsrs/linux-arm64-gnu@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F31cfd8b8541aec03c3b97dfd50cafc34c4072a408e984c7c49f5175677b0ede9632472a7524a4b1e9a1015003468a9f322a0c0c6736e757848581d038d9117d8.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
-   "version": "0.24.0-ts7.1.0-beta"
+   "version": "0.25.0-ts7.1.0-beta"
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40tsrs/linux-arm64-musl",
+   "component": "pkg:npm/%40tsrs/linux-arm64-musl?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F65367122ffd6e2a8aa0c109770396bf266bbe8908ed034076d4ba4ba1a52a4a1f3dc4da6e450b02dcadafcd4ea0159e2c8b53afd18c838221c0d1a5542faba71.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40tsrs/linux-arm64-musl@0.24.0-ts7.1.0-beta#",
-   "purl": "pkg:npm/%40tsrs/linux-arm64-musl@0.24.0-ts7.1.0-beta",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40tsrs/linux-arm64-musl@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F65367122ffd6e2a8aa0c109770396bf266bbe8908ed034076d4ba4ba1a52a4a1f3dc4da6e450b02dcadafcd4ea0159e2c8b53afd18c838221c0d1a5542faba71.tgz#",
+   "purl": "pkg:npm/%40tsrs/linux-arm64-musl@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F65367122ffd6e2a8aa0c109770396bf266bbe8908ed034076d4ba4ba1a52a4a1f3dc4da6e450b02dcadafcd4ea0159e2c8b53afd18c838221c0d1a5542faba71.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
-   "version": "0.24.0-ts7.1.0-beta"
+   "version": "0.25.0-ts7.1.0-beta"
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40tsrs/linux-x64-gnu",
+   "component": "pkg:npm/%40tsrs/linux-x64-gnu?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F74646fb9bc5641734fddaa30f912e01406d6de9478a10f943dfc2b4a076080a08a28bf6c00fafc9c5198339d095808aa190612c11265e3c033202edb1ee43671.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40tsrs/linux-x64-gnu@0.24.0-ts7.1.0-beta#",
-   "purl": "pkg:npm/%40tsrs/linux-x64-gnu@0.24.0-ts7.1.0-beta",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40tsrs/linux-x64-gnu@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F74646fb9bc5641734fddaa30f912e01406d6de9478a10f943dfc2b4a076080a08a28bf6c00fafc9c5198339d095808aa190612c11265e3c033202edb1ee43671.tgz#",
+   "purl": "pkg:npm/%40tsrs/linux-x64-gnu@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F74646fb9bc5641734fddaa30f912e01406d6de9478a10f943dfc2b4a076080a08a28bf6c00fafc9c5198339d095808aa190612c11265e3c033202edb1ee43671.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
-   "version": "0.24.0-ts7.1.0-beta"
+   "version": "0.25.0-ts7.1.0-beta"
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40tsrs/linux-x64-musl",
+   "component": "pkg:npm/%40tsrs/linux-x64-musl?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fce6f3d1d8a5702fdfa5ee5eb12c7f10049864de858e4ad0bdbbfad166273c57d82a8bc248b4017e05180efc172f7bc7c624f24391f0524edb14ef496f6f5c122.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40tsrs/linux-x64-musl@0.24.0-ts7.1.0-beta#",
-   "purl": "pkg:npm/%40tsrs/linux-x64-musl@0.24.0-ts7.1.0-beta",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40tsrs/linux-x64-musl@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fce6f3d1d8a5702fdfa5ee5eb12c7f10049864de858e4ad0bdbbfad166273c57d82a8bc248b4017e05180efc172f7bc7c624f24391f0524edb14ef496f6f5c122.tgz#",
+   "purl": "pkg:npm/%40tsrs/linux-x64-musl@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fce6f3d1d8a5702fdfa5ee5eb12c7f10049864de858e4ad0bdbbfad166273c57d82a8bc248b4017e05180efc172f7bc7c624f24391f0524edb14ef496f6f5c122.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
-   "version": "0.24.0-ts7.1.0-beta"
-  },
-  {
-   "commit": null,
-   "component": "pkg:npm/%40tsrs/win32-x64",
-   "context": "",
-   "first_party": false,
-   "id": "pkg:npm/%40tsrs/win32-x64@0.24.0-ts7.1.0-beta#",
-   "purl": "pkg:npm/%40tsrs/win32-x64@0.24.0-ts7.1.0-beta",
-   "registry_url": "https://npm.17166969.xyz/current/",
-   "repository_url": null,
-   "source_kind": "registry",
-   "vcs_url": null,
-   "version": "0.24.0-ts7.1.0-beta"
+   "version": "0.25.0-ts7.1.0-beta"
   },
   {
    "commit": null,
@@ -5041,27 +5023,27 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40vitest/mocker",
+   "component": "pkg:npm/%40vitest/mocker?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/%40vitest/mocker@5.1.0#",
-   "purl": "pkg:npm/%40vitest/mocker@5.1.0",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40vitest/mocker@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz#",
+   "purl": "pkg:npm/%40vitest/mocker@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "5.1.0"
   },
   {
    "commit": null,
-   "component": "pkg:npm/%40vitest/mocker",
+   "component": "pkg:npm/%40vitest/mocker?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz",
    "context": "(vite@8.3.8)",
    "first_party": false,
-   "id": "pkg:npm/%40vitest/mocker@5.1.0#(vite@8.3.8)",
-   "purl": "pkg:npm/%40vitest/mocker@5.1.0",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/%40vitest/mocker@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz#(vite@8.3.8)",
+   "purl": "pkg:npm/%40vitest/mocker@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fe6e981f7f8e559ca954ba7ecac59afe46767a6eeb00148a8fe510ec009af07bbfe945a3f216d81f458400f4a75f460942d380cccb09d526b820c29c0cd6829a5.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "5.1.0"
   },
@@ -5171,27 +5153,27 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/fdir",
+   "component": "pkg:npm/fdir?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb486d8b596ee70eb340511aa3c992c84951874bf920c7edd54cf208f2f84469dd60148cb105244fb4da46a7c87b708d63a7c2b298062c0098cd29e242c90275e.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/fdir@6.5.0#",
-   "purl": "pkg:npm/fdir@6.5.0",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/fdir@6.5.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb486d8b596ee70eb340511aa3c992c84951874bf920c7edd54cf208f2f84469dd60148cb105244fb4da46a7c87b708d63a7c2b298062c0098cd29e242c90275e.tgz#",
+   "purl": "pkg:npm/fdir@6.5.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb486d8b596ee70eb340511aa3c992c84951874bf920c7edd54cf208f2f84469dd60148cb105244fb4da46a7c87b708d63a7c2b298062c0098cd29e242c90275e.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "6.5.0"
   },
   {
    "commit": null,
-   "component": "pkg:npm/fdir",
+   "component": "pkg:npm/fdir?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb486d8b596ee70eb340511aa3c992c84951874bf920c7edd54cf208f2f84469dd60148cb105244fb4da46a7c87b708d63a7c2b298062c0098cd29e242c90275e.tgz",
    "context": "(picomatch@4.0.7)",
    "first_party": false,
-   "id": "pkg:npm/fdir@6.5.0#(picomatch@4.0.7)",
-   "purl": "pkg:npm/fdir@6.5.0",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/fdir@6.5.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb486d8b596ee70eb340511aa3c992c84951874bf920c7edd54cf208f2f84469dd60148cb105244fb4da46a7c87b708d63a7c2b298062c0098cd29e242c90275e.tgz#(picomatch@4.0.7)",
+   "purl": "pkg:npm/fdir@6.5.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb486d8b596ee70eb340511aa3c992c84951874bf920c7edd54cf208f2f84469dd60148cb105244fb4da46a7c87b708d63a7c2b298062c0098cd29e242c90275e.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "6.5.0"
   },
@@ -5457,27 +5439,27 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/oxlint",
+   "component": "pkg:npm/oxlint?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/oxlint@1.93.0#",
-   "purl": "pkg:npm/oxlint@1.93.0",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#",
+   "purl": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "1.93.0"
   },
   {
    "commit": null,
-   "component": "pkg:npm/oxlint",
+   "component": "pkg:npm/oxlint?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz",
    "context": "(oxlint-tsgolint@7.0.2006)",
    "first_party": false,
-   "id": "pkg:npm/oxlint@1.93.0#(oxlint-tsgolint@7.0.2006)",
-   "purl": "pkg:npm/oxlint@1.93.0",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz#(oxlint-tsgolint@7.0.2006)",
+   "purl": "pkg:npm/oxlint@1.93.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fd7d24cb10157f98bc46dc513150c634f086fb3421b8340fa0859de48b829c2700259c63fe8b8e1a46a643e8761d13e5a213d698cc4cb95869e045cda560ba04c.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "1.93.0"
   },
@@ -5538,13 +5520,13 @@
    "component": "pkg:npm/pnpm",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/pnpm@12.18.0#",
-   "purl": "pkg:npm/pnpm@12.18.0",
+   "id": "pkg:npm/pnpm@12.20.0#",
+   "purl": "pkg:npm/pnpm@12.20.0",
    "registry_url": "https://npm.17166969.xyz/current/",
    "repository_url": null,
    "source_kind": "registry",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   },
   {
    "commit": null,
@@ -5574,27 +5556,27 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/seroval-plugins",
+   "component": "pkg:npm/seroval-plugins?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F58ce2b02b7cfb4b66b893bb10b90c1bcdba513001a45c8cd7bf76430e11eb0e72ebd77f99c4c0a7f9070dc04fdd961e886a71ce39fb9ec676db02b814c8d268f.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/seroval-plugins@1.7.0#",
-   "purl": "pkg:npm/seroval-plugins@1.7.0",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/seroval-plugins@1.7.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F58ce2b02b7cfb4b66b893bb10b90c1bcdba513001a45c8cd7bf76430e11eb0e72ebd77f99c4c0a7f9070dc04fdd961e886a71ce39fb9ec676db02b814c8d268f.tgz#",
+   "purl": "pkg:npm/seroval-plugins@1.7.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F58ce2b02b7cfb4b66b893bb10b90c1bcdba513001a45c8cd7bf76430e11eb0e72ebd77f99c4c0a7f9070dc04fdd961e886a71ce39fb9ec676db02b814c8d268f.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "1.7.0"
   },
   {
    "commit": null,
-   "component": "pkg:npm/seroval-plugins",
+   "component": "pkg:npm/seroval-plugins?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F58ce2b02b7cfb4b66b893bb10b90c1bcdba513001a45c8cd7bf76430e11eb0e72ebd77f99c4c0a7f9070dc04fdd961e886a71ce39fb9ec676db02b814c8d268f.tgz",
    "context": "(seroval@1.7.0)",
    "first_party": false,
-   "id": "pkg:npm/seroval-plugins@1.7.0#(seroval@1.7.0)",
-   "purl": "pkg:npm/seroval-plugins@1.7.0",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/seroval-plugins@1.7.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F58ce2b02b7cfb4b66b893bb10b90c1bcdba513001a45c8cd7bf76430e11eb0e72ebd77f99c4c0a7f9070dc04fdd961e886a71ce39fb9ec676db02b814c8d268f.tgz#(seroval@1.7.0)",
+   "purl": "pkg:npm/seroval-plugins@1.7.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F58ce2b02b7cfb4b66b893bb10b90c1bcdba513001a45c8cd7bf76430e11eb0e72ebd77f99c4c0a7f9070dc04fdd961e886a71ce39fb9ec676db02b814c8d268f.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "1.7.0"
   },
@@ -5613,14 +5595,14 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/solid-js",
+   "component": "pkg:npm/solid-js?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F17168423b2c7ba97a116847d8f609f240182a118222a078d9738a2e2ccd44ba9670fc464a5db6f5f593a5851bbd6f9796ec917451b261105405ec6c87a640ebb.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/solid-js@2.0.0-rc.20#",
-   "purl": "pkg:npm/solid-js@2.0.0-rc.20",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/solid-js@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F17168423b2c7ba97a116847d8f609f240182a118222a078d9738a2e2ccd44ba9670fc464a5db6f5f593a5851bbd6f9796ec917451b261105405ec6c87a640ebb.tgz#",
+   "purl": "pkg:npm/solid-js@2.0.0-rc.20?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F17168423b2c7ba97a116847d8f609f240182a118222a078d9738a2e2ccd44ba9670fc464a5db6f5f593a5851bbd6f9796ec917451b261105405ec6c87a640ebb.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "2.0.0-rc.20"
   },
@@ -5678,14 +5660,14 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/tinyglobby",
+   "component": "pkg:npm/tinyglobby?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fc1747f758a5ca8a99f5a911d66388a24ec023459dd0f40cc9eb5bf7188d51adb449017d581c2c51e836b963e3b9a339589cf72c8dbbae5a96c805e0d4324dada.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/tinyglobby@0.2.17#",
-   "purl": "pkg:npm/tinyglobby@0.2.17",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/tinyglobby@0.2.17?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fc1747f758a5ca8a99f5a911d66388a24ec023459dd0f40cc9eb5bf7188d51adb449017d581c2c51e836b963e3b9a339589cf72c8dbbae5a96c805e0d4324dada.tgz#",
+   "purl": "pkg:npm/tinyglobby@0.2.17?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fc1747f758a5ca8a99f5a911d66388a24ec023459dd0f40cc9eb5bf7188d51adb449017d581c2c51e836b963e3b9a339589cf72c8dbbae5a96c805e0d4324dada.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "0.2.17"
   },
@@ -5704,79 +5686,79 @@
   },
   {
    "commit": null,
-   "component": "pkg:npm/tsrs",
+   "component": "pkg:npm/tsrs?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F27b780924ae22301c4c57d93cf04d6e9f949fdf9a0dd4f850d0c264d492f6989a8d368af6baf583e6c456825c660896c103de5d406bada14ac10325ec01ac828.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/tsrs@0.24.0-ts7.1.0-beta#",
-   "purl": "pkg:npm/tsrs@0.24.0-ts7.1.0-beta",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/tsrs@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F27b780924ae22301c4c57d93cf04d6e9f949fdf9a0dd4f850d0c264d492f6989a8d368af6baf583e6c456825c660896c103de5d406bada14ac10325ec01ac828.tgz#",
+   "purl": "pkg:npm/tsrs@0.25.0-ts7.1.0-beta?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F27b780924ae22301c4c57d93cf04d6e9f949fdf9a0dd4f850d0c264d492f6989a8d368af6baf583e6c456825c660896c103de5d406bada14ac10325ec01ac828.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
-   "version": "0.24.0-ts7.1.0-beta"
+   "version": "0.25.0-ts7.1.0-beta"
   },
   {
    "commit": null,
-   "component": "pkg:npm/vite",
+   "component": "pkg:npm/vite?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/vite@8.3.8#",
-   "purl": "pkg:npm/vite@8.3.8",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz#",
+   "purl": "pkg:npm/vite@8.3.8?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F2f33a7de1f6b1bfd2f84b757ad5e3227840503d784a2a0a5f98c7e90625deda07dc3a9df3605472926302cf6541ebcf86466beb7e9178d5f62b6f7070cb428b8.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "8.3.8"
   },
   {
    "commit": null,
-   "component": "pkg:npm/vitefu",
+   "component": "pkg:npm/vitefu?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb9be28907ed9e4a2e36fa843ca3aab197a96b56be861d5372069bf368ae98079dc2a82d309f4486ef961066eebd18b2d21a411625a78c846c5a8370a4b35d24a.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/vitefu@1.1.3#",
-   "purl": "pkg:npm/vitefu@1.1.3",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/vitefu@1.1.3?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb9be28907ed9e4a2e36fa843ca3aab197a96b56be861d5372069bf368ae98079dc2a82d309f4486ef961066eebd18b2d21a411625a78c846c5a8370a4b35d24a.tgz#",
+   "purl": "pkg:npm/vitefu@1.1.3?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb9be28907ed9e4a2e36fa843ca3aab197a96b56be861d5372069bf368ae98079dc2a82d309f4486ef961066eebd18b2d21a411625a78c846c5a8370a4b35d24a.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "1.1.3"
   },
   {
    "commit": null,
-   "component": "pkg:npm/vitefu",
+   "component": "pkg:npm/vitefu?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb9be28907ed9e4a2e36fa843ca3aab197a96b56be861d5372069bf368ae98079dc2a82d309f4486ef961066eebd18b2d21a411625a78c846c5a8370a4b35d24a.tgz",
    "context": "(vite@8.3.8)",
    "first_party": false,
-   "id": "pkg:npm/vitefu@1.1.3#(vite@8.3.8)",
-   "purl": "pkg:npm/vitefu@1.1.3",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/vitefu@1.1.3?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb9be28907ed9e4a2e36fa843ca3aab197a96b56be861d5372069bf368ae98079dc2a82d309f4486ef961066eebd18b2d21a411625a78c846c5a8370a4b35d24a.tgz#(vite@8.3.8)",
+   "purl": "pkg:npm/vitefu@1.1.3?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2Fb9be28907ed9e4a2e36fa843ca3aab197a96b56be861d5372069bf368ae98079dc2a82d309f4486ef961066eebd18b2d21a411625a78c846c5a8370a4b35d24a.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "1.1.3"
   },
   {
    "commit": null,
-   "component": "pkg:npm/vitest",
+   "component": "pkg:npm/vitest?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz",
    "context": "",
    "first_party": false,
-   "id": "pkg:npm/vitest@5.1.0#",
-   "purl": "pkg:npm/vitest@5.1.0",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#",
+   "purl": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "5.1.0"
   },
   {
    "commit": null,
-   "component": "pkg:npm/vitest",
+   "component": "pkg:npm/vitest?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz",
    "context": "(vite@8.3.8)",
    "first_party": false,
-   "id": "pkg:npm/vitest@5.1.0#(vite@8.3.8)",
-   "purl": "pkg:npm/vitest@5.1.0",
-   "registry_url": "https://npm.17166969.xyz/current/",
+   "id": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz#(vite@8.3.8)",
+   "purl": "pkg:npm/vitest@5.1.0?download_url=https%3A%2F%2Fnpm.17166969.xyz%2Fcurrent%2F-%2Ftarballs%2F33398d167af06bcbfc945d5b2f1c37509e04444c153956fbe55a8966650346327a125b8aff1f6d87ba936da783938d56c44d46c56aa64d771db1fa1b7c7e6c38.tgz",
+   "registry_url": null,
    "repository_url": null,
-   "source_kind": "registry",
+   "source_kind": "url",
    "vcs_url": null,
    "version": "5.1.0"
   },
@@ -5798,26 +5780,26 @@
    "component": "pkg:toolchain/node",
    "context": "",
    "first_party": false,
-   "id": "pkg:toolchain/node@26.13.0#",
-   "purl": "pkg:toolchain/node@26.13.0",
+   "id": "pkg:toolchain/node@26.13.1#",
+   "purl": "pkg:toolchain/node@26.13.1",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "url",
    "vcs_url": null,
-   "version": "26.13.0"
+   "version": "26.13.1"
   },
   {
    "commit": null,
    "component": "pkg:toolchain/pnpm",
    "context": "",
    "first_party": false,
-   "id": "pkg:toolchain/pnpm@12.18.0#",
-   "purl": "pkg:toolchain/pnpm@12.18.0",
+   "id": "pkg:toolchain/pnpm@12.20.0#",
+   "purl": "pkg:toolchain/pnpm@12.20.0",
    "registry_url": null,
    "repository_url": null,
    "source_kind": "url",
    "vcs_url": null,
-   "version": "12.18.0"
+   "version": "12.20.0"
   }
  ],
  "issues": [

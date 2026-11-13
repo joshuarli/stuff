@@ -16623,7 +16623,7 @@
    "path": "crates/stuff-worker/Cargo.toml"
   },
   {
-   "blob": "0e41dae5600dce28050735906dc0ad20e0183532",
+   "blob": "b542c8193f7064a413b95fffc2c4dbb12524eb2e",
    "path": "crates/stuff-worker/package.json"
   },
   {
@@ -16651,7 +16651,7 @@
    "path": "pyproject.toml"
   },
   {
-   "blob": "8a9292f8ec445629623fe83af898b40317bc2f30",
+   "blob": "8e0bf8031ccbc4df5db72513d129131dd8624b40",
    "path": "repomod/dependencies/dashboard_ts/package.json"
   },
   {
@@ -16667,7 +16667,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "846933618cacce4ce2cf9ffb608202d3962e40d96d7a5bd5fcfec9c5fc5a58f4",
+ "inputs_fingerprint": "1bc8e2ae74c8b5288147c6dd8a5c5de6820529242e7ed427b57edc50baa5e88c",
  "instances": [
   {
    "commit": null,
