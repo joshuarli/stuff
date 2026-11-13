@@ -133,10 +133,10 @@ pub fn adopt(state: &State, site_dir: &Path) -> Result<AdoptSummary> {
         referrers += state.rebuild_referrers(view)?;
     }
     if let Some(provenance) = crate::mirror::provenance::read_provenance(&generation_dir)? {
+        crate::mirror::provenance::write_provenance(state.root(), &provenance)?;
         let ownership = provenance.ownership_map()?;
         let rendered = crate::mirror::ownership::render_ownership(&ownership);
         stuff_store::write_file_durable(&state.root().join("mirror.json"), rendered.as_bytes())?;
-        crate::mirror::provenance::write_provenance(state.root(), &provenance)?;
     }
     verify_state_locked(state)?;
     Ok(AdoptSummary {
