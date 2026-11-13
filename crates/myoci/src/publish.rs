@@ -2,7 +2,7 @@
 
 use crate::error::{Error, Result};
 use crate::state::State;
-use crate::verify::verify_state;
+use crate::verify::verify_state_locked;
 use stuff_catalog::{oci_catalog, render_catalog_json, render_html, render_llms_txt, OciInput};
 use stuff_oci::{
     parse_blobs_json, parse_repository_json, render_blobs_json, render_repository_json, Digest,
@@ -36,7 +36,13 @@ pub struct AdoptSummary {
 }
 
 pub fn publish(state: &State, site_dir: &Path, public_url: &str) -> Result<PublishSummary> {
-    let verified = verify_state(state)?;
+    let _state_lock = state.lock()?;
+    let _ = crate::mirror::transaction::recover_locked(state)?;
+    publish_locked(state, site_dir, public_url)
+}
+
+pub(crate) fn publish_locked(state: &State, site_dir: &Path, public_url: &str) -> Result<PublishSummary> {
+    let verified = verify_state_locked(state)?;
     let views = load_views(state)?;
     let (generation, files) = render_generation(&views, state, public_url)?;
 
@@ -75,6 +81,8 @@ pub fn publish(state: &State, site_dir: &Path, public_url: &str) -> Result<Publi
 }
 
 pub fn adopt(state: &State, site_dir: &Path) -> Result<AdoptSummary> {
+    let _state_lock = state.lock()?;
+    let _ = crate::mirror::transaction::recover_locked(state)?;
     state.init()?;
     let site = Site::new(site_dir.to_path_buf());
     let generation = site
@@ -124,7 +132,7 @@ pub fn adopt(state: &State, site_dir: &Path) -> Result<AdoptSummary> {
         state.write_repository(view)?;
         referrers += state.rebuild_referrers(view)?;
     }
-    verify_state(state)?;
+    verify_state_locked(state)?;
     Ok(AdoptSummary {
         generation,
         repositories: views.len(),

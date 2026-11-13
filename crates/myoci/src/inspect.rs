@@ -49,6 +49,8 @@ fn quoted(value: &str) -> String {
 }
 
 pub fn inspect(state: &State) -> Result<Inspection> {
+    let _lock = state.lock()?;
+    let _ = crate::mirror::transaction::recover_locked(state)?;
     let mut tags = FxHashSet::default();
     let mut manifests = FxHashSet::default();
     let mut referrers = FxHashSet::default();

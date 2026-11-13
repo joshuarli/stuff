@@ -12,6 +12,7 @@ mod plan;
 pub mod reference;
 mod resolve;
 mod sync;
+pub mod transaction;
 
 pub use inventory::{Inventory, InventoryEntry, PlatformRequirement, ReferrersMode};
 pub use lock::{LockedEntry, LockedReferrer, MirrorLock};

@@ -9,6 +9,10 @@ use stuff_oci::{
 use std::path::{Path, PathBuf};
 
 pub const STATE_SCHEMA_VERSION: u32 = 1;
+pub const STATE_LOCK_NAME: &str = ".state.lock";
+pub const MIRROR_TRANSACTION_DIR: &str = ".mirror-transaction";
+pub const MIRROR_STAGED_DIR: &str = "staged";
+pub const MIRROR_MARKER: &str = "committed";
 
 #[derive(Debug, Clone)]
 pub struct State {
@@ -244,19 +248,34 @@ impl State {
         self.root.join(".uploads")
     }
 
-    pub fn try_push_lock(&self) -> Result<stuff_store::FileLock> {
-        stuff_store::FileLock::acquire(&self.root.join(".push.lock"), std::time::Duration::from_secs(5))
+    pub fn lock(&self) -> Result<stuff_store::FileLock> {
+        std::fs::create_dir_all(&self.root)?;
+        stuff_store::FileLock::acquire(&self.root.join(STATE_LOCK_NAME), std::time::Duration::from_secs(5))
             .map_err(|error| match error {
                 stuff_store::LockError::TimedOut => {
-                    Error::Conflict("another push is committing a manifest".to_string())
+                    Error::Conflict("state is busy; another myoci process is mutating it".to_string())
                 }
                 stuff_store::LockError::Io(error) => {
-                    Error::Operation(format!("could not lock the push state: {error}"))
+                    Error::Operation(format!("could not lock the state: {error}"))
                 }
             })
     }
 
+    pub fn mirror_json_path(&self) -> PathBuf {
+        self.root.join("mirror.json")
+    }
+
+    pub fn transaction_dir(&self) -> PathBuf {
+        self.root.join(MIRROR_TRANSACTION_DIR)
+    }
+
     pub fn set_tag(&self, repository: &RepositoryName, tag: stuff_oci::Tag, digest: &Digest) -> Result<()> {
+        let _lock = self.lock()?;
+        let _ = crate::mirror::transaction::recover_locked(self)?;
+        self.set_tag_locked(repository, tag, digest)
+    }
+
+    pub(crate) fn set_tag_locked(&self, repository: &RepositoryName, tag: stuff_oci::Tag, digest: &Digest) -> Result<()> {
         let mut view = self
             .read_repository(repository)?
             .ok_or_else(|| Error::Input(format!("repository {} is not in state", repository.as_str())))?;
@@ -270,6 +289,12 @@ impl State {
     }
 
     pub fn remove_tag(&self, repository: &RepositoryName, tag: &stuff_oci::Tag) -> Result<bool> {
+        let _lock = self.lock()?;
+        let _ = crate::mirror::transaction::recover_locked(self)?;
+        self.remove_tag_locked(repository, tag)
+    }
+
+    pub(crate) fn remove_tag_locked(&self, repository: &RepositoryName, tag: &stuff_oci::Tag) -> Result<bool> {
         let mut view = self
             .read_repository(repository)?
             .ok_or_else(|| Error::Input(format!("repository {} is not in state", repository.as_str())))?;
@@ -280,7 +305,10 @@ impl State {
         Ok(removed)
     }
 
-    pub fn rebuild_referrers(&self, view: &stuff_oci::RepositoryView) -> Result<usize> {
+    pub(crate) fn compute_referrers(
+        &self,
+        view: &stuff_oci::RepositoryView,
+    ) -> Result<Vec<(Digest, Vec<Descriptor>)>> {
         let mut referrers: FxHashMap<Digest, Vec<Descriptor>> = FxHashMap::default();
         let mut digests: Vec<_> = view.manifests.keys().collect();
         digests.sort_unstable();
@@ -295,13 +323,21 @@ impl State {
                     .push(descriptor);
             }
         }
-        let mut subjects: Vec<_> = referrers.iter().collect();
-        subjects.sort_unstable_by(|a, b| a.0.cmp(b.0));
-        for (subject, descriptors) in subjects {
-            let sorted = stuff_oci::filter_referrers(descriptors, None);
-            self.write_referrers(&view.name, subject, &sorted)?;
+        let mut subjects: Vec<_> = referrers.into_iter().collect();
+        subjects.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        Ok(subjects
+            .into_iter()
+            .map(|(subject, descriptors)| (subject, stuff_oci::filter_referrers(&descriptors, None)))
+            .collect())
+    }
+
+    pub fn rebuild_referrers(&self, view: &stuff_oci::RepositoryView) -> Result<usize> {
+        let referrers = self.compute_referrers(view)?;
+        let total = referrers.iter().map(|(_, descriptors)| descriptors.len()).sum();
+        for (subject, descriptors) in referrers {
+            self.write_referrers(&view.name, &subject, &descriptors)?;
         }
-        Ok(referrers.values().map(Vec::len).sum())
+        Ok(total)
     }
 
     pub fn referrer_subjects(&self, repository: &RepositoryName) -> Result<Vec<Digest>> {

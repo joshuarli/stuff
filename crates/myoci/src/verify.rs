@@ -15,6 +15,12 @@ pub struct VerifySummary {
 }
 
 pub fn verify_state(state: &State) -> Result<VerifySummary> {
+    let _lock = state.lock()?;
+    let _ = crate::mirror::transaction::recover_locked(state)?;
+    verify_state_locked(state)
+}
+
+pub(crate) fn verify_state_locked(state: &State) -> Result<VerifySummary> {
     let mut manifest_count = 0;
     let mut referrer_count = 0;
     let mut referenced_blobs: FxHashSet<Digest> = FxHashSet::default();

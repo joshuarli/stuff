@@ -13,7 +13,7 @@ pub const MAX_GRAPH_DEPTH: u32 = 32;
 pub const MAX_GRAPH_DESCRIPTORS: u64 = 100_000;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub struct AcquireCounts {
+struct AcquireCounts {
     pub manifests: usize,
     pub blobs_fetched: u64,
     pub bytes_fetched: u64,
@@ -21,16 +21,17 @@ pub struct AcquireCounts {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EntryAcquisition {
+pub struct AcquiredEntry {
     pub id: String,
-    pub manifests: usize,
+    pub manifests: Vec<Digest>,
+    pub blobs: Vec<Digest>,
     pub blobs_fetched: u64,
     pub bytes_fetched: u64,
     pub objects: u64,
 }
 
 pub struct Acquisition {
-    pub entries: Vec<EntryAcquisition>,
+    pub entries: Vec<AcquiredEntry>,
     pub blobs_fetched: u64,
     pub bytes_fetched: u64,
 }
@@ -43,6 +44,7 @@ pub fn acquire(
     offline: bool,
 ) -> Result<Acquisition> {
     state.init()?;
+    let mut present_blobs = state.read_blobs()?;
     let mut entries = Vec::with_capacity(lock.entries.len());
     let mut totals = AcquireCounts::default();
     for entry in &lock.entries {
@@ -50,24 +52,22 @@ pub fn acquire(
             return Err(Error::Input(format!("lock entry {:?} is not in the inventory", entry.id)));
         }
         let base = registry_base(&source_registry(entry)?, &source_repository(entry)?);
-        let counts = acquire_entry(state, &base, &source_repository(entry)?, entry, http, offline)?;
-        totals.manifests += counts.manifests;
-        totals.blobs_fetched += counts.blobs_fetched;
-        totals.bytes_fetched += counts.bytes_fetched;
-        totals.objects += counts.objects;
-        entries.push(EntryAcquisition {
-            id: entry.id.clone(),
-            manifests: counts.manifests,
-            blobs_fetched: counts.blobs_fetched,
-            bytes_fetched: counts.bytes_fetched,
-            objects: counts.objects,
-        });
+        let Acquired { entry: acquired, .. } = acquire_entry(state, &base, &source_repository(entry)?, entry, http, offline, &mut present_blobs)?;
+        totals.manifests += acquired.manifests.len();
+        totals.blobs_fetched += acquired.blobs_fetched;
+        totals.bytes_fetched += acquired.bytes_fetched;
+        totals.objects += acquired.objects;
+        entries.push(acquired);
     }
     Ok(Acquisition {
         entries,
         blobs_fetched: totals.blobs_fetched,
         bytes_fetched: totals.bytes_fetched,
     })
+}
+
+struct Acquired {
+    entry: AcquiredEntry,
 }
 
 fn source_registry(entry: &crate::mirror::lock::LockedEntry) -> Result<String> {
@@ -92,7 +92,8 @@ fn acquire_entry(
     entry: &crate::mirror::lock::LockedEntry,
     http: &RegistryHttp,
     offline: bool,
-) -> Result<AcquireCounts> {
+    present_blobs: &mut FxHashSet<Digest>,
+) -> Result<Acquired> {
     let root = Descriptor {
         media_type: entry.root_media_type.clone(),
         digest: entry.root_digest.clone(),
@@ -130,6 +131,7 @@ fn acquire_entry(
     let mut seen: FxHashSet<Digest> = FxHashSet::default();
     let mut manifests: FxHashMap<Digest, Vec<u8>> = FxHashMap::default();
     let mut required_blobs: FxHashMap<Digest, Descriptor> = FxHashMap::default();
+    let mut required_manifest_digests: Vec<Digest> = Vec::new();
     let mut counts = AcquireCounts::default();
     let mut missing: Vec<String> = Vec::new();
 
@@ -169,6 +171,7 @@ fn acquire_entry(
         let image = parse_image(&bytes)
             .map_err(|error| Error::Integrity(format!("manifest {digest} in entry {:?}: {error}", entry.id)))?;
         counts.manifests += 1;
+        required_manifest_digests.push(digest.clone());
         manifests.insert(digest.clone(), bytes);
         match &image {
             Image::Index(index) => {
@@ -191,7 +194,6 @@ fn acquire_entry(
         }
     }
 
-    let present_blobs = state.read_blobs()?;
     for blob in required_blobs.values() {
         if !blob.urls.is_empty() {
             continue;
@@ -215,6 +217,7 @@ fn acquire_entry(
         counts.bytes_fetched += bytes;
         state.store_blob(&temp, &blob.digest)?;
         let _ = std::fs::remove_file(&temp);
+        present_blobs.insert(blob.digest.clone());
     }
 
     if !missing.is_empty() {
@@ -226,33 +229,30 @@ fn acquire_entry(
         )));
     }
 
-    // Closure succeeded; commit the content into state.
-    let destination = entry.destination_repository()?;
-    let mut view = state
-        .read_repository(&destination)?
-        .unwrap_or_else(|| stuff_oci::RepositoryView::new(destination.clone()));
+    // Closure succeeded; commit immutable objects only. Metadata is staged by the caller.
     let mut manifests_ordered: Vec<_> = manifests.iter().collect();
     manifests_ordered.sort_by(|a, b| a.0.cmp(b.0));
     for (digest, bytes) in manifests_ordered {
         state.store_manifest(digest, bytes)?;
-        let image = parse_image(bytes)
-            .map_err(|error| Error::Integrity(format!("manifest {digest}: {error}")))?;
-        let descriptor = image.descriptor(digest.clone(), bytes.len() as u64);
-        view.insert_manifest(descriptor);
     }
-    let mut blob_digests = state.read_blobs()?;
-    for blob in required_blobs.values() {
-        if !blob.urls.is_empty() {
-            continue;
-        }
-        if state.blob_path(&blob.digest).is_file() {
-            blob_digests.insert(blob.digest.clone());
-        }
-    }
-    state.write_blobs(&blob_digests)?;
-    state.write_repository(&view)?;
-    state.rebuild_referrers(&view)?;
-    Ok(counts)
+    required_manifest_digests.sort();
+    required_manifest_digests.dedup();
+    let mut blobs: Vec<Digest> = required_blobs
+        .values()
+        .filter(|blob| blob.urls.is_empty())
+        .map(|blob| blob.digest.clone())
+        .collect();
+    blobs.sort();
+    Ok(Acquired {
+        entry: AcquiredEntry {
+            id: entry.id.clone(),
+            manifests: required_manifest_digests,
+            blobs,
+            blobs_fetched: counts.blobs_fetched,
+            bytes_fetched: counts.bytes_fetched,
+            objects: counts.objects,
+        },
+    })
 }
 
 fn note_blob(required: &mut FxHashMap<Digest, Descriptor>, descriptor: &Descriptor) {

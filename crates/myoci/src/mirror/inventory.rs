@@ -158,14 +158,19 @@ impl Inventory {
                 "inventory: unsupported policy_version {policy_version}; expected {POLICY_VERSION}"
             )));
         }
-        let entries_value = root
-            .get("entries")
-            .and_then(|item| item.as_array_of_tables())
-            .ok_or_else(|| Error::Input("inventory: entries must be an array of tables".to_string()))?;
-        let mut entries = Vec::with_capacity(entries_value.len());
-        for (index, table) in entries_value.iter().enumerate() {
-            entries.push(parse_entry(table, index)?);
-        }
+        let entries = match root.get("entries") {
+            None => Vec::new(),
+            Some(item) => {
+                let array = item.as_array_of_tables().ok_or_else(|| {
+                    Error::Input("inventory: entries must be an array of tables".to_string())
+                })?;
+                let mut entries = Vec::with_capacity(array.len());
+                for (index, table) in array.iter().enumerate() {
+                    entries.push(parse_entry(table, index)?);
+                }
+                entries
+            }
+        };
         let inventory = Self { entries };
         inventory.validate()?;
         Ok(inventory)

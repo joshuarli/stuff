@@ -120,7 +120,8 @@ fn commit_manifest(
     body: &[u8],
     options: &PushOptions,
 ) -> std::result::Result<(Digest, Option<Digest>), OciError> {
-    let _lock = options.state.try_push_lock().map_err(map_error)?;
+    let _lock = options.state.lock().map_err(map_error)?;
+    let _ = crate::mirror::transaction::recover_locked(&options.state).map_err(map_error)?;
     let mut view = options
         .state
         .read_repository(repository)
@@ -154,7 +155,7 @@ fn commit_manifest(
     options.state.write_blobs(&index).map_err(map_error)?;
     options.state.write_repository(&view).map_err(map_error)?;
     options.state.rebuild_referrers(&view).map_err(map_error)?;
-    publish::publish(&options.state, &options.site_dir, &options.public_url).map_err(map_error)?;
+    publish::publish_locked(&options.state, &options.site_dir, &options.public_url).map_err(map_error)?;
     let subject = image.subject().map(|subject| subject.digest.clone());
     Ok((digest, subject))
 }

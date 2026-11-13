@@ -286,7 +286,7 @@ const OCI_INDEX: &str = "application/vnd.oci.image.index.v1+json";
 const OCI_CONFIG: &str = "application/vnd.oci.image.config.v1+json";
 const OCI_LAYER_GZIP: &str = "application/vnd.oci.image.layer.v1.tar+gzip";
 const IN_TOTO: &str = "application/vnd.in-toto+json";
-const layer_bYTES: &[u8] = b"manylinux layer bytes";
+const LAYER_BYTES: &[u8] = b"manylinux layer bytes";
 
 fn inventory_path(dir: &Path) -> PathBuf {
     dir.join("mirror.toml")
@@ -377,7 +377,7 @@ fn resolve_snapshots() {
     let dir = workspace.path();
 
     let fixture = Fixture::new("example/app");
-    let (root_digest, _config, root_size) = single_image_fixture(&fixture, "linux", "amd64", None, layer_bYTES);
+    let (root_digest, _config, root_size) = single_image_fixture(&fixture, "linux", "amd64", None, LAYER_BYTES);
     fixture.add_tag("stable", &root_digest);
     let source = format!("{}/example/app:stable", fixture.address);
 
@@ -430,7 +430,7 @@ fn resolve_snapshots() {
 
     // Referrer discovery failure fails resolution; empty discovery is fine.
     let failing = Fixture::new("example/failing");
-    let (failing_root, _, _) = single_image_fixture(&failing, "linux", "amd64", None, layer_bYTES);
+    let (failing_root, _, _) = single_image_fixture(&failing, "linux", "amd64", None, LAYER_BYTES);
     failing.add_tag("stable", &failing_root);
     failing.set_referrers_status(500);
     let failing_dir = dir.join("failing");
@@ -463,7 +463,7 @@ fn resolve_snapshots() {
     let empty_dir = dir.join("empty");
     std::fs::create_dir_all(&empty_dir).unwrap();
     let empty_fixture = Fixture::new("example/empty");
-    let (empty_root, _, _) = single_image_fixture(&empty_fixture, "linux", "amd64", None, layer_bYTES);
+    let (empty_root, _, _) = single_image_fixture(&empty_fixture, "linux", "amd64", None, LAYER_BYTES);
     empty_fixture.add_tag("stable", &empty_root);
     let empty_inventory = write_inventory(
         &empty_dir,
@@ -593,7 +593,7 @@ fn resolve_snapshots() {
     let ref_dir = dir.join("refs");
     std::fs::create_dir_all(&ref_dir).unwrap();
     let refs = Fixture::new("example/refs");
-    let (refs_root, _, _) = single_image_fixture(&refs, "linux", "amd64", None, layer_bYTES);
+    let (refs_root, _, _) = single_image_fixture(&refs, "linux", "amd64", None, LAYER_BYTES);
     refs.add_tag("stable", &refs_root);
     let att_of_root = referrer_descriptor(OCI_MANIFEST, &format!("sha256:{:0>64}", "11"), 100, Some(IN_TOTO));
     refs.add_referrer(&refs_root, att_of_root);
@@ -1210,4 +1210,598 @@ fn locked_acquisition() {
         0
     };
     assert_eq!(manifest_count, 0, "corrupt acquisition stored a manifest");
+}
+
+fn sync_ok(output: std::process::Output) -> String {
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(0), "stdout: {stdout}\nstderr: {}", String::from_utf8(output.stderr).unwrap());
+    stdout
+}
+
+fn sync_err(output: std::process::Output) -> (i32, String, String) {
+    let code = output.status.code().unwrap();
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    (code, stdout, stderr)
+}
+
+fn snapshot_metadata(state: &Path) -> Vec<(String, Vec<u8>)> {
+    let mut out = Vec::new();
+    let repos = state.join("repositories");
+    if repos.is_dir() {
+        collect_tree(state, &repos, &mut out);
+    }
+    for extra in ["mirror.json", "blobs.json"] {
+        let path = state.join(extra);
+        if path.is_file() {
+            out.push((extra.to_string(), std::fs::read(&path).unwrap()));
+        }
+    }
+    out.sort_by(|a, b| a.0.cmp(&b.0));
+    out
+}
+
+fn collect_tree(root: &Path, dir: &Path, out: &mut Vec<(String, Vec<u8>)>) {
+    let mut entries: Vec<_> = std::fs::read_dir(dir).unwrap().map(|entry| entry.unwrap()).collect();
+    entries.sort_by_key(|entry| entry.file_name());
+    for entry in entries {
+        let path = entry.path();
+        let relative = path.strip_prefix(root).unwrap().to_string_lossy().replace('\\', "/");
+        if entry.file_type().unwrap().is_dir() {
+            collect_tree(root, &path, out);
+        } else {
+            out.push((relative, std::fs::read(&path).unwrap()));
+        }
+    }
+}
+
+fn copy_dir_all(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for entry in std::fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        let target = to.join(entry.file_name());
+        if entry.file_type().unwrap().is_dir() {
+            copy_dir_all(&entry.path(), &target);
+        } else {
+            std::fs::copy(entry.path(), &target).unwrap();
+        }
+    }
+}
+
+fn stage_transaction(state: &Path, new_metadata: &[(String, Vec<u8>)], marker: bool) {
+    let transaction = state.join(myoci::state::MIRROR_TRANSACTION_DIR);
+    assert!(!transaction.exists(), "transaction already present in {}", state.display());
+    let staged = transaction.join(myoci::state::MIRROR_STAGED_DIR);
+    for (relative, bytes) in new_metadata {
+        let target = staged.join(relative);
+        std::fs::create_dir_all(target.parent().unwrap()).unwrap();
+        std::fs::write(target, bytes).unwrap();
+    }
+    if marker {
+        std::fs::write(transaction.join(myoci::state::MIRROR_MARKER), b"committed\n").unwrap();
+    }
+}
+
+#[test]
+fn managed_batch_is_atomic() {
+    let layer_a: &[u8] = b"managed batch layer A";
+    let layer_b: &[u8] = b"managed batch layer B";
+
+    let workspace = tempfile::tempdir().unwrap();
+    let dir = workspace.path();
+
+    // State 1: a two-entry mirror sharing one image, alias "pinned" at each destination.
+    let fixture = Fixture::new("example/app");
+    let (config_a, _layer_a_bytes, _manifest_a) = image_bytes("linux", "amd64", None, layer_a);
+    let config_a_digest = fixture.add_config(&config_a);
+    fixture.add_blob(layer_a, OCI_LAYER_GZIP);
+    let manifest_a = manifest_json(
+        &config_a_digest,
+        config_a.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_a), layer_a.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let a_root = fixture.add_manifest(manifest_a, OCI_MANIFEST);
+    fixture.add_tag("stable", &a_root);
+
+    let source = format!("{}/example/app:stable", fixture.address);
+    let inventory = write_inventory(
+        dir,
+        &[
+            mirror_entry("app-one", &source, "docker.io/example/one", "\"pinned\"", "\"linux/amd64\"", "snapshot"),
+            mirror_entry("app-two", &source, "docker.io/example/two", "\"pinned\"", "\"linux/amd64\"", "snapshot"),
+        ],
+    );
+    let lock = lock_path(dir);
+    let state = dir.join("state");
+    let output = resolve(&inventory, &lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+
+    // Success: both aliases are created atomically, ownership persisted and reported.
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    let stdout = sync_ok(output);
+    assert!(stdout.contains("alias pinned create"), "{stdout}");
+    let ownership = myoci::mirror::ownership::read_ownership(&state).unwrap();
+    assert_eq!(ownership.len(), 2);
+    assert_eq!(ownership[&("docker.io/example/one".to_string(), "pinned".to_string())].digest.as_str(), a_root);
+
+    // Idempotent re-run: all unchanged; ownership bytes are byte-identical.
+    let ownership_before = std::fs::read(state.join("mirror.json")).unwrap();
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    let stdout = sync_ok(output);
+    assert!(stdout.contains("alias pinned unchanged"), "{stdout}");
+    assert_eq!(std::fs::read(state.join("mirror.json")).unwrap(), ownership_before);
+
+    // An unrelated repository is byte-identical after a sync.
+    let unrelated_layout = dir.join("unrelated-layout");
+    write_layout(&unrelated_layout, "linux", "amd64", b"unrelated layer", "stable");
+    let output = myoci_args(&[
+        "import".to_string(),
+        "--state-dir".to_string(),
+        path(&state).to_string(),
+        "--layout".to_string(),
+        path(&unrelated_layout).to_string(),
+        "--repository".to_string(),
+        "docker.io/example/unrelated".to_string(),
+        "--tag".to_string(),
+        "stable".to_string(),
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let unrelated_path = state.join("repositories/docker.io/example/unrelated/repository.json");
+    let unrelated_before = std::fs::read(&unrelated_path).unwrap();
+    let output = sync_output(&inventory, &lock, &state, &["--offline"]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert_eq!(std::fs::read(&unrelated_path).unwrap(), unrelated_before);
+
+    // Unmanaged alias with a different digest: the batch aborts and no aliases move.
+    let conflict_layout = dir.join("conflict-layout");
+    write_layout(&conflict_layout, "linux", "amd64", layer_b, "tmp");
+    let output = myoci_args(&[
+        "import".to_string(),
+        "--state-dir".to_string(),
+        path(&state).to_string(),
+        "--layout".to_string(),
+        path(&conflict_layout).to_string(),
+        "--repository".to_string(),
+        "docker.io/example/two".to_string(),
+        "--tag".to_string(),
+        "tmp".to_string(),
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let conflict_root = digest(&image_bytes("linux", "amd64", None, layer_b).2);
+    std::fs::remove_file(state.join("mirror.json")).unwrap();
+    let output = myoci_args(&[
+        "tag".to_string(),
+        "--state-dir".to_string(),
+        path(&state).to_string(),
+        "--repository".to_string(),
+        "docker.io/example/two".to_string(),
+        "--tag".to_string(),
+        "pinned".to_string(),
+        "--digest".to_string(),
+        conflict_root,
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let before = snapshot_metadata(&state);
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    let (code, _stdout, stderr) = sync_err(output);
+    assert_eq!(code, 4, "{stderr}");
+    assert!(stderr.contains("conflict-unmanaged"), "{stderr}");
+    assert_eq!(snapshot_metadata(&state), before, "a conflicting batch applied its aliases");
+
+    // Managed alias whose current value equals the last applied may move.
+    let move_dir = dir.join("managed-move");
+    std::fs::create_dir_all(&move_dir).unwrap();
+    let move_fixture = Fixture::new("example/move");
+    let (move_config, _m_layer, _m_manifest) = image_bytes("linux", "amd64", None, layer_a);
+    let move_config_digest = move_fixture.add_config(&move_config);
+    move_fixture.add_blob(layer_a, OCI_LAYER_GZIP);
+    let move_manifest = manifest_json(
+        &move_config_digest,
+        move_config.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_a), layer_a.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let move_root_a = move_fixture.add_manifest(move_manifest, OCI_MANIFEST);
+    move_fixture.add_tag("stable", &move_root_a);
+    let move_destination = "docker.io/example/move";
+    let move_inventory = write_inventory(
+        &move_dir,
+        &[mirror_entry("move", &format!("{}/example/move:stable", move_fixture.address), move_destination, "\"pinned\"", "\"linux/amd64\"", "snapshot")],
+    );
+    let move_lock = lock_path(&move_dir);
+    let move_state = dir.join("move-state");
+    let output = resolve(&move_inventory, &move_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let output = sync_output(&move_inventory, &move_lock, &move_state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+
+    // Tag moves to a different manifest; a managed alias with current == last applied moves.
+    let (move_config_b, _b_layer, _b_manifest) = image_bytes("linux", "amd64", None, layer_b);
+    let move_config_b_digest = move_fixture.add_config(&move_config_b);
+    move_fixture.add_blob(layer_b, OCI_LAYER_GZIP);
+    let move_manifest_b = manifest_json(
+        &move_config_b_digest,
+        move_config_b.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_b), layer_b.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let move_root_b = move_fixture.add_manifest(move_manifest_b, OCI_MANIFEST);
+    move_fixture.add_tag("stable", &move_root_b);
+    let output = resolve(&move_inventory, &move_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let output = sync_output(&move_inventory, &move_lock, &move_state, &[]);
+    let stdout = sync_ok(output);
+    assert!(stdout.contains("alias pinned move"), "{stdout}");
+    let ownership = myoci::mirror::ownership::read_ownership(&move_state).unwrap();
+    assert_eq!(ownership[&(move_destination.to_string(), "pinned".to_string())].digest.as_str(), move_root_b);
+
+    // A managed alias whose current value differs from the last applied is a stale conflict.
+    let output = myoci_args(&[
+        "tag".to_string(),
+        "--state-dir".to_string(),
+        path(&move_state).to_string(),
+        "--repository".to_string(),
+        move_destination.to_string(),
+        "--tag".to_string(),
+        "pinned".to_string(),
+        "--digest".to_string(),
+        move_root_a.clone(),
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let stale_before = snapshot_metadata(&move_state);
+    let output = sync_output(&move_inventory, &move_lock, &move_state, &[]);
+    let (code, _stdout, stderr) = sync_err(output);
+    assert_eq!(code, 4, "{stderr}");
+    assert!(stderr.contains("conflict-stale"), "{stderr}");
+    assert_eq!(snapshot_metadata(&move_state), stale_before, "stale conflict applied aliases");
+    std::fs::remove_file(move_state.join("mirror.json")).unwrap();
+
+    // Unmanaged identical alias is adopted (becomes managed) without any side effects.
+    let adopt_dir = dir.join("adopt");
+    std::fs::create_dir_all(&adopt_dir).unwrap();
+    let adopt_fixture = Fixture::new("example/adopt");
+    let (adopt_config, _a_layer, _a_manifest) = image_bytes("linux", "amd64", None, layer_a);
+    let adopt_config_digest = adopt_fixture.add_config(&adopt_config);
+    adopt_fixture.add_blob(layer_a, OCI_LAYER_GZIP);
+    let adopt_manifest = manifest_json(
+        &adopt_config_digest,
+        adopt_config.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_a), layer_a.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let adopt_root = adopt_fixture.add_manifest(adopt_manifest, OCI_MANIFEST);
+    adopt_fixture.add_tag("stable", &adopt_root);
+    let adopt_destination = "docker.io/example/adopt";
+    let adopt_inventory = write_inventory(
+        &adopt_dir,
+        &[mirror_entry("adopt", &format!("{}/example/adopt:stable", adopt_fixture.address), adopt_destination, "\"pinned\"", "\"linux/amd64\"", "snapshot")],
+    );
+    let adopt_lock = lock_path(&adopt_dir);
+    let adopt_state = dir.join("adopt-state");
+    let layout_adopt = dir.join("adopt-layout");
+    write_layout(&layout_adopt, "linux", "amd64", layer_a, "pinned");
+    let output = myoci_args(&[
+        "import".to_string(),
+        "--state-dir".to_string(),
+        path(&adopt_state).to_string(),
+        "--layout".to_string(),
+        path(&layout_adopt).to_string(),
+        "--repository".to_string(),
+        adopt_destination.to_string(),
+        "--tag".to_string(),
+        "pinned".to_string(),
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let output = resolve(&adopt_inventory, &adopt_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let output = sync_output(&adopt_inventory, &adopt_lock, &adopt_state, &[]);
+    let stdout = sync_ok(output);
+    assert!(stdout.contains("alias pinned adopt"), "{stdout}");
+    let ownership = myoci::mirror::ownership::read_ownership(&adopt_state).unwrap();
+    assert_eq!(ownership.len(), 1, "identical unmanaged alias did not become managed");
+
+    // Inventory removal: the alias tag stays, ownership is relinquished, objects remain.
+    let removal_dir = dir.join("removal");
+    std::fs::create_dir_all(&removal_dir).unwrap();
+    let removal_state = dir.join("removal-state");
+    let removal_inventory_v1 = write_inventory(
+        &removal_dir,
+        &[mirror_entry("removal", &source, "docker.io/example/removal", "\"pinned\"", "\"linux/amd64\"", "snapshot")],
+    );
+    let removal_lock = lock_path(&removal_dir);
+    let output = resolve(&removal_inventory_v1, &removal_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let output = sync_output(&removal_inventory_v1, &removal_lock, &removal_state, &[]);
+    sync_ok(output);
+    let removal_ownership = myoci::mirror::ownership::read_ownership(&removal_state).unwrap();
+    assert_eq!(removal_ownership.len(), 1);
+    let removal_inventory_v2 = write_inventory(
+        &removal_dir.join("v2"),
+        &[mirror_entry("removal", &source, "docker.io/example/removal", "", "\"linux/amd64\"", "snapshot")],
+    );
+    let output = resolve(&removal_inventory_v2, &removal_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let tag_before = std::fs::read_to_string(removal_state.join("repositories/docker.io/example/removal/repository.json")).unwrap();
+    let output = sync_output(&removal_inventory_v2, &removal_lock, &removal_state, &[]);
+    sync_ok(output);
+    let tag_after = std::fs::read_to_string(removal_state.join("repositories/docker.io/example/removal/repository.json")).unwrap();
+    assert_eq!(tag_before, tag_after, "relinquishing ownership removed the alias");
+    let removal_ownership = myoci::mirror::ownership::read_ownership(&removal_state).unwrap();
+    assert!(removal_ownership.is_empty(), "removed alias ownership was not relinquished");
+    // Removing a whole inventory entry relinquishes its ownership and keeps its content.
+    let removal_inventory_v3 = write_inventory(
+        &removal_dir.join("v3"),
+        &[],
+    );
+    let output = resolve(&removal_inventory_v3, &removal_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let output = sync_output(&removal_inventory_v3, &removal_lock, &removal_state, &[]);
+    sync_ok(output);
+    let kept = std::fs::read_to_string(removal_state.join("repositories/docker.io/example/removal/repository.json")).unwrap();
+    assert!(kept.contains("pinned"), "entry removal deleted the alias");
+    let ownership = myoci::mirror::ownership::read_ownership(&removal_state).unwrap();
+    assert!(ownership.is_empty(), "entry removal kept ownership records");
+
+    // Interruption at every durable transaction boundary: each reader and
+    // writer must complete to the full old or new snapshot, never a mix.
+    let boundary_dir = dir.join("boundary");
+    std::fs::create_dir_all(&boundary_dir).unwrap();
+    let boundary_fixture = Fixture::new("example/boundary");
+    let (boundary_config_a, _boundary_layer_a, _boundary_manifest_a) = image_bytes("linux", "amd64", None, layer_a);
+    let boundary_config_a_digest = boundary_fixture.add_config(&boundary_config_a);
+    boundary_fixture.add_blob(layer_a, OCI_LAYER_GZIP);
+    let boundary_manifest_a = manifest_json(
+        &boundary_config_a_digest,
+        boundary_config_a.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_a), layer_a.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let boundary_root_a = boundary_fixture.add_manifest(boundary_manifest_a, OCI_MANIFEST);
+    boundary_fixture.add_tag("stable", &boundary_root_a);
+    let boundary_destination = "docker.io/example/boundary";
+    let boundary_source = format!("{}/example/boundary:stable", boundary_fixture.address);
+    let boundary_inventory = write_inventory(
+        &boundary_dir,
+        &[mirror_entry("boundary", &boundary_source, boundary_destination, "\"pinned\"", "\"linux/amd64\"", "snapshot")],
+    );
+    let boundary_lock = lock_path(&boundary_dir);
+    let output = resolve(&boundary_inventory, &boundary_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let boundary_state = dir.join("boundary-state");
+    let output = sync_output(&boundary_inventory, &boundary_lock, &boundary_state, &[]);
+    sync_ok(output);
+    let old_metadata = snapshot_metadata(&boundary_state);
+
+    // The interrupted sync is the alias-move sync after the tag moves to B.
+    let (boundary_config_b, _boundary_layer_b, _boundary_manifest_b) = image_bytes("linux", "amd64", None, layer_b);
+    let boundary_config_b_digest = boundary_fixture.add_config(&boundary_config_b);
+    boundary_fixture.add_blob(layer_b, OCI_LAYER_GZIP);
+    let boundary_manifest_b = manifest_json(
+        &boundary_config_b_digest,
+        boundary_config_b.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_b), layer_b.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let boundary_root_b = boundary_fixture.add_manifest(boundary_manifest_b, OCI_MANIFEST);
+    boundary_fixture.add_tag("stable", &boundary_root_b);
+    let output = resolve(&boundary_inventory, &boundary_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let boundary_new_state = dir.join("boundary-new");
+    copy_dir_all(&boundary_state, &boundary_new_state);
+    let output = sync_output(&boundary_inventory, &boundary_lock, &boundary_new_state, &[]);
+    sync_ok(output);
+    let new_metadata = snapshot_metadata(&boundary_new_state);
+    assert_ne!(old_metadata, new_metadata, "the alias-move fixture did not change the metadata");
+    // The interrupted state is the fully-acquired pre-commit state: old metadata
+    // over new content, staged new metadata pending in .mirror-transaction.
+    let interrupted_template = dir.join("interrupted-template");
+    copy_dir_all(&boundary_new_state, &interrupted_template);
+    for (relative, bytes) in &old_metadata {
+        let target = interrupted_template.join(relative);
+        std::fs::create_dir_all(target.parent().unwrap()).unwrap();
+        std::fs::write(&target, bytes).unwrap();
+    }
+    let interrupted_before = snapshot_metadata(&interrupted_template);
+    assert_eq!(interrupted_before, old_metadata, "interrupted base state disagrees with the old snapshot");
+
+    for boundary in ["no-marker", "marker-no-apply", "marker-partial-apply"] {
+        let expected = if boundary == "no-marker" { &old_metadata } else { &new_metadata };
+        let alias_digest = if boundary == "no-marker" { &boundary_root_a } else { &boundary_root_b };
+
+        // Plan refuses to proceed while a transaction is pending; it writes nothing.
+        let plan_state = dir.join(format!("boundary-{boundary}-plan"));
+        copy_dir_all(&interrupted_template, &plan_state);
+        stage_transaction(&plan_state, &new_metadata, boundary != "no-marker");
+        let plan_before = snapshot_metadata(&plan_state);
+        let output = plan_output(&boundary_inventory, &boundary_lock, &plan_state, &[]);
+        let (code, _stdout, stderr) = (output.status.code().unwrap(), String::from_utf8(output.stdout).unwrap(), String::from_utf8(output.stderr).unwrap());
+        assert_eq!(code, 4, "{stderr}");
+        assert!(stderr.contains("mirror transaction"), "{stderr}");
+        assert_eq!(snapshot_metadata(&plan_state), plan_before, "plan mutated the interrupted state");
+
+        for command in ["verify", "inspect", "tag", "publish", "sync"] {
+            let case_state = dir.join(format!("boundary-{boundary}-{command}"));
+            copy_dir_all(&interrupted_template, &case_state);
+            stage_transaction(&case_state, &new_metadata, boundary != "no-marker");
+            if boundary == "marker-partial-apply" {
+                // Real crash mid-apply: exactly one staged file reached its target.
+                let mirror_json = new_metadata.iter().find(|(name, _)| name == "mirror.json").unwrap();
+                std::fs::write(case_state.join("mirror.json"), &mirror_json.1).unwrap();
+            }
+            let output = match command {
+                "verify" => myoci_args(&["verify".to_string(), "--state-dir".to_string(), path(&case_state).to_string()]),
+                "inspect" => myoci_args(&["inspect".to_string(), "--state-dir".to_string(), path(&case_state).to_string()]),
+                "tag" => myoci_args(&[
+                    "tag".to_string(),
+                    "--state-dir".to_string(),
+                    path(&case_state).to_string(),
+                    "--repository".to_string(),
+                    boundary_destination.to_string(),
+                    "--tag".to_string(),
+                    "pinned".to_string(),
+                    "--digest".to_string(),
+                    alias_digest.to_string(),
+                ]),
+                "publish" => myoci_args(&[
+                    "publish".to_string(),
+                    "--state-dir".to_string(),
+                    path(&case_state).to_string(),
+                    "--site-dir".to_string(),
+                    path(&dir.join(format!("boundary-{boundary}-publish-site"))).to_string(),
+                ]),
+                "sync" => sync_output(&boundary_inventory, &boundary_lock, &case_state, &[]),
+                _ => unreachable!(),
+            };
+            let stdout = String::from_utf8(output.stdout).unwrap();
+            let stderr = String::from_utf8(output.stderr).unwrap();
+            assert_eq!(output.status.code(), Some(0), "{command} failed on {boundary}: {stderr}");
+            assert!(
+                !case_state.join(".mirror-transaction").exists(),
+                "{command} left an interrupted transaction on {boundary}"
+            );
+            if command == "sync" {
+                // The re-sync deterministically re-applies the pending move (old state)
+                // or reports unchanged (recovered new state); either way the bytes are
+                // exactly the new snapshot.
+                assert_eq!(snapshot_metadata(&case_state), new_metadata, "sync on {boundary} recovered to mixed state");
+                if boundary == "no-marker" {
+                    assert!(stdout.contains("alias pinned move"), "{stdout}");
+                } else {
+                    assert!(stdout.contains("alias pinned unchanged"), "{stdout}");
+                }
+            } else {
+                assert_eq!(snapshot_metadata(&case_state), *expected, "{command} on {boundary} recovered to mixed state");
+            }
+        }
+    }
+
+    // Two concurrent syncs of one fresh state converge to exactly the
+    // single-sync metadata for the current lock.
+    let fresh_state = dir.join("fresh-state");
+    let output = sync_output(&boundary_inventory, &boundary_lock, &fresh_state, &[]);
+    sync_ok(output);
+    let fresh_metadata = snapshot_metadata(&fresh_state);
+    let concurrent_state = dir.join("concurrent-state");
+    let spawn_sync = |state: &Path| {
+        Command::new(env!("CARGO_BIN_EXE_myoci"))
+            .args([
+                "mirror",
+                "sync",
+                "--config",
+                path(&boundary_inventory),
+                "--lock",
+                path(&boundary_lock),
+                "--state-dir",
+                path(state),
+                "--locked",
+            ])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .unwrap()
+    };
+    let first = spawn_sync(&concurrent_state);
+    let second = spawn_sync(&concurrent_state);
+    let first_output = first.wait_with_output().unwrap();
+    let second_output = second.wait_with_output().unwrap();
+    for (index, output) in [&first_output, &second_output].iter().enumerate() {
+        assert_eq!(output.status.code(), Some(0), "concurrent sync {index}: {}", String::from_utf8(output.stderr.clone()).unwrap());
+    }
+    assert_eq!(snapshot_metadata(&concurrent_state), fresh_metadata, "concurrent syncs produced mixed metadata");
+    let output = myoci_args(&["verify".to_string(), "--state-dir".to_string(), path(&concurrent_state).to_string()]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+
+    // Bounded contention: a held state lock fails a child sync fast with exit 4,
+    // never an unbounded wait.
+    let held_state = dir.join("held-state");
+    let output = myoci_args(&["init".to_string(), "--state-dir".to_string(), path(&held_state).to_string()]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let holder = myoci::state::State::new(held_state.clone());
+    let _guard = holder.lock().unwrap();
+    let started = std::time::Instant::now();
+    let output = sync_output(&boundary_inventory, &boundary_lock, &held_state, &[]);
+    let elapsed = started.elapsed();
+    let (code, _stdout, stderr) = sync_err(output);
+    assert_eq!(code, 4, "{stderr}");
+    assert!(stderr.contains("state is busy"), "{stderr}");
+    assert!(elapsed < std::time::Duration::from_secs(10), "sync waited {elapsed:?} on a held state lock");
+
+    // A concurrent import and sync of the same fresh state both complete.
+    let mixed_state = dir.join("mixed-state");
+    let mixed_layout = dir.join("mixed-layout");
+    write_layout(&mixed_layout, "linux", "amd64", b"concurrent import layer", "stable");
+    let import_child = Command::new(env!("CARGO_BIN_EXE_myoci"))
+        .args([
+            "import",
+            "--state-dir",
+            path(&mixed_state),
+            "--layout",
+            path(&mixed_layout),
+            "--repository",
+            "docker.io/example/mixedimport",
+            "--tag",
+            "stable",
+        ])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let sync_child = spawn_sync(&mixed_state);
+    let import_output = import_child.wait_with_output().unwrap();
+    let sync_output_mixed = sync_child.wait_with_output().unwrap();
+    assert_eq!(import_output.status.code(), Some(0), "{}", String::from_utf8(import_output.stderr).unwrap());
+    assert_eq!(sync_output_mixed.status.code(), Some(0), "{}", String::from_utf8(sync_output_mixed.stderr).unwrap());
+    let output = myoci_args(&["verify".to_string(), "--state-dir".to_string(), path(&mixed_state).to_string()]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let output = myoci_args(&["inspect".to_string(), "--state-dir".to_string(), path(&mixed_state).to_string()]);
+    let inspection = String::from_utf8(output.stdout).unwrap();
+    assert!(inspection.contains("docker.io/example/mixedimport") || inspection.contains("stable"), "{inspection}");
+    assert!(mixed_state.join("repositories/docker.io/example/boundary/repository.json").is_file());
+
+    // Adopting a generation published from a synced state, then syncing again,
+    // adopts the identical unmanaged alias back into managed ownership.
+    let adopt_state = dir.join("adopt-state");
+    let output = sync_output(&boundary_inventory, &boundary_lock, &adopt_state, &[]);
+    sync_ok(output);
+    let adopt_site = dir.join("adopt-site");
+    let output = myoci_args(&[
+        "publish".to_string(),
+        "--state-dir".to_string(),
+        path(&adopt_state).to_string(),
+        "--site-dir".to_string(),
+        path(&adopt_site).to_string(),
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let adopted_state = dir.join("adopt-restored");
+    let output = myoci_args(&[
+        "adopt".to_string(),
+        "--state-dir".to_string(),
+        path(&adopted_state).to_string(),
+        "--site-dir".to_string(),
+        path(&adopt_site).to_string(),
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let restored_repository = std::fs::read_to_string(adopted_state.join("repositories/docker.io/example/boundary/repository.json")).unwrap();
+    assert!(restored_repository.contains(&boundary_root_b), "adopted state lost the managed alias: {restored_repository}");
+    let output = sync_output(&boundary_inventory, &boundary_lock, &adopted_state, &[]);
+    let stdout = sync_ok(output);
+    assert!(stdout.contains("alias pinned adopt"), "{stdout}");
+    let ownership = myoci::mirror::ownership::read_ownership(&adopted_state).unwrap();
+    assert_eq!(
+        ownership[&(boundary_destination.to_string(), "pinned".to_string())].digest.as_str(),
+        boundary_root_b
+    );
 }

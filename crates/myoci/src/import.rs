@@ -29,6 +29,17 @@ pub fn import_layout(
     repository: &RepositoryName,
     tag: Option<&Tag>,
 ) -> Result<ImportSummary> {
+    let _lock = state.lock()?;
+    let _ = crate::mirror::transaction::recover_locked(state)?;
+    import_layout_locked(state, layout, repository, tag)
+}
+
+pub(crate) fn import_layout_locked(
+    state: &State,
+    layout: &std::path::Path,
+    repository: &RepositoryName,
+    tag: Option<&Tag>,
+) -> Result<ImportSummary> {
     state.init()?;
     let roots = read_layout_index(layout)?;
     let (root, root_tag) = select_root(&roots, tag)?;
@@ -149,7 +160,9 @@ pub fn import_from(
             stderr.trim()
         )));
     }
-    import_layout(state, scratch.path(), repository, tag)
+    let _lock = state.lock()?;
+    let _ = crate::mirror::transaction::recover_locked(state)?;
+    import_layout_locked(state, scratch.path(), repository, tag)
 }
 
 fn oras_binary() -> Result<String> {
