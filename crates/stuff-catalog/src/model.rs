@@ -12,6 +12,7 @@ pub enum Registry {
     Npm,
     Pypi,
     Oci,
+    Mirror,
 }
 
 impl Registry {
@@ -21,6 +22,7 @@ impl Registry {
             Registry::Npm => "npm",
             Registry::Pypi => "pypi",
             Registry::Oci => "oci",
+            Registry::Mirror => "mirror",
         }
     }
 
@@ -30,6 +32,7 @@ impl Registry {
             "npm" => Some(Registry::Npm),
             "pypi" => Some(Registry::Pypi),
             "oci" => Some(Registry::Oci),
+            "mirror" => Some(Registry::Mirror),
             _ => None,
         }
     }
@@ -414,6 +417,9 @@ pub fn parse_catalog_json(text: &str) -> Result<Catalog, String> {
     let value: deser_value::Value =
         deser_json::from_str(text).map_err(|e| format!("catalog is not valid JSON: {e}"))?;
     let map = value.as_map().ok_or_else(|| "catalog must be an object".to_string())?;
+    if map.get("registry").and_then(|value| value.as_str()) == Some("mirror") {
+        return parse_mirror_catalog(map);
+    }
     if map.len() != 4 {
         return Err("catalog has unknown or missing fields".to_string());
     }
@@ -462,6 +468,86 @@ pub fn parse_catalog_json(text: &str) -> Result<Catalog, String> {
     let mut sorted = packages;
     sorted.sort_by(|a, b| (a.name.as_str(), a.source.as_deref()).cmp(&(b.name.as_str(), b.source.as_deref())));
     Ok(Catalog { schema_version: schema, registry, generation: generation.to_string(), packages: sorted })
+}
+
+fn parse_mirror_catalog(map: &deser_value::Map) -> Result<Catalog, String> {
+    let keys = ["artifacts", "baseUrl", "generation", "packages", "registry", "renderer", "schemaVersion"];
+    if map.len() != keys.len() || keys.iter().any(|key| map.get(*key).is_none()) {
+        return Err("mirror catalog has unknown or missing fields".to_string());
+    }
+    let null = deser_value::Value::from(deser_value::Kind::Null);
+    let schema = map.get("schemaVersion").unwrap_or(&null).as_u64().unwrap_or(0);
+    if schema != 1 {
+        return Err(format!("unsupported mirror catalog schemaVersion: {schema}"));
+    }
+    map.get("artifacts")
+        .and_then(|value| value.as_seq())
+        .ok_or_else(|| "mirror catalog artifacts must be an array".to_string())?;
+    map.get("baseUrl")
+        .and_then(|value| value.as_str())
+        .ok_or_else(|| "mirror catalog baseUrl must be a string".to_string())?;
+    map.get("renderer")
+        .and_then(|value| value.as_u64())
+        .ok_or_else(|| "mirror catalog renderer must be a positive integer".to_string())?;
+    let generation = map.get("generation").unwrap_or(&null).as_str().unwrap_or("");
+    if generation.is_empty() {
+        return Err("mirror catalog generation must not be empty".to_string());
+    }
+    let packages = map.get("packages").unwrap_or(&null).as_seq()
+        .ok_or_else(|| "mirror catalog packages must be an array".to_string())?;
+    let mut parsed = Vec::with_capacity(packages.len());
+    for item in packages {
+        let entry = item.as_map().ok_or_else(|| "mirror package entry must be an object".to_string())?;
+        let entry_keys = ["name", "source", "versions"];
+        if entry.len() != entry_keys.len() || entry_keys.iter().any(|key| entry.get(*key).is_none()) {
+            return Err("mirror package has unknown or missing fields".to_string());
+        }
+        let name = entry.get("name").unwrap_or(&null).as_str().unwrap_or("");
+        if name.is_empty() || name.contains('\0') {
+            return Err("mirror package name must not be empty".to_string());
+        }
+        let source = entry.get("source").unwrap_or(&null).as_str().unwrap_or("");
+        if source != "upstream" {
+            return Err(format!("mirror package {name} source must be upstream"));
+        }
+        let versions = entry.get("versions").unwrap_or(&null).as_seq()
+            .ok_or_else(|| format!("mirror package {name} versions must be an array"))?;
+        if versions.is_empty() {
+            return Err(format!("mirror package {name} must carry at least one version"));
+        }
+        let mut parsed_versions = Vec::with_capacity(versions.len());
+        for version in versions {
+            let version_entry = version.as_map().ok_or_else(|| format!("mirror package {name} version entry must be an object"))?;
+            if version_entry.len() != 1 || version_entry.get("version").is_none() {
+                return Err(format!("mirror package {name} version entry has unknown or missing fields"));
+            }
+            let version = version_entry.get("version").unwrap_or(&null).as_str().unwrap_or("");
+            if version.is_empty() {
+                return Err(format!("mirror package {name} version must not be empty"));
+            }
+            parsed_versions.push(VersionEntry { version: version.to_string(), yanked: false });
+        }
+        parsed.push(Package {
+            name: name.to_string(),
+            source: Some(source.to_string()),
+            latest: parsed_versions[0].version.clone(),
+            versions: parsed_versions,
+            dependencies: Dependencies::default(),
+        });
+    }
+    let mut names: Vec<(&str, Option<&str>)> = parsed
+        .iter()
+        .map(|package| (package.name.as_str(), package.source.as_deref()))
+        .collect();
+    names.sort();
+    let mut dedup = names.clone();
+    dedup.dedup();
+    if dedup.len() != names.len() {
+        return Err("mirror catalog contains a duplicate package identity".to_string());
+    }
+    let mut sorted = parsed;
+    sorted.sort_by(|a, b| (a.name.as_str(), a.source.as_deref()).cmp(&(b.name.as_str(), b.source.as_deref())));
+    Ok(Catalog { schema_version: 1, registry: Registry::Mirror, generation: generation.to_string(), packages: sorted })
 }
 
 #[derive(Default)]
@@ -998,5 +1084,67 @@ mod tests {
         let unknown_kind = r#"{"runtime":[],"peer":[],"build":[],"optional":[]}"#;
         assert!(parse_catalog_json(&text(unknown_kind)).unwrap_err().contains("kinds"));
         assert!(parse_catalog_json(&text(r#"["b"]"#)).unwrap_err().contains("object"));
+    }
+
+    fn mirror_catalog_text() -> &'static str {
+        r#"{
+  "artifacts": [
+    {"bytes": 3, "file": "node-v26.13.1-darwin-arm64.zip", "files": ["bin/node"], "id": "node-v26.13.1-darwin-arm64", "sha256": "af6202f537", "stripComponents": 1, "upstream": {"sha256": "af6202f537", "url": "https://nodejs.org/dist/v26.13.1/node-v26.13.1-darwin-arm64.tar.xz"}, "version": "26.13.1"}
+  ],
+  "baseUrl": "https://mirror.17166969.xyz/",
+  "generation": "0f455520",
+  "packages": [
+    {"name": "node-v26.13.1-darwin-arm64", "source": "upstream", "versions": [{"version": "26.13.1"}]},
+    {"name": "node-v26.13.1-linux-x64", "source": "upstream", "versions": [{"version": "26.13.1"}]}
+  ],
+  "registry": "mirror",
+  "renderer": 1,
+  "schemaVersion": 1
+}"#
+    }
+
+    #[test]
+    fn parses_the_mirror_catalog_dialect() {
+        let catalog = parse_catalog_json(mirror_catalog_text()).unwrap();
+        assert_eq!(catalog.registry, Registry::Mirror);
+        assert_eq!(catalog.generation, "0f455520");
+        assert_eq!(catalog.schema_version, 1);
+        assert_eq!(catalog.packages.len(), 2);
+        assert_eq!(catalog.packages[0].name, "node-v26.13.1-darwin-arm64");
+        assert_eq!(catalog.packages[0].source.as_deref(), Some("upstream"));
+        assert_eq!(catalog.packages[0].latest, "26.13.1");
+        assert_eq!(catalog.packages[0].versions.len(), 1);
+        assert!(catalog.packages[0].dependencies.is_empty());
+        assert_eq!(catalog.package_count(), 2);
+    }
+
+    #[test]
+    fn mirror_dialect_rejects_unknown_top_level_fields() {
+        let text = mirror_catalog_text().replace("\"renderer\": 1,\n", "\"renderer\": 1,\n  \"packageCount\": 2,\n");
+        assert!(parse_catalog_json(&text).unwrap_err().contains("unknown or missing fields"));
+    }
+
+    #[test]
+    fn mirror_dialect_requires_a_version_per_package() {
+        let text = mirror_catalog_text().replace(
+            "\"versions\": [{\"version\": \"26.13.1\"}]",
+            "\"versions\": []",
+        );
+        assert!(parse_catalog_json(&text).unwrap_err().contains("at least one version"));
+    }
+
+    #[test]
+    fn mirror_dialect_requires_upstream_source() {
+        let text = mirror_catalog_text().replace(
+            "\"source\": \"upstream\"",
+            "\"source\": \"first-party\"",
+        );
+        assert!(parse_catalog_json(&text).unwrap_err().contains("must be upstream"));
+    }
+
+    #[test]
+    fn mirror_dialect_rejects_mismatched_schema_version() {
+        let text = mirror_catalog_text().replace("\"schemaVersion\": 1", "\"schemaVersion\": 2");
+        assert!(parse_catalog_json(&text).unwrap_err().contains("schemaVersion"));
     }
 }

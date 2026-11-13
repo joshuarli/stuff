@@ -60,7 +60,7 @@ Run everything from the repository root.
 
 ## Invariants
 
-- `stuff publish cargo|npm|pypi|oci` is the publication entry point; the Python Cargo writer stays only as a parity oracle.
+- `stuff publish cargo|npm|pypi|oci|mirror` is the publication entry point; the Python Cargo writer stays only as a parity oracle.
 - One registry's publication never rebuilds another registry's output.
 - Keep package semantics per ecosystem; share serving/storage/generation code without a universal `Package` abstraction.
 - First-party Rust forbids unsafe code; Python mycrates uses only the standard library.

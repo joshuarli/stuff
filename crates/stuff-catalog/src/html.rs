@@ -67,6 +67,7 @@ fn registry_label(registry: Registry) -> &'static str {
         Registry::Npm => "npm",
         Registry::Pypi => "PyPI",
         Registry::Oci => "OCI",
+        Registry::Mirror => "Mirror",
     }
 }
 
