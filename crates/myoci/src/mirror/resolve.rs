@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 use crate::error::{Error, Result};
+use crate::mirror::cache::{EntryCache, MirrorCache};
 use crate::mirror::graph::resolve_entry;
 use crate::mirror::http::{registry_base, RegistryHttp};
 use crate::mirror::inventory::Inventory;
@@ -16,6 +17,7 @@ pub fn run(options: &MirrorOptions) -> Result<()> {
     let mut entries = Vec::with_capacity(inventory.entries.len());
     let http = RegistryHttp::new();
     let mut preserved = 0usize;
+    let mut resolved_objects: rustc_hash::FxHashMap<String, Vec<crate::mirror::cache::CacheObject>> = rustc_hash::FxHashMap::default();
     for entry in &inventory.entries {
         let resolved = if !selected.is_empty() && !selected.contains(&entry.id) {
             preserved += 1;
@@ -25,7 +27,9 @@ pub fn run(options: &MirrorOptions) -> Result<()> {
                 .expect("entry membership checked")
                 .clone()
         } else {
-            resolve_one(&http, entry)?
+            let (locked, objects) = resolve_one(&http, entry)?;
+            resolved_objects.insert(entry.id.clone(), objects);
+            locked
         };
         entries.push(resolved);
     }
@@ -35,6 +39,8 @@ pub fn run(options: &MirrorOptions) -> Result<()> {
     };
     let rendered = lock.render();
     stuff_store::write_file_durable(lock_path, rendered.as_bytes())?;
+    let cache = build_cache(lock_path, rendered.as_bytes(), &inventory, &resolved_objects)?;
+    stuff_store::write_file_durable(&MirrorCache::path_for(lock_path), cache.render().as_bytes())?;
     for entry in &lock.entries {
         println!(
             "resolved {} root {} ({} additional referrers)",
@@ -45,6 +51,39 @@ pub fn run(options: &MirrorOptions) -> Result<()> {
     }
     println!("wrote {} ({} entries, {preserved} preserved)", lock_path.display(), lock.entries.len());
     Ok(())
+}
+
+fn build_cache(
+    lock_path: &std::path::Path,
+    rendered_lock: &[u8],
+    inventory: &Inventory,
+    resolved_objects: &rustc_hash::FxHashMap<String, Vec<crate::mirror::cache::CacheObject>>,
+) -> Result<MirrorCache> {
+    let old_cache = match MirrorCache::load_if_fresh(lock_path) {
+        Ok(cache) => cache,
+        Err(error) => {
+            eprintln!("myoci: warning: discarding the previous lock cache: {error}");
+            None
+        }
+    };
+    let mut entries = Vec::with_capacity(inventory.entries.len());
+    for entry in &inventory.entries {
+        let objects = match resolved_objects.get(&entry.id) {
+            Some(objects) => objects.clone(),
+            None => old_cache
+                .as_ref()
+                .map(|cache| cache.objects_for(&entry.id))
+                .unwrap_or_default(),
+        };
+        entries.push(EntryCache {
+            id: entry.id.clone(),
+            objects,
+        });
+    }
+    Ok(MirrorCache {
+        lock_digest: stuff_oci::Digest::from_bytes(rendered_lock),
+        entries,
+    })
 }
 
 fn dedupe(entries: &[String]) -> Vec<String> {
@@ -146,25 +185,31 @@ fn ensure_unselected_unchanged(
     Ok(())
 }
 
-fn resolve_one(http: &RegistryHttp, entry: &crate::mirror::inventory::InventoryEntry) -> Result<LockedEntry> {
+fn resolve_one(
+    http: &RegistryHttp,
+    entry: &crate::mirror::inventory::InventoryEntry,
+) -> Result<(LockedEntry, Vec<crate::mirror::cache::CacheObject>)> {
     let base = registry_base(&entry.source.registry, &entry.source.repository);
     let outcome = resolve_entry(http, &base, &entry.source.repository, entry)?;
     let mut aliases: Vec<String> = entry.aliases.iter().map(|alias| alias.as_str().to_string()).collect();
     aliases.sort();
     let mut platforms: Vec<String> = entry.platforms.iter().map(crate::mirror::PlatformRequirement::render).collect();
     platforms.sort();
-    Ok(LockedEntry {
-        id: entry.id.clone(),
-        source: entry.source.declared.clone(),
-        source_repository: entry.source.repository_id(),
-        destination: entry.destination.repository_id(),
-        aliases,
-        platforms,
-        referrers: entry.referrers,
-        root_media_type: outcome.root_media_type,
-        root_digest: outcome.root_digest,
-        root_size: outcome.root_size,
-        resolved_platforms: outcome.resolved_platforms,
-        additional_referrers: outcome.additional_referrers,
-    })
+    Ok((
+        LockedEntry {
+            id: entry.id.clone(),
+            source: entry.source.declared.clone(),
+            source_repository: entry.source.repository_id(),
+            destination: entry.destination.repository_id(),
+            aliases,
+            platforms,
+            referrers: entry.referrers,
+            root_media_type: outcome.root_media_type,
+            root_digest: outcome.root_digest,
+            root_size: outcome.root_size,
+            resolved_platforms: outcome.resolved_platforms,
+            additional_referrers: outcome.additional_referrers,
+        },
+        outcome.objects,
+    ))
 }

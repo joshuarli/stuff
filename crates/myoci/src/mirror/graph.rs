@@ -19,6 +19,7 @@ pub struct GraphOutcome {
     pub root_size: u64,
     pub resolved_platforms: Vec<String>,
     pub additional_referrers: Vec<LockedReferrer>,
+    pub objects: Vec<crate::mirror::cache::CacheObject>,
     pub manifests: usize,
     pub descriptors: u64,
 }
@@ -32,6 +33,7 @@ pub fn resolve_entry(
     let mut walker = Walker::new(http, base, repository, entry);
     let (root, image) = walker.resolve_root()?;
     walker.note_descriptor(&root, 0)?;
+    walker.note_object(&root, crate::mirror::cache::ObjectRole::Manifest);
     walker.walk_image(&root, image, None, 0)?;
     if entry.referrers == ReferrersMode::Snapshot {
         walker.observe_referrers()?;
@@ -43,12 +45,16 @@ pub fn resolve_entry(
     additional_referrers.sort_by(|a, b| {
         (a.subject.as_str(), a.digest.as_str()).cmp(&(b.subject.as_str(), b.digest.as_str()))
     });
+    let mut objects = walker.objects;
+    objects.sort_by(|a, b| a.digest.cmp(&b.digest));
+    objects.dedup_by(|a, b| a.digest == b.digest);
     Ok(GraphOutcome {
         root_media_type: root.media_type,
         root_digest: root.digest,
         root_size: root.size,
         resolved_platforms,
         additional_referrers,
+        objects,
         manifests: walker.manifests,
         descriptors: walker.descriptor_count,
     })
@@ -65,6 +71,7 @@ struct Walker<'a> {
     referrer_subjects: Vec<Digest>,
     referrers: FxHashMap<(String, String), LockedReferrer>,
     visited_referrers: FxHashSet<Digest>,
+    objects: Vec<crate::mirror::cache::CacheObject>,
 }
 
 impl<'a> Walker<'a> {
@@ -85,6 +92,7 @@ impl<'a> Walker<'a> {
             referrer_subjects: Vec::new(),
             referrers: FxHashMap::default(),
             visited_referrers: FxHashSet::default(),
+            objects: Vec::new(),
         }
     }
 
@@ -168,6 +176,9 @@ impl<'a> Walker<'a> {
             Image::Index(index) => {
                 for child in &index.manifests {
                     self.note_descriptor(child, depth + 1)?;
+                    if is_manifest_like(&child.media_type) {
+                        self.note_object(child, crate::mirror::cache::ObjectRole::Manifest);
+                    }
                     let hint = child.platform.as_ref();
                     if let Some(platform) = hint
                         && !is_unknown_platform(&platform.os, &platform.architecture)
@@ -197,6 +208,10 @@ impl<'a> Walker<'a> {
                         })?;
                         self.platforms.insert(platform);
                     }
+                }
+                self.note_object(&manifest.config, crate::mirror::cache::ObjectRole::Config);
+                for blob in manifest.layers.iter() {
+                    self.note_object(blob, crate::mirror::cache::ObjectRole::Layer);
                 }
                 for blob in std::iter::once(&manifest.config).chain(manifest.layers.iter()) {
                     self.note_descriptor(blob, depth + 1)?;
@@ -250,6 +265,15 @@ impl<'a> Walker<'a> {
         Ok(response.body)
     }
 
+    fn note_object(&mut self, descriptor: &Descriptor, role: crate::mirror::cache::ObjectRole) {
+        self.objects.push(crate::mirror::cache::CacheObject {
+            digest: descriptor.digest.clone(),
+            size: descriptor.size,
+            media_type: descriptor.media_type.clone(),
+            role,
+        });
+    }
+
     fn note_descriptor(&mut self, _descriptor: &Descriptor, depth: u32) -> Result<()> {
         self.descriptor_count += 1;
         if self.descriptor_count > MAX_GRAPH_DESCRIPTORS {
@@ -293,6 +317,7 @@ impl<'a> Walker<'a> {
                 if self.referrers.contains_key(&key) {
                     continue;
                 }
+                self.note_object(&referrer, crate::mirror::cache::ObjectRole::Manifest);
                 self.referrers.insert(
                     key,
                     LockedReferrer {

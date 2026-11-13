@@ -258,9 +258,7 @@ fn inventory_and_lock() {
         .args(["mirror", "plan", "--config", path(&seed_inventory_path()), "--lock", path(&seed_lock_path()), "--state-dir", path(&missing.join("state"))])
         .output()
         .unwrap();
-    assert_eq!(mirror.status.code(), Some(1));
-    let stderr = String::from_utf8(mirror.stderr).unwrap();
-    assert!(stderr.contains("not implemented"), "{stderr}");
+    assert_eq!(mirror.status.code(), Some(0), "{}", String::from_utf8(mirror.stderr).unwrap());
     assert!(!missing.join("state").exists(), "plan must not initialize state");
 
     let mirror = Command::new(env!("CARGO_BIN_EXE_myoci"))
@@ -288,7 +286,7 @@ const OCI_INDEX: &str = "application/vnd.oci.image.index.v1+json";
 const OCI_CONFIG: &str = "application/vnd.oci.image.config.v1+json";
 const OCI_LAYER_GZIP: &str = "application/vnd.oci.image.layer.v1.tar+gzip";
 const IN_TOTO: &str = "application/vnd.in-toto+json";
-const LAYER_BYTES: &[u8] = b"manylinux layer bytes";
+const layer_bYTES: &[u8] = b"manylinux layer bytes";
 
 fn inventory_path(dir: &Path) -> PathBuf {
     dir.join("mirror.toml")
@@ -310,10 +308,10 @@ fn write_inventory(dir: &Path, entries: &[String]) -> PathBuf {
     path
 }
 
-fn single_image_fixture(fixture: &Fixture, os: &str, architecture: &str, variant: Option<&str>, layer: &[u8]) -> (String, String, u64) {
+fn image_bytes(os: &str, architecture: &str, variant: Option<&str>, layer: &[u8]) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
     let config_bytes = config_json(os, architecture, variant);
-    let config_digest = fixture.add_config(&config_bytes);
-    let layer_digest = fixture.add_blob(layer, OCI_LAYER_GZIP);
+    let config_digest = digest(&config_bytes);
+    let layer_digest = digest(layer);
     let manifest = manifest_json(
         &config_digest,
         config_bytes.len() as u64,
@@ -322,10 +320,39 @@ fn single_image_fixture(fixture: &Fixture, os: &str, architecture: &str, variant
         None,
         None,
     );
+    (config_bytes, layer.to_vec(), manifest)
+}
+
+fn digest(bytes: &[u8]) -> String {
+    stuff_oci::Digest::from_bytes(bytes).as_str().to_string()
+}
+
+fn single_image_fixture(fixture: &Fixture, os: &str, architecture: &str, variant: Option<&str>, layer: &[u8]) -> (String, String, u64) {
+    let (config_bytes, _layer_bytes, manifest) = image_bytes(os, architecture, variant, layer);
+    let config_digest = fixture.add_config(&config_bytes);
+    fixture.add_blob(layer, OCI_LAYER_GZIP);
     let manifest_size = manifest.len() as u64;
     let root = fixture.add_manifest(manifest, OCI_MANIFEST);
     (root, config_digest, manifest_size)
 }
+
+fn write_layout(dir: &Path, os: &str, architecture: &str, layer: &[u8], tag: &str) {
+    let (config_bytes, layer_bytes, manifest) = image_bytes(os, architecture, None, layer);
+    let blobs = dir.join("blobs/sha256");
+    std::fs::create_dir_all(&blobs).unwrap();
+    std::fs::write(dir.join("oci-layout"), br#"{"imageLayoutVersion":"1.0.0"}"#).unwrap();
+    let manifest_digest = digest(&manifest);
+    for bytes in [&config_bytes, &layer_bytes, &manifest] {
+        std::fs::write(blobs.join(&digest(bytes)["sha256:".len()..]), bytes).unwrap();
+    }
+    let index = format!(
+        r#"{{"schemaVersion":2,"mediaType":"{}","manifests":[{{"mediaType":"{OCI_MANIFEST}","digest":"{manifest_digest}","size":{},"annotations":{{"org.opencontainers.image.ref.name":"{tag}"}}}}]}}"#,
+        OCI_INDEX,
+        manifest.len()
+    );
+    std::fs::write(dir.join("index.json"), index).unwrap();
+}
+
 
 fn mirror_entry(id: &str, source: &str, destination: &str, aliases: &str, platforms: &str, referrers: &str) -> String {
     format!("[[entries]]\nid = \"{id}\"\nsource = \"{source}\"\ndestination = \"{destination}\"\naliases = [{aliases}]\nplatforms = [{platforms}]\nreferrers = \"{referrers}\"\n")
@@ -350,7 +377,7 @@ fn resolve_snapshots() {
     let dir = workspace.path();
 
     let fixture = Fixture::new("example/app");
-    let (root_digest, _config, root_size) = single_image_fixture(&fixture, "linux", "amd64", None, LAYER_BYTES);
+    let (root_digest, _config, root_size) = single_image_fixture(&fixture, "linux", "amd64", None, layer_bYTES);
     fixture.add_tag("stable", &root_digest);
     let source = format!("{}/example/app:stable", fixture.address);
 
@@ -403,7 +430,7 @@ fn resolve_snapshots() {
 
     // Referrer discovery failure fails resolution; empty discovery is fine.
     let failing = Fixture::new("example/failing");
-    let (failing_root, _, _) = single_image_fixture(&failing, "linux", "amd64", None, LAYER_BYTES);
+    let (failing_root, _, _) = single_image_fixture(&failing, "linux", "amd64", None, layer_bYTES);
     failing.add_tag("stable", &failing_root);
     failing.set_referrers_status(500);
     let failing_dir = dir.join("failing");
@@ -436,7 +463,7 @@ fn resolve_snapshots() {
     let empty_dir = dir.join("empty");
     std::fs::create_dir_all(&empty_dir).unwrap();
     let empty_fixture = Fixture::new("example/empty");
-    let (empty_root, _, _) = single_image_fixture(&empty_fixture, "linux", "amd64", None, LAYER_BYTES);
+    let (empty_root, _, _) = single_image_fixture(&empty_fixture, "linux", "amd64", None, layer_bYTES);
     empty_fixture.add_tag("stable", &empty_root);
     let empty_inventory = write_inventory(
         &empty_dir,
@@ -566,7 +593,7 @@ fn resolve_snapshots() {
     let ref_dir = dir.join("refs");
     std::fs::create_dir_all(&ref_dir).unwrap();
     let refs = Fixture::new("example/refs");
-    let (refs_root, _, _) = single_image_fixture(&refs, "linux", "amd64", None, LAYER_BYTES);
+    let (refs_root, _, _) = single_image_fixture(&refs, "linux", "amd64", None, layer_bYTES);
     refs.add_tag("stable", &refs_root);
     let att_of_root = referrer_descriptor(OCI_MANIFEST, &format!("sha256:{:0>64}", "11"), 100, Some(IN_TOTO));
     refs.add_referrer(&refs_root, att_of_root);
@@ -598,5 +625,219 @@ fn resolve_snapshots() {
         pairs, expected,
         "referrers must be recorded with their subjects and deduplicated"
     );
+}
+
+
+fn tree_snapshot(root: &Path) -> Vec<(String, Vec<u8>)> {
+    let mut out = Vec::new();
+    fn walk(dir: &Path, root: &Path, out: &mut Vec<(String, Vec<u8>)>) {
+        if !dir.is_dir() {
+            return;
+        }
+        let mut entries: Vec<_> = std::fs::read_dir(dir).unwrap().map(|entry| entry.unwrap()).collect();
+        entries.sort_by_key(|entry| entry.file_name());
+        for entry in entries {
+            let path = entry.path();
+            let relative = path.strip_prefix(root).unwrap().to_string_lossy().replace('\\', "/");
+            let file_type = entry.file_type().unwrap();
+            if file_type.is_symlink() {
+                out.push((relative, format!("symlink:{}", std::fs::read_link(&path).unwrap().display()).into_bytes()));
+            } else if file_type.is_dir() {
+                walk(&path, root, out);
+            } else {
+                out.push((relative, std::fs::read(&path).unwrap()));
+            }
+        }
+    }
+    walk(root, root, &mut out);
+    out
+}
+
+fn myoci_args(args: &[String]) -> std::process::Output {
+    Command::new(env!("CARGO_BIN_EXE_myoci")).args(args).output().unwrap()
+}
+
+fn plan_output(inventory: &Path, lock: &Path, state: &Path, extra: &[&str]) -> std::process::Output {
+    let mut argv = vec![
+        "mirror".to_string(),
+        "plan".to_string(),
+        "--config".to_string(),
+        path(inventory).to_string(),
+        "--lock".to_string(),
+        path(lock).to_string(),
+        "--state-dir".to_string(),
+        path(state).to_string(),
+    ];
+    argv.extend(extra.iter().map(|value| value.to_string()));
+    myoci_args(&argv)
+}
+
+#[test]
+fn plan_is_read_only() {
+    let layer_a: &[u8] = b"plan layer A";
+    let layer_b: &[u8] = b"plan layer B";
+
+    let workspace = tempfile::tempdir().unwrap();
+    let dir = workspace.path();
+    let fixture = Fixture::new("example/app");
+    let (config_a, _layer_a, _manifest_a) = image_bytes("linux", "amd64", None, layer_a);
+    let config_a_digest = fixture.add_config(&config_a);
+    fixture.add_blob(layer_a, OCI_LAYER_GZIP);
+    let manifest_a = manifest_json(
+        &config_a_digest,
+        config_a.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_a), layer_a.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let a_root = fixture.add_manifest(manifest_a, OCI_MANIFEST);
+    fixture.add_tag("stable", &a_root);
+
+    let destination = "docker.io/example/app";
+    let source = format!("{}/example/app:stable", fixture.address);
+    let inventory = write_inventory(
+        dir,
+        &[mirror_entry("app", &source, destination, "\"pinned\"", "\"linux/amd64\"", "snapshot")],
+    );
+    let lock = lock_path(dir);
+    let state = dir.join("state");
+    let output = resolve(&inventory, &lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let lock_pristine = std::fs::read(&lock).unwrap();
+
+    // Absent state: plan succeeds, reports everything missing, creates nothing.
+    let output = plan_output(&inventory, &lock, &state, &["--json"]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let json = String::from_utf8(output.stdout).unwrap();
+    assert!(json.contains(r#""state":"absent""#), "{json}");
+    assert!(json.contains(r#""action":"create""#), "{json}");
+    assert!(json.contains(r#""result":"clean""#), "{json}");
+    assert!(!state.exists(), "plan initialized the state directory");
+
+    // Import image A as an unmanaged "pinned" alias into the state.
+    let layout = dir.join("layout-a");
+    write_layout(&layout, "linux", "amd64", layer_a, "pinned");
+    let output = myoci_args(&[
+        "import".to_string(),
+        "--state-dir".to_string(),
+        path(&state).to_string(),
+        "--layout".to_string(),
+        path(&layout).to_string(),
+        "--repository".to_string(),
+        destination.to_string(),
+        "--tag".to_string(),
+        "pinned".to_string(),
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+
+    // Identical unmanaged alias: adopt (becomes managed). Plan is read-only.
+    let tree_before = tree_snapshot(&state);
+    let output = plan_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("alias pinned: adopt"), "{stdout}");
+    assert_eq!(tree_snapshot(&state), tree_before, "successful plan changed the state tree");
+
+    // Owned and current == desired: unchanged (a managed alias that stays put).
+    let ownership_a = format!(
+        r#"{{"schemaVersion":1,"aliases":{{"{destination}":{{"pinned":{{"digest":"{a_root}","entry":"app"}}}}}}}}"#
+    );
+    std::fs::write(state.join("mirror.json"), &ownership_a).unwrap();
+    let output = plan_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("alias pinned: unchanged"), "{stdout}");
+
+    // Tag A moved to B in the registry and the lock was re-resolved.
+    let (config_b, _layer_b, _manifest_b) = image_bytes("linux", "amd64", None, layer_b);
+    let config_b_digest = fixture.add_config(&config_b);
+    fixture.add_blob(layer_b, OCI_LAYER_GZIP);
+    let manifest_b = manifest_json(
+        &config_b_digest,
+        config_b.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_b), layer_b.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let b_root = fixture.add_manifest(manifest_b, OCI_MANIFEST);
+    fixture.add_tag("stable", &b_root);
+    let output = resolve(&inventory, &lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    std::fs::remove_file(state.join("mirror.json")).unwrap();
+
+    // Conflict: unmanaged alias points at A, desired is B, no ownership record.
+    let tree_before = tree_snapshot(&state);
+    let output = plan_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(4));
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("conflict-unmanaged"), "{stdout}");
+    assert_eq!(tree_snapshot(&state), tree_before, "failing plan changed the state tree");
+
+    // With an ownership record equal to the current value, the alias may move.
+    std::fs::write(state.join("mirror.json"), &ownership_a).unwrap();
+    let output = plan_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("alias pinned: move"), "{stdout}");
+
+    // With an ownership record different from the current value, the plan conflicts.
+    let stale_ownership = format!(
+        r#"{{"schemaVersion":1,"aliases":{{"{destination}":{{"pinned":{{"digest":"sha256:{:0>64}","entry":"app"}}}}}}}}"#,
+        "33"
+    );
+    std::fs::write(state.join("mirror.json"), &stale_ownership).unwrap();
+    let tree_before = tree_snapshot(&state);
+    let output = plan_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(4));
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("conflict-stale"), "{stdout}");
+    assert_eq!(tree_snapshot(&state), tree_before, "failing plan changed the state tree");
+
+    // A pending transaction marker fails the plan without recovering it.
+    std::fs::remove_file(state.join("mirror.json")).unwrap();
+    let pending = state.join(".mirror-transaction");
+    std::fs::create_dir_all(&pending).unwrap();
+    std::fs::write(pending.join("staged.marker"), b"staged").unwrap();
+    let tree_before = tree_snapshot(&state);
+    let output = plan_output(&inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(4));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("mirror sync --locked"), "{stderr}");
+    assert_eq!(tree_snapshot(&state), tree_before, "plan recovered the pending transaction");
+    std::fs::remove_dir_all(&pending).unwrap();
+
+    // Deleting the lock cache makes the graph unknown; never zero.
+    std::fs::write(state.join("mirror.json"), &ownership_a).unwrap();
+    let cache_path = PathBuf::from(format!("{}.cache", lock.display()));
+    let cache_bytes = std::fs::read(&cache_path).unwrap();
+    std::fs::remove_file(&cache_path).unwrap();
+    let tree_before = tree_snapshot(&state);
+    let output = plan_output(&inventory, &lock, &state, &["--json"]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let json = String::from_utf8(output.stdout).unwrap();
+    assert!(json.contains(r#""graph":"unknown""#), "{json}");
+    assert!(json.contains(r#""transfer_bytes":null"#), "{json}");
+    assert_eq!(tree_snapshot(&state), tree_before);
+
+    // A lock whose bytes changed makes the cache stale; the plan degrades to unknown.
+    std::fs::write(&cache_path, &cache_bytes).unwrap();
+    let mut stale_lock = lock_pristine.clone();
+    stale_lock.extend_from_slice(b"\n# comment is valid TOML but changes the bytes\n");
+    std::fs::write(&lock, &stale_lock).unwrap();
+    let output = plan_output(&inventory, &lock, &state, &["--json"]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let json = String::from_utf8(output.stdout).unwrap();
+    assert!(json.contains(r#""graph":"unknown""#), "{json}");
+    std::fs::write(&lock, &lock_pristine).unwrap();
+
+    // A lock whose semantic content changed fails the fingerprint check.
+    let changed_inventory = write_inventory(
+        &dir.join("changed"),
+        &[mirror_entry("app", &source, "docker.io/example/other", "\"pinned\"", "\"linux/amd64\"", "snapshot")],
+    );
+    let output = plan_output(&changed_inventory, &lock, &state, &[]);
+    assert_eq!(output.status.code(), Some(2));
 }
 

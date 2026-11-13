@@ -1,9 +1,12 @@
 #![forbid(unsafe_code)]
 
+pub mod cache;
 pub mod graph;
 pub mod http;
 pub mod inventory;
+pub mod json;
 pub mod lock;
+pub mod ownership;
 mod plan;
 pub mod reference;
 mod resolve;
