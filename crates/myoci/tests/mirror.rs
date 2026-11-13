@@ -657,6 +657,33 @@ fn myoci_args(args: &[String]) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_myoci")).args(args).output().unwrap()
 }
 
+fn myoci_publish(state: &Path, site: &Path) -> std::process::Output {
+    myoci_args(&[
+        "publish".to_string(),
+        "--state-dir".to_string(),
+        path(state).to_string(),
+        "--site-dir".to_string(),
+        path(site).to_string(),
+    ])
+}
+
+fn current_generation(site: &Path) -> String {
+    let target = std::fs::read_link(site.join("current")).unwrap();
+    target.to_str().unwrap().strip_prefix("generations/").unwrap().to_string()
+}
+
+fn diff_files(a: &[(String, Vec<u8>)], b: &[(String, Vec<u8>)]) -> Vec<String> {
+    let a: std::collections::BTreeMap<&str, &[u8]> = a.iter().map(|(k, v)| (k.as_str(), v.as_slice())).collect();
+    let b: std::collections::BTreeMap<&str, &[u8]> = b.iter().map(|(k, v)| (k.as_str(), v.as_slice())).collect();
+    a.keys()
+        .chain(b.keys())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .filter(|key| a.get(*key) != b.get(*key))
+        .map(|key| key.to_string())
+        .collect()
+}
+
 fn plan_output(inventory: &Path, lock: &Path, state: &Path, extra: &[&str]) -> std::process::Output {
     let mut argv = vec![
         "mirror".to_string(),
@@ -1771,8 +1798,8 @@ fn managed_batch_is_atomic() {
     assert!(inspection.contains("docker.io/example/mixedimport") || inspection.contains("stable"), "{inspection}");
     assert!(mixed_state.join("repositories/docker.io/example/boundary/repository.json").is_file());
 
-    // Adopting a generation published from a synced state, then syncing again,
-    // adopts the identical unmanaged alias back into managed ownership.
+    // Adopting a generation published from a synced state restores the sidecar
+    // ownership; re-syncing reports the alias unchanged, not created.
     let adopt_state = dir.join("adopt-state");
     let output = sync_output(&boundary_inventory, &boundary_lock, &adopt_state, &[]);
     sync_ok(output);
@@ -1798,10 +1825,228 @@ fn managed_batch_is_atomic() {
     assert!(restored_repository.contains(&boundary_root_b), "adopted state lost the managed alias: {restored_repository}");
     let output = sync_output(&boundary_inventory, &boundary_lock, &adopted_state, &[]);
     let stdout = sync_ok(output);
-    assert!(stdout.contains("alias pinned adopt"), "{stdout}");
+    assert!(stdout.contains("alias pinned unchanged"), "{stdout}");
     let ownership = myoci::mirror::ownership::read_ownership(&adopted_state).unwrap();
     assert_eq!(
         ownership[&(boundary_destination.to_string(), "pinned".to_string())].digest.as_str(),
         boundary_root_b
     );
+}
+
+#[test]
+fn provenance_survives_adoption() {
+    let layer: &[u8] = b"provenance layer";
+
+    let workspace = tempfile::tempdir().unwrap();
+    let dir = workspace.path();
+
+    let fixture = Fixture::new("example/provenance");
+    let (config, layer_bytes, _manifest) = image_bytes("linux", "amd64", None, layer);
+    let config_digest = fixture.add_config(&config);
+    fixture.add_blob(layer, OCI_LAYER_GZIP);
+    let manifest = manifest_json(
+        &config_digest,
+        config.len() as u64,
+        OCI_CONFIG,
+        &[(digest(&layer_bytes), layer_bytes.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let root = fixture.add_manifest(manifest, OCI_MANIFEST);
+    fixture.add_tag("stable", &root);
+    let destination = "docker.io/example/provenance";
+    let inventory = write_inventory(
+        dir,
+        &[mirror_entry("provenance", &format!("{}/example/provenance:stable", fixture.address), destination, "\"pinned\"", "\"linux/amd64\"", "snapshot")],
+    );
+    let lock = lock_path(dir);
+    let output = resolve(&inventory, &lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let state = dir.join("state");
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    sync_ok(output);
+
+    // The generation carries the stable inventory identity, policy, entries and ownership.
+    let site = dir.join("site");
+    let output = myoci_publish(&state, &site);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let gen_v1 = current_generation(&site);
+    let v1_dir = site.join("generations").join(&gen_v1);
+    let sidecar = std::fs::read_to_string(v1_dir.join("provenance.json")).unwrap();
+    assert!(sidecar.contains("\"fingerprint\":\"sha256:"), "{sidecar}");
+    assert!(sidecar.contains("\"policy\":1"), "{sidecar}");
+    assert!(sidecar.contains("\"id\":\"provenance\""), "{sidecar}");
+    assert!(sidecar.contains("\"pinned\""), "{sidecar}");
+    assert!(sidecar.contains(&root), "{sidecar}");
+
+    // An identical replay is a no-op and keeps the generation ID.
+    let output = myoci_publish(&state, &site);
+    let replay = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert!(replay.contains("Already published generation"), "{replay}");
+    assert_eq!(current_generation(&site), gen_v1);
+
+    // A provenance-only change produces a different generation ID.
+    let provenance = myoci::mirror::provenance::read_provenance(&state).unwrap().expect("sync records provenance");
+    let mut changed = provenance.clone();
+    let mut fingerprint = changed.fingerprint.clone();
+    let last = fingerprint.pop().unwrap();
+    fingerprint.push(if last == '0' { '1' } else { '0' });
+    changed.fingerprint = fingerprint;
+    myoci::mirror::provenance::write_provenance(&state, &changed).unwrap();
+    let output = myoci_publish(&state, &site);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let gen_provenance_only = current_generation(&site);
+    assert_ne!(gen_provenance_only, gen_v1, "a provenance-only change did not change the generation ID");
+    let v1_files = tree_snapshot(&v1_dir);
+    let v2_dir = site.join("generations").join(&gen_provenance_only);
+    let v2_files = tree_snapshot(&v2_dir);
+    let changed_files = diff_files(&v1_files, &v2_files);
+    assert_eq!(
+        changed_files,
+        vec!["catalog.json", "index.html", "llms.txt", "provenance.json"],
+        "a provenance-only change touched other files: {changed_files:?}",
+    );
+    // Both generations are retained for rollback.
+    assert!(v1_dir.is_dir(), "the earlier generation was pruned");
+
+    // Rollback to the earlier generation: every referenced object is reachable.
+    std::fs::remove_file(site.join("current")).unwrap();
+    std::os::unix::fs::symlink(format!("generations/{gen_v1}"), site.join("current")).unwrap();
+    let rolled_back = dir.join("rolled-back");
+    let output = myoci_args(&[
+        "adopt".to_string(),
+        "--state-dir".to_string(),
+        path(&rolled_back).to_string(),
+        "--site-dir".to_string(),
+        path(&site).to_string(),
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let restored_mirror = std::fs::read_to_string(rolled_back.join("mirror.json")).unwrap();
+    assert!(restored_mirror.contains("\"entry\":\"provenance\""), "{restored_mirror}");
+    assert!(restored_mirror.contains(&root), "{restored_mirror}");
+    assert_eq!(
+        std::fs::read(rolled_back.join("provenance.json")).unwrap(),
+        std::fs::read(v1_dir.join("provenance.json")).unwrap(),
+        "adoption changed the sidecar"
+    );
+
+    // Adopt followed by republish preserves the generation ID.
+    let republished_site = dir.join("republished-site");
+    let output = myoci_publish(&rolled_back, &republished_site);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert_eq!(current_generation(&republished_site), gen_v1, "adopt then republish did not preserve the generation");
+
+    // A generation without a sidecar (built before the mirror) remains adoptable.
+    let legacy_state = dir.join("legacy-state");
+    copy_dir_all(&state, &legacy_state);
+    std::fs::remove_file(legacy_state.join("provenance.json")).unwrap();
+    let legacy_site = dir.join("legacy-site");
+    let output = myoci_publish(&legacy_state, &legacy_site);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let gen_legacy = current_generation(&legacy_site);
+    assert!(
+        !legacy_site.join("generations").join(&gen_legacy).join("provenance.json").exists(),
+        "the legacy generation carries a sidecar",
+    );
+    let legacy_adopted = dir.join("legacy-adopted");
+    let output = myoci_args(&[
+        "adopt".to_string(),
+        "--state-dir".to_string(),
+        path(&legacy_adopted).to_string(),
+        "--site-dir".to_string(),
+        path(&legacy_site).to_string(),
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert!(!legacy_adopted.join("mirror.json").exists(), "a legacy adopt restored ownership from nowhere");
+    assert!(!legacy_adopted.join("provenance.json").exists(), "a legacy adopt restored a sidecar from nowhere");
+    let output = sync_output(&inventory, &lock, &legacy_adopted, &[]);
+    let stdout = sync_ok(output);
+    assert!(stdout.contains("alias pinned adopt"), "{stdout}");
+    let ownership = myoci::mirror::ownership::read_ownership(&legacy_adopted).unwrap();
+    assert_eq!(ownership.len(), 1, "the legacy sync did not re-create ownership");
+}
+
+#[test]
+fn provenance_survives_targeted_refresh() {
+    let layer_a: &[u8] = b"provenance targeted A";
+    let layer_b: &[u8] = b"provenance targeted B";
+
+    let workspace = tempfile::tempdir().unwrap();
+    let dir = workspace.path();
+
+    let fixture = Fixture::new("example/carry");
+    let (config_a, _bytes_a, _manifest_a) = image_bytes("linux", "amd64", None, layer_a);
+    let config_a_digest = fixture.add_config(&config_a);
+    fixture.add_blob(layer_a, OCI_LAYER_GZIP);
+    let manifest_a = manifest_json(
+        &config_a_digest,
+        config_a.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_a), layer_a.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let root_a = fixture.add_manifest(manifest_a, OCI_MANIFEST);
+    fixture.add_tag("stable", &root_a);
+    fixture.add_tag("canary", &root_a);
+
+    let carry_dir = dir.join("carry");
+    std::fs::create_dir_all(&carry_dir).unwrap();
+    let entry_one = mirror_entry("carry-one", &format!("{}/example/carry:stable", fixture.address), "docker.io/example/carry-one", "\"pinned\"", "\"linux/amd64\"", "snapshot");
+    let entry_two = mirror_entry("carry-two", &format!("{}/example/carry:canary", fixture.address), "docker.io/example/carry-two", "\"pinned\"", "\"linux/amd64\"", "snapshot");
+    let inventory = write_inventory(&carry_dir, &[entry_one, entry_two]);
+    let lock = lock_path(&carry_dir);
+    let output = resolve(&inventory, &lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let state = dir.join("carry-state");
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    sync_ok(output);
+    let before = myoci::mirror::provenance::read_provenance(&state).unwrap().expect("sync records provenance");
+
+    // Only the canary entry moves; targeted refresh must leave carry-one untouched.
+    let (config_b, _bytes_b, _manifest_b) = image_bytes("linux", "amd64", None, layer_b);
+    let config_b_digest = fixture.add_config(&config_b);
+    fixture.add_blob(layer_b, OCI_LAYER_GZIP);
+    let manifest_b = manifest_json(
+        &config_b_digest,
+        config_b.len() as u64,
+        OCI_CONFIG,
+        &[(digest(layer_b), layer_b.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let root_b = fixture.add_manifest(manifest_b, OCI_MANIFEST);
+    fixture.add_tag("canary", &root_b);
+    let output = resolve(&inventory, &lock, &["--entry", "carry-two"]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    sync_ok(output);
+    let after = myoci::mirror::provenance::read_provenance(&state).unwrap().expect("sync records provenance");
+
+    let entry_before = |provenance: &myoci::mirror::provenance::Provenance, id: &str| provenance.entries.iter().find(|entry| entry.id == id).unwrap().clone();
+    let ownership_before = |provenance: &myoci::mirror::provenance::Provenance, destination: &str| {
+        provenance
+            .ownership
+            .iter()
+            .find(|record| record.destination == destination)
+            .unwrap()
+            .clone()
+    };
+    assert_eq!(entry_before(&before, "carry-one"), entry_before(&after, "carry-one"), "targeted refresh changed carry-one provenance");
+    assert_eq!(entry_before(&before, "carry-two").root, root_a);
+    assert_eq!(entry_before(&after, "carry-two").root, root_b);
+    assert_eq!(
+        ownership_before(&before, "docker.io/example/carry-one"),
+        ownership_before(&after, "docker.io/example/carry-one"),
+        "targeted refresh changed carry-one ownership",
+    );
+    assert_eq!(ownership_before(&after, "docker.io/example/carry-two").digest, root_b);
+
+    // A replay after the targeted refresh preserves both records byte-for-byte.
+    let replayed = after.render();
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    sync_ok(output);
+    let replay = myoci::mirror::provenance::read_provenance(&state).unwrap().unwrap();
+    assert_eq!(replay.render(), replayed, "identical replay rewrote the sidecar");
 }

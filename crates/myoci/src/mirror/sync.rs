@@ -139,6 +139,8 @@ fn commit(state: &State, lock: &MirrorLock, acquisition: &Acquisition) -> Result
     }
     stage_file(state, Path::new("blobs.json"), stuff_oci::render_blobs_json(&blob_digests).as_bytes())?;
     stage_file(state, Path::new("mirror.json"), render_ownership(&managed).as_bytes())?;
+    let provenance = crate::mirror::provenance::Provenance::build(lock, &managed)?;
+    stage_file(state, Path::new(crate::mirror::provenance::PROVENANCE_FILE), provenance.render().as_bytes())?;
 
     commit_locked(state)?;
     aliases.sort_by(|a, b| a.alias.cmp(&b.alias).then(a.entry.cmp(&b.entry)));

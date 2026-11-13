@@ -8,6 +8,7 @@ pub mod inventory;
 pub mod json;
 pub mod lock;
 pub mod ownership;
+pub mod provenance;
 mod plan;
 pub mod reference;
 mod resolve;

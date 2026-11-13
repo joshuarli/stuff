@@ -132,6 +132,12 @@ pub fn adopt(state: &State, site_dir: &Path) -> Result<AdoptSummary> {
         state.write_repository(view)?;
         referrers += state.rebuild_referrers(view)?;
     }
+    if let Some(provenance) = crate::mirror::provenance::read_provenance(&generation_dir)? {
+        let ownership = provenance.ownership_map()?;
+        let rendered = crate::mirror::ownership::render_ownership(&ownership);
+        stuff_store::write_file_durable(&state.root().join("mirror.json"), rendered.as_bytes())?;
+        crate::mirror::provenance::write_provenance(state.root(), &provenance)?;
+    }
     verify_state_locked(state)?;
     Ok(AdoptSummary {
         generation,
@@ -187,6 +193,12 @@ fn render_generation(
         "blobs.json".to_string(),
         render_blobs_json(&state.read_blobs()?).into_bytes(),
     );
+    if let Some(provenance) = crate::mirror::provenance::read_provenance(state.root())? {
+        files.insert(
+            crate::mirror::provenance::PROVENANCE_FILE.to_string(),
+            provenance.render().into_bytes(),
+        );
+    }
     let generation = stuff_oci::generation_id(&files);
     let catalog = oci_catalog(&generation, inputs)
         .map_err(|error| Error::Integrity(format!("catalog: {error}")))?;
