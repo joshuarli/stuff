@@ -21,7 +21,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-26.04, macos-latest]
+        os: [ubuntu-26.04, xcode-27]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -47,7 +47,7 @@ jobs:
         # x86_64 Linux, ARM64 Linux, and ARM64 macOS: each runner builds,
         # validates, and installs the host platform's wheels. The dedicated
         # mypypi-linux-native job covers the manylinux 2.28 baseline.
-        os: [ubuntu-26.04, ubuntu-26.04-arm, macos-latest]
+        os: [ubuntu-26.04, ubuntu-26.04-arm, xcode-27]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:

@@ -11,9 +11,11 @@ from repomod.rules.workflows import read_workflow_sources, workflow_files
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _MACOS_RUNNER = re.compile(
-    r"(?<![\w.-])macos-(?P<version>latest|\d+(?:\.\d+)?)"
+    r"(?<![\w.-])(?P<family>macos|xcode)-(?P<version>latest|\d+(?:\.\d+)?)"
     r"(?P<suffix>(?:[-.][0-9A-Za-z._]+)*)(?![\w.-])"
 )
+_XCODE_RUNNER = "xcode-27"
+_XCODE_XLARGE_RUNNER = "xcode-27-xlarge"
 _UBUNTU_RUNNER = re.compile(
     r"(?<![\w.-])ubuntu-(?P<version>latest|\d+(?:\.\d+)?)"
     r"(?P<arm>-arm)?(?![\w.-])"
@@ -44,13 +46,19 @@ def _macos_accepted(match: re.Match[str]) -> bool:
     suffix = str(match.group("suffix"))
     if suffix.endswith("-intel"):
         return True
-    return str(match.group("version")) == "latest"
+    return (
+        str(match.group("family")) == "xcode"
+        and str(match.group("version")) == "27"
+        and suffix in ("", "-xlarge")
+    )
 
 
 def _macos_repaired(match: re.Match[str], _amd64: bool) -> str:
     if _macos_accepted(match):
         return str(match.group(0))
-    return f"macos-latest{match.group('suffix')}"
+    if str(match.group("suffix")).endswith("-xlarge"):
+        return _XCODE_XLARGE_RUNNER
+    return _XCODE_RUNNER
 
 
 def _ubuntu_accepted(match: re.Match[str]) -> bool:
@@ -164,11 +172,11 @@ class RunnerPolicy:
 
 _MACOS_POLICY = RunnerPolicy(
     "gha-macos",
-    "Require macos-latest GitHub Actions runners",
+    "Require xcode-27 GitHub Actions runners",
     "chore(repomod): update macos runners",
     "macOS",
     _MACOS_RUNNER,
-    "use the macos-latest alias",
+    f"use {_XCODE_RUNNER}, or {_XCODE_XLARGE_RUNNER}",
     _macos_accepted,
     _macos_repaired,
 )

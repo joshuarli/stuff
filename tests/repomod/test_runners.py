@@ -41,8 +41,10 @@ def test_version_pinned_macos_runners_are_fixable(tmp_path: Path) -> None:
         "    runs-on: macos-15-large\n"
         "  intel:\n"
         "    runs-on: macos-15-intel\n"
+        "  xcode:\n"
+        "    runs-on: xcode-26\n"
         "  accepted:\n"
-        "    runs-on: macos-latest-xlarge\n"
+        "    runs-on: xcode-27-xlarge\n"
     )
     path = workflow(tmp_path, source)
 
@@ -50,10 +52,12 @@ def test_version_pinned_macos_runners_are_fixable(tmp_path: Path) -> None:
 
     assert [(finding.line, finding.column) for finding in current] == [
         (3, 14),
+        (5, 14),
         (9, 14),
         (9, 24),
         (9, 34),
         (11, 14),
+        (15, 14),
     ]
     assert all(finding.fixable for finding in current)
 
@@ -61,11 +65,10 @@ def test_version_pinned_macos_runners_are_fixable(tmp_path: Path) -> None:
 
     assert list(plan) == [".github/workflows/ci.yml"]
     repaired = plan[".github/workflows/ci.yml"]
-    assert "runs-on: macos-latest\n" in repaired
-    assert "[macos-latest, macos-latest, macos-latest]" in repaired
-    assert "runs-on: macos-latest-large\n" in repaired
+    assert "runs-on: xcode-27\n" in repaired
+    assert "[xcode-27, xcode-27, xcode-27]" in repaired
     assert "runs-on: macos-15-intel\n" in repaired
-    assert "runs-on: macos-latest-xlarge\n" in repaired
+    assert "runs-on: xcode-27-xlarge\n" in repaired
     path.write_text(repaired, encoding="utf-8")
 
     assert findings(_MACOS_POLICY, tmp_path) == []
@@ -102,9 +105,9 @@ def test_block_list_and_matrix_mapping_macos_runners_are_fixable(tmp_path: Path)
     repaired = _MACOS_POLICY.fix(tmp_path, repository())[".github/workflows/ci.yml"]
 
     assert "      - macos-15-intel\n" in repaired
-    assert "- runner: macos-latest\n" in repaired
-    assert "          - macos-latest\n" in repaired
-    assert "- macos-latest-xlarge\n" in repaired
+    assert "- runner: xcode-27\n" in repaired
+    assert "          - xcode-27\n" in repaired
+    assert "- xcode-27-xlarge\n" in repaired
 
 
 def test_version_pinned_ubuntu_runners_are_fixable(tmp_path: Path) -> None:

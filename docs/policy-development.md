@@ -100,10 +100,11 @@ Findings carry the file, line, column, and code; `lint` prints the
 requires `push` to scope branches to the local default branch whenever `pull_request`
 is present, so a commit pushed to a PR branch runs CI once. Its fixer resolves the
 default branch from local Git and leaves an unactionable manual finding when it cannot.
-`gha-macos` requires GitHub Actions macOS runners to use the `macos-latest` alias; it flags
-version-pinned labels in runner declarations and matrix values. Its fixer rewrites them to the
-matching `macos-latest` label, preserving larger-runner suffixes such as `-large` and `-xlarge`.
-Intel labels have no latest alias, so they stay unchanged. `gha-ubuntu` requires
+`gha-macos` requires GitHub Actions macOS runners to use the `xcode-27` image
+(`xcode-27` or `xcode-27-xlarge`); it flags `macos-latest`, version-pinned macOS labels, and
+other `xcode-*` labels in runner declarations and matrix values. Its fixer rewrites them to
+`xcode-27`, mapping an `-xlarge` suffix to `xcode-27-xlarge`. Intel labels have no
+`xcode-27` image (the image is Apple Silicon only), so they stay unchanged. `gha-ubuntu` requires
 `ubuntu-26.04` or `ubuntu-26.04-arm`; `ubuntu-latest` is banned so a job never silently moves
 between Ubuntu releases. Its fixer rewrites `ubuntu-latest` and ARM labels to
 `ubuntu-26.04-arm`, and older x86 labels to `ubuntu-26.04` for jobs that need x86. A
