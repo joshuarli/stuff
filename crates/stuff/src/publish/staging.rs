@@ -58,6 +58,41 @@ impl Drop for Staging {
     }
 }
 
+/// Removes local generation directories that are not the one `current`
+/// points to. The immutable generations already published to the bucket are
+/// untouched; this bounds the publisher's local cache.
+pub(crate) fn prune_stale_generations(site: &Path) -> Result<(), PublishError> {
+    let current = std::fs::read_link(site.join("current")).map_err(|error| {
+        PublishError::Integrity(format!("could not read the site current link: {error}"))
+    })?;
+    let target = current.to_string_lossy();
+    let generation = target.strip_prefix("generations/").unwrap_or(&target).to_string();
+    let directory = site.join("generations");
+    let entries = std::fs::read_dir(&directory).map_err(|error| {
+        PublishError::Config(format!("could not read {}: {error}", directory.display()))
+    })?;
+    for entry in entries {
+        let entry = entry.map_err(|error| {
+            PublishError::Config(format!("could not read {}: {error}", directory.display()))
+        })?;
+        if entry.file_name().to_string_lossy() == generation {
+            continue;
+        }
+        if entry
+            .file_type()
+            .map_err(|error| {
+                PublishError::Config(format!("could not inspect {}: {error}", entry.path().display()))
+            })?
+            .is_dir()
+        {
+            std::fs::remove_dir_all(entry.path()).map_err(|error| {
+                PublishError::Config(format!("could not remove {}: {error}", entry.path().display()))
+            })?;
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -330,10 +330,22 @@ Initial publication and consumer cutover are operator steps, not CI:
 3. Cut consumers over repository by repository, pinning the mirrored
    digest or alias, verifying one consumer before the next. Do not cut a
    consumer over before the promoted generation verifies.
+## Publish the static mirror
+
+`stuff publish mirror` re-hosts static artifacts the `~/usr` installer downloads — Node.js, Codex, OpenCode, installer scripts, and dwl — under `mirror.17166969.xyz` as one homogeneous format: every pinned upstream is extracted, filtered to a list of members that matter, and re-zipped once. Consumers never see tarballs or zips with unknown layouts, only `<id>.zip`. The manifest lives in [`mirror/manifest.toml`](../mirror/manifest.toml); [crates/mymirror](../crates/mymirror/README.md) documents the format. GitHub-hosted artifacts are deliberately not mirrored yet.
+
+```sh
+stuff publish mirror --dry-run
+stuff publish mirror
+```
+
+Each entry pins an upstream URL, an upstream SHA-256, and an optional keep list (`keep = ["bin/**", "lib/**"]`) applied after stripping leading components. The build downloads the upstream once, verifies the SHA-256 before anything else happens, extracts (`.tar.gz`, `.tar.xz`, `.zip`, or a raw file), drops members outside the keep list, and writes a deterministic DEFLATE zip (fixed timestamps, Unix file types and modes, symlink targets that stay inside the archive root). The generation contains `<id>.zip` per entry plus `catalog.json` (schemaVersion 1, with the standard `packages` list used by the drop guard) and `SHA256SUMS`; `current` selects the live generation like the other registries. Downloads are cached by upstream SHA-256 under `~/.cache/stuff/mirror/objects` and re-verified on every reuse, so republishing an unchanged manifest re-downloads nothing and uploads nothing.
+
+Because bumping an artifact's pinned `version` removes the old row from `packages`, the shared drop guard treats a version bump as a removal: `stuff publish mirror` exits 3 and lists the dropped pins. Pass `--allow-drops` when the bump is intended — this is the one publish verb that accepts the flag; `stuff republish mirror` also rebuilds from the manifest (with `--allow-drops` like the other registries and `--manifest PATH` to use a non-default manifest), and `stuff rollback mirror GENERATION` restores a previous generation. The bucket is `stuff-mirror` (configurable as the `mirror` section in `config.json`, like `npm`), the publish is a normal transaction against it, and the Worker serves `generations/` and `current` unchanged. The bucket and hostname do not exist yet: create the bucket, add a `mirror.17166969.xyz` route pointing at it, and then run the first publish. After that, switching `~/usr` to consume the mirror is a separate change.
 
 ## Republish without new packages
 
-A renderer or catalog change reaches a registry's pages only when that registry publishes again. `stuff republish cargo|npm|pypi|oci` does that without package inputs: it reads the live generation, renders it again under the current renderer, and promotes it. Unchanged output reports no new generation. The bucket keeps older manifests until `make gc` prunes generations outside its retention window.
+A renderer or catalog change reaches a registry's pages only when that registry publishes again. `stuff republish cargo|npm|pypi|oci` does that without package inputs: it reads the live generation, renders it again under the current renderer, and promotes it. `stuff republish mirror` re-derives the mirror generation from the manifest instead — cached upstream downloads make that an unchanged no-op when the manifest did not change. Unchanged output reports no new generation. The bucket keeps older manifests until `make gc` prunes generations outside its retention window.
 
 Republish uses the observed live generation as its promotion base even when this machine's last promoted generation is older. If another publisher changes `current` during the operation, republish refuses the competing update; rerun it to render the new live generation.
 

@@ -13,7 +13,7 @@ use crate::publish::inventory::{library_error, prepare, PrepareOptions};
 use crate::publish::paths::Paths;
 use crate::publish::r2::credentials;
 use crate::publish::snapshot::{SharedStore, Snapshot};
-use crate::publish::staging::Staging;
+use crate::publish::staging::{prune_stale_generations, Staging};
 use crate::publish::transaction::{Staged, Transaction, TransactionOptions};
 use crate::publish::{Environment, NpmPublish, Options, Outcome, PublishError, Registry};
 
@@ -76,36 +76,6 @@ fn resolve_lockfile(lockfile: &str) -> Result<PathBuf, PublishError> {
     std::env::current_dir()
         .map(|cwd| cwd.join(path))
         .map_err(|error| PublishError::Config(format!("could not resolve the working directory: {error}")))
-}
-
-fn prune_stale_generations(mirror: &Path) -> Result<(), PublishError> {
-    let current = std::fs::read_link(mirror.join("current")).map_err(|error| {
-        PublishError::Integrity(format!("could not read the site current link: {error}"))
-    })?;
-    let target = current.to_string_lossy();
-    let generation = target.strip_prefix("generations/").unwrap_or(&target).to_string();
-    let directory = mirror.join("generations");
-    let entries = std::fs::read_dir(&directory).map_err(|error| {
-        PublishError::Config(format!("could not read {}: {error}", directory.display()))
-    })?;
-    for entry in entries {
-        let entry = entry.map_err(|error| {
-            PublishError::Config(format!("could not read {}: {error}", directory.display()))
-        })?;
-        if entry.file_name().to_string_lossy() == generation {
-            continue;
-        }
-        if entry
-            .file_type()
-            .map_err(|error| PublishError::Config(format!("could not inspect {}: {error}", entry.path().display())))?
-            .is_dir()
-        {
-            std::fs::remove_dir_all(entry.path()).map_err(|error| {
-                PublishError::Config(format!("could not remove {}: {error}", entry.path().display()))
-            })?;
-        }
-    }
-    Ok(())
 }
 
 pub fn publish(

@@ -91,6 +91,7 @@ fn tar_members(reader: impl Read, artifact: &Artifact) -> Result<Vec<Member>> {
             .map_err(|_| Error::archive(format!("{}: member path is not valid UTF-8", artifact.id)))?;
         match header.entry_type() {
             tar::EntryType::Directory => continue,
+            tar::EntryType::GNULongName | tar::EntryType::GNULongLink | tar::EntryType::XHeader | tar::EntryType::XGlobalHeader => continue,
             tar::EntryType::Regular | tar::EntryType::Continuous => {
                 let mode = 0o100000 | (header.mode().unwrap_or(0o644) & 0o777);
                 let mut data = Vec::new();

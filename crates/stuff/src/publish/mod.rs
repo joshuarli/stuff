@@ -4,6 +4,7 @@ pub mod cargo;
 pub mod config;
 pub mod environment;
 pub mod inventory;
+pub mod mirror;
 pub mod npm;
 pub mod npm_first_party;
 pub mod oci;
@@ -37,6 +38,7 @@ pub enum Registry {
     Npm,
     Pypi,
     Oci,
+    Mirror,
 }
 
 impl Registry {
@@ -46,6 +48,7 @@ impl Registry {
             Registry::Npm => "npm",
             Registry::Pypi => "pypi",
             Registry::Oci => "oci",
+            Registry::Mirror => "mirror",
         }
     }
 
@@ -55,6 +58,7 @@ impl Registry {
             "npm" => Some(Registry::Npm),
             "pypi" => Some(Registry::Pypi),
             "oci" => Some(Registry::Oci),
+            "mirror" => Some(Registry::Mirror),
             _ => None,
         }
     }
@@ -78,6 +82,12 @@ pub struct CargoPublish {
 pub struct NpmPublish {
     pub lockfile: String,
     pub project: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MirrorPublish {
+    pub manifest: Option<String>,
+    pub allow_drops: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -137,6 +147,7 @@ pub enum PublishRequest {
     CargoLockfiles(Vec<String>),
     Npm(NpmPublish),
     NpmTarballs(Vec<String>),
+    Mirror(MirrorPublish),
     Pypi(PypiPublish),
     PypiWheels(Vec<String>),
     Oci(OciSource),
@@ -147,6 +158,7 @@ impl PublishRequest {
         match self {
             PublishRequest::Cargo(_) | PublishRequest::CargoLockfiles(_) => Registry::Cargo,
             PublishRequest::Npm(_) | PublishRequest::NpmTarballs(_) => Registry::Npm,
+            PublishRequest::Mirror(_) => Registry::Mirror,
             PublishRequest::Pypi(_) | PublishRequest::PypiWheels(_) => Registry::Pypi,
             PublishRequest::Oci(_) => Registry::Oci,
         }
@@ -163,6 +175,7 @@ pub enum Request {
         registry: Registry,
         allow_drops: bool,
         options: Options,
+        manifest: Option<String>,
     },
     Rollback {
         registry: Registry,
@@ -324,6 +337,10 @@ pub fn run(request: Request, environment: &Environment) -> Result<Outcome, Publi
             options,
         } => npm_first_party::publish(&tarballs, options, environment),
         Request::Publish {
+            request: PublishRequest::Mirror(request),
+            options,
+        } => mirror::publish(&request, options, environment),
+        Request::Publish {
             request: PublishRequest::Oci(source),
             options,
         } => oci::publish(&source, &options, environment),
@@ -339,7 +356,8 @@ pub fn run(request: Request, environment: &Environment) -> Result<Outcome, Publi
             registry,
             allow_drops,
             options,
-        } => republish::republish(registry, allow_drops, &options, environment),
+            manifest,
+        } => republish::republish(registry, allow_drops, manifest, &options, environment),
         Request::Rollback {
             registry,
             generation,
@@ -368,6 +386,10 @@ pub fn help_text(command: &str) -> Option<String> {
             "  stuff publish npm (--lockfile PATH --project ID | --tarball PATH [--tarball PATH...])\n",
             "    [--dry-run] [--json] [--verbose]\n",
             "    --tarball publishes first-party packages packed by npm pack or pnpm pack\n",
+            "  stuff publish mirror [--manifest PATH] [--allow-drops] [--dry-run] [--json] [--verbose]\n",
+            "    --manifest reads the mirror manifest (default mirror/manifest.toml)\n",
+            "    rebuilds the mirror from the pinned upstream artifacts\n",
+            "    --allow-drops replaces pinned artifact versions, which the drop guard counts as removals\n",
             "  stuff publish pypi (SPEC [SPEC...] [--allow-sdist] | --wheel PATH [--wheel PATH...])\n",
             "    [--dry-run] [--json] [--verbose]\n",
             "    SPEC is name==version\n",
@@ -382,13 +404,13 @@ pub fn help_text(command: &str) -> Option<String> {
         "republish" => concat!(
             "stuff republish\n\n",
             "Usage:\n",
-            "  stuff republish cargo|npm|pypi|oci [--allow-drops]\n",
+            "  stuff republish cargo|npm|pypi|oci|mirror [--allow-drops]\n",
             "    [--dry-run] [--json] [--verbose]\n\n",
         ),
         "rollback" => concat!(
             "stuff rollback\n\n",
             "Usage:\n",
-            "  stuff rollback cargo|npm|pypi|oci GENERATION\n",
+            "  stuff rollback cargo|npm|pypi|oci|mirror GENERATION\n",
             "    [--dry-run] [--json] [--verbose]\n\n",
         ),
         _ => return None,
@@ -401,7 +423,12 @@ mod tests {
     use super::*;
 
     fn request(registry: Registry) -> Request {
-        Request::Republish { registry, allow_drops: false, options: Options::default() }
+        Request::Republish {
+            registry,
+            allow_drops: false,
+            options: Options::default(),
+            manifest: None,
+        }
     }
 
     #[test]
@@ -479,6 +506,7 @@ mod tests {
             "publish npm",
             "publish pypi",
             "publish oci",
+            "publish mirror",
             "--dry-run",
             "--json",
             "Exit codes:",

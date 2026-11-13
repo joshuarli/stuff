@@ -769,7 +769,12 @@ fn first_party_packages_survive_a_later_mirror_publish() {
     assert_eq!(again.status, Status::Unchanged, "{again:?}");
 
     stuff::publish::run(
-        Request::Republish { registry: Registry::Npm, allow_drops: false, options: Options::default() },
+        Request::Republish {
+            registry: Registry::Npm,
+            allow_drops: false,
+            options: Options::default(),
+            manifest: None,
+        },
         &environment,
     )
     .unwrap();

@@ -4,8 +4,8 @@ use std::fmt::Write as _;
 
 use crate::error::{Error, Result};
 use crate::publish::{
-    CargoPublish, NpmPublish, OciImage, OciSource, Options, PublishRequest, PypiPublish, PypiSpec,
-    Registry, Request,
+    CargoPublish, MirrorPublish, NpmPublish, OciImage, OciSource, Options, PublishRequest,
+    PypiPublish, PypiSpec, Registry, Request,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -347,7 +347,7 @@ fn publish_registry(args: &[String], command: &str) -> Result<(Registry, usize)>
             Ok((registry, 1))
         }
         None => Err(usage_error(format!(
-            "{command} requires a registry: cargo, npm, pypi, or oci"
+            "{command} requires a registry: cargo, npm, pypi, oci, or mirror"
         ))),
     }
 }
@@ -388,6 +388,10 @@ fn parse_publish(args: &[String]) -> Result<Parsed> {
         Registry::Oci => {
             let (oci, options) = parse_oci_publish(args, &mut index)?;
             (PublishRequest::Oci(oci), options)
+        }
+        Registry::Mirror => {
+            let (mirror, options) = parse_mirror_publish(args, &mut index)?;
+            (PublishRequest::Mirror(mirror), options)
         }
     };
     Ok(request_parsed(Command::Publish, Request::Publish { request, options }))
@@ -641,9 +645,43 @@ fn parse_oci_publish(args: &[String], index: &mut usize) -> Result<(OciSource, O
     Ok((OciSource::Layout { dir, repository, tag }, options))
 }
 
+fn parse_mirror_publish(args: &[String], index: &mut usize) -> Result<(MirrorPublish, Options)> {
+    let mut manifest = None;
+    let mut allow_drops = false;
+    let mut options = Options::default();
+    while *index < args.len() {
+        let arg = args[*index].as_str();
+        if take_common_option(arg, &mut options) {
+            *index += 1;
+            continue;
+        }
+        match arg {
+            "--manifest" => {
+                let value = next_value(args, index, "--manifest")?;
+                if value.is_empty() {
+                    return Err(usage_error("--manifest requires a path"));
+                }
+                assign_once(&mut manifest, "--manifest", value)?;
+            }
+            "--allow-drops" => allow_drops = true,
+            other if other.starts_with('-') => {
+                return Err(usage_error(format!("unknown option: {other}")));
+            }
+            other => {
+                return Err(usage_error(format!(
+                    "publish mirror does not take positional argument '{other}'"
+                )));
+            }
+        }
+        *index += 1;
+    }
+    Ok((MirrorPublish { manifest, allow_drops }, options))
+}
+
 fn parse_republish(args: &[String]) -> Result<Parsed> {
     let (registry, mut index) = publish_registry(args, "republish")?;
     let mut allow_drops = false;
+    let mut manifest = None;
     let mut options = Options::default();
     while index < args.len() {
         let arg = args[index].as_str();
@@ -653,6 +691,16 @@ fn parse_republish(args: &[String]) -> Result<Parsed> {
         }
         match arg {
             "--allow-drops" => allow_drops = true,
+            "--manifest" => {
+                if registry != Registry::Mirror {
+                    return Err(usage_error("--manifest only applies to the mirror registry"));
+                }
+                let value = next_value(args, &mut index, "--manifest")?;
+                if value.is_empty() {
+                    return Err(usage_error("--manifest requires a path"));
+                }
+                assign_once(&mut manifest, "--manifest", value)?;
+            }
             other if other.starts_with('-') => {
                 return Err(usage_error(format!("unknown option: {other}")));
             }
@@ -666,7 +714,7 @@ fn parse_republish(args: &[String]) -> Result<Parsed> {
     }
     Ok(request_parsed(
         Command::Republish,
-        Request::Republish { registry, allow_drops, options },
+        Request::Republish { registry, allow_drops, options, manifest },
     ))
 }
 
@@ -1059,6 +1107,53 @@ mod tests {
     }
 
     #[test]
+    fn parses_publish_mirror_grammar() {
+        let (request, options) = publish_request(&["publish", "mirror"]);
+        let PublishRequest::Mirror(mirror) = request else { panic!("{request:?}") };
+        assert_eq!(mirror.manifest, None);
+        assert!(!mirror.allow_drops);
+        assert!(!options.dry_run);
+
+        let (request, options) = publish_request(&[
+            "publish",
+            "mirror",
+            "--manifest",
+            "custom.toml",
+            "--allow-drops",
+            "--dry-run",
+            "--json",
+            "--verbose",
+        ]);
+        let PublishRequest::Mirror(mirror) = request else { panic!("{request:?}") };
+        assert_eq!(mirror.manifest.as_deref(), Some("custom.toml"));
+        assert!(mirror.allow_drops);
+        assert!(options.dry_run && options.json && options.verbose);
+    }
+
+    #[test]
+    fn republish_accepts_manifest_only_for_the_mirror() {
+        match parse_args(&args(&["republish", "mirror", "--manifest", "custom.toml", "--allow-drops"]))
+            .unwrap()
+            .request
+            .unwrap()
+        {
+            Request::Republish { registry, allow_drops, manifest, .. } => {
+                assert_eq!(registry, Registry::Mirror);
+                assert_eq!(manifest.as_deref(), Some("custom.toml"));
+                assert!(allow_drops);
+            }
+            other => panic!("{other:?}"),
+        }
+        for argv in [
+            vec!["republish", "cargo", "--manifest", "custom.toml"],
+            vec!["republish", "npm", "--manifest", "custom.toml"],
+            vec!["republish", "mirror", "--manifest"],
+        ] {
+            usage_rejected(&argv);
+        }
+    }
+
+    #[test]
     fn parses_both_publish_oci_forms() {
         let (request, _) =
             publish_request(&["publish", "oci", "--image", "repo/a=1.0", "--image", "repo/b=2.0"]);
@@ -1144,6 +1239,10 @@ mod tests {
             vec!["publish", "oci", "--inventory", "mirror.toml", "--lock", "mirror.lock", "--repository", "repo"],
             vec!["publish", "oci", "--inventory", "mirror.toml", "--lock", "mirror.lock", "--tag", "t"],
             vec!["publish", "oci", "--inventory", "mirror.toml", "--lock", "mirror.lock", "--image", "repo=ref"],
+            vec!["publish", "mirror", "extra"],
+            vec!["publish", "mirror", "--bogus"],
+            vec!["publish", "mirror", "--manifest"],
+            vec!["publish", "mirror", "--registry", "cargo"],
         ] {
             usage_rejected(&argv);
         }
@@ -1156,8 +1255,9 @@ mod tests {
             .request
             .unwrap()
         {
-            Request::Republish { registry, allow_drops, options } => {
+            Request::Republish { registry, allow_drops, options, manifest } => {
                 assert_eq!(registry, Registry::Cargo);
+                assert_eq!(manifest, None);
                 assert!(allow_drops && options.dry_run && options.json && !options.verbose);
             }
             other => panic!("{other:?}"),
@@ -1183,6 +1283,7 @@ mod tests {
             vec!["republish", "bogus"],
             vec!["republish", "cargo", "extra"],
             vec!["republish", "cargo", "--image", "repo=ref"],
+            vec!["republish", "mirror", "--image", "repo=ref"],
             vec!["rollback"],
             vec!["rollback", "bogus", "gen"],
             vec!["rollback", "cargo"],
