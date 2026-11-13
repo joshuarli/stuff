@@ -1,0 +1,28 @@
+[package]
+name = "mymirror"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.99"
+license = "Apache-2.0"
+description = "Static artifact mirror builder"
+repository = "https://github.com/joshuarli/stuff"
+autobins = false
+
+[lib]
+name = "mymirror"
+path = "src/lib.rs"
+
+[dependencies]
+deser-toml = "0.10"
+deser-value = "0.10"
+deser-json = "0.10"
+flate2 = { version = "1.0", features = ["miniz_oxide"] }
+h12tiny-client-sync = { version = "0.6.0", path = "../h12tiny-client-sync", features = ["tls"] }
+lzma-rs = "0.3"
+rawzip = "0.5.2"
+sha2 = "0.11"
+stuff-store = { version = "0.1.0", path = "../stuff-store" }
+tar = "0.4"
+
+[dev-dependencies]
+tempfile = "3.13"

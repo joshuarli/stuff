@@ -49,7 +49,9 @@ impl Paths {
     pub fn publish_state_dir(&self, registry: Registry) -> PathBuf {
         match registry {
             Registry::Oci => self.state_dir("oci").join("transaction"),
-            Registry::Cargo | Registry::Npm | Registry::Pypi => self.state_dir(registry.as_str()),
+            Registry::Cargo | Registry::Npm | Registry::Pypi | Registry::Mirror => {
+                self.state_dir(registry.as_str())
+            }
         }
     }
 
@@ -84,6 +86,7 @@ mod tests {
         assert_eq!(paths.publish_lock(Registry::Npm), PathBuf::from("/s/npm/publish.lock"));
         assert_eq!(paths.publish_lock(Registry::Pypi), PathBuf::from("/s/pypi/publish.lock"));
         assert_eq!(paths.publish_lock(Registry::Oci), PathBuf::from("/s/oci/transaction/publish.lock"));
+        assert_eq!(paths.publish_lock(Registry::Mirror), PathBuf::from("/s/mirror/publish.lock"));
     }
 
     #[test]
@@ -122,5 +125,6 @@ mod tests {
         assert_eq!(paths.cache_dir("npm"), PathBuf::from("/home/person/.cache/stuff/npm"));
         assert_eq!(paths.cache_dir("pypi"), PathBuf::from("/home/person/.cache/stuff/pypi"));
         assert_eq!(paths.cache_dir("oci"), PathBuf::from("/home/person/.cache/stuff/oci"));
+        assert_eq!(paths.cache_dir("mirror"), PathBuf::from("/home/person/.cache/stuff/mirror"));
     }
 }

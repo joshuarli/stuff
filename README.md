@@ -24,16 +24,18 @@ Publication prerequisites, configuration, credentials, and operations are in [do
 | npm | `https://npm.17166969.xyz/current/` |
 | pip | `https://pypi.17166969.xyz/current/simple/` |
 | OCI | `https://oci.17166969.xyz` |
+| Static artifact mirror | `https://mirror.17166969.xyz/current/` |
 
 The aggregate catalog is at [stuff.17166969.xyz](https://stuff.17166969.xyz).
 Cargo downloads use `crates-blobs.17166969.xyz`; OCI blobs use `oci-blobs.17166969.xyz`.
-Each registry activates its own generation through `current`; publishing one does not republish another.
+Each registry activates its own generation through `current`; publishing one does not republish another. The static artifact mirror re-hosts pinned upstream artifacts homogenized to zip; see [PUBLISHING.md](docs/PUBLISHING.md#publish-the-static-mirror).
 
 ```sh
 stuff publish cargo -p my-crate
 stuff publish npm --lockfile pnpm-lock.yaml --project my-project
 stuff publish pypi six==1.16.0
 stuff publish oci --image example/app=ghcr.io/example/app:v1
+stuff publish mirror
 ```
 
 OCI reads are anonymous and follow the Distribution 1.1 API:

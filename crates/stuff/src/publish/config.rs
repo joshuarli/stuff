@@ -43,6 +43,7 @@ pub struct Config {
     pub npm: RegistryConfig,
     pub pypi: RegistryConfig,
     pub oci: OciConfig,
+    pub mirror: RegistryConfig,
 }
 
 impl Config {
@@ -55,6 +56,7 @@ impl Config {
             (&self.pypi.bucket, Registry::Pypi),
             (&self.oci.bucket, Registry::Oci),
             (&self.oci.blobs_bucket, Registry::Oci),
+            (&self.mirror.bucket, Registry::Mirror),
         ]
         .into_iter()
         .find_map(|(name, registry)| (name == bucket).then_some(registry))
@@ -82,6 +84,10 @@ impl Default for Config {
                 bucket: "stuff-oci".to_string(),
                 blobs_bucket: "stuff-oci-blobs".to_string(),
                 public_base_url: "https://oci.17166969.xyz".to_string(),
+            },
+            mirror: RegistryConfig {
+                bucket: "stuff-mirror".to_string(),
+                public_base_url: "https://mirror.17166969.xyz".to_string(),
             },
         }
     }
@@ -123,6 +129,9 @@ impl Config {
         }
         if let Some(section) = section(&value, "oci")? {
             config.oci = oci_config(section, &config.oci)?;
+        }
+        if let Some(section) = section(&value, "mirror")? {
+            config.mirror = registry_config(section, "mirror", &config.mirror)?;
         }
         Ok(config)
     }
@@ -207,6 +216,8 @@ mod tests {
         assert_eq!(config.oci.bucket, "stuff-oci");
         assert_eq!(config.oci.blobs_bucket, "stuff-oci-blobs");
         assert_eq!(config.oci.public_base_url, "https://oci.17166969.xyz");
+        assert_eq!(config.mirror.bucket, "stuff-mirror");
+        assert_eq!(config.mirror.public_base_url, "https://mirror.17166969.xyz");
     }
 
     #[test]
@@ -226,7 +237,8 @@ mod tests {
                 "cf_profile": "publisher",
                 "cargo": {"bucket": "custom-cargo"},
                 "npm": {"public_base_url": "https://npm.example"},
-                "oci": {"bucket": "custom-meta", "blobs_bucket": "custom-blobs"}
+                "oci": {"bucket": "custom-meta", "blobs_bucket": "custom-blobs"},
+                "mirror": {"bucket": "custom-mirror", "public_base_url": "https://mirror.example"}
             }"#,
         )
         .unwrap();
@@ -245,6 +257,9 @@ mod tests {
         assert_eq!(config.oci.bucket, "custom-meta");
         assert_eq!(config.oci.blobs_bucket, "custom-blobs");
         assert_eq!(config.oci.public_base_url, "https://oci.17166969.xyz");
+        assert_eq!(config.mirror.bucket, "custom-mirror");
+        assert_eq!(config.mirror.public_base_url, "https://mirror.example");
+        assert_eq!(config.registry_for_bucket("custom-mirror"), Some(Registry::Mirror));
     }
 
     #[test]

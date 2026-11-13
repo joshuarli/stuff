@@ -26,6 +26,7 @@ h12tiny-client-sync = { version = "0.6.0", path = "../h12tiny-client-sync", feat
 hmac = "0.13"
 md-5 = "0.11"
 myoci = { version = "0.1.0", path = "../myoci" }
+mymirror = { version = "0.1.0", path = "../mymirror" }
 mynpm = { version = "0.1.0", path = "../mynpm" }
 mypypi = { version = "0.1.0", path = "../mypypi" }
 quick-xml = { version = "0.42", default-features = false }
@@ -39,4 +40,5 @@ stuff-url = { version = "0.1.0", path = "../stuff-url" }
 tar = "0.4"
 
 [dev-dependencies]
+rawzip = "0.5.2"
 tempfile = "3.13"

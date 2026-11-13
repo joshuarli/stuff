@@ -1,6 +1,7 @@
 # stuff-worker
 
-Cloudflare Worker that serves four registry layouts from R2. URL routing
+Cloudflare Worker that serves the registry layouts and the static artifact
+mirror from R2. URL routing
 and response planning are Rust (`src/map.rs`, `src/api.rs`, shared `stuff-http`
 semantics, `deser` for config parsing), with no `worker` SDK and no async
 runtime in the dependency tree. Routes match on the request hostname, so each

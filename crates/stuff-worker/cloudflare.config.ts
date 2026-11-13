@@ -27,9 +27,10 @@ export default defineConfig(({ mode }) => ({
 			"pypi.17166969.xyz",
 			"stuff.17166969.xyz",
 			"oci.17166969.xyz",
+			"mirror.17166969.xyz",
 		],
 		env: {
-			STUFF_ROUTES: bindings.text("[{\"host\":\"crates.17166969.xyz\",\"bucket_binding\":\"MYCRATES\",\"key_prefix\":\"\"},{\"host\":\"npm.17166969.xyz\",\"bucket_binding\":\"MYNPM\",\"key_prefix\":\"\"},{\"host\":\"pypi.17166969.xyz\",\"bucket_binding\":\"PYPI\",\"key_prefix\":\"\"},{\"host\":\"oci.17166969.xyz\",\"bucket_binding\":\"OCI\",\"key_prefix\":\"\"}]"),
+			STUFF_ROUTES: bindings.text("[{\"host\":\"crates.17166969.xyz\",\"bucket_binding\":\"MYCRATES\",\"key_prefix\":\"\"},{\"host\":\"npm.17166969.xyz\",\"bucket_binding\":\"MYNPM\",\"key_prefix\":\"\"},{\"host\":\"pypi.17166969.xyz\",\"bucket_binding\":\"PYPI\",\"key_prefix\":\"\"},{\"host\":\"oci.17166969.xyz\",\"bucket_binding\":\"OCI\",\"key_prefix\":\"\"},{\"host\":\"mirror.17166969.xyz\",\"bucket_binding\":\"MIRROR\",\"key_prefix\":\"\"}]"),
 			STUFF_UNIFIED_HOST: bindings.text("stuff.17166969.xyz"),
 			STUFF_OCI_HOST: bindings.text("oci.17166969.xyz"),
 			STUFF_OCI_BLOB_ORIGIN: bindings.text("https://oci-blobs.17166969.xyz"),
@@ -44,6 +45,9 @@ export default defineConfig(({ mode }) => ({
 			}),
 			OCI: bindings.r2({
 				name: "stuff-oci",
+			}),
+			MIRROR: bindings.r2({
+				name: "stuff-mirror",
 			}),
 			OCI_BLOBS: bindings.r2({
 				name: "stuff-oci-blobs",

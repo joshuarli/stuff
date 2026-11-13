@@ -27,6 +27,7 @@ use crate::publish::{Environment, Options, Outcome, PublishError, Registry};
 pub fn republish(
     registry: Registry,
     allow_drops: bool,
+    manifest: Option<String>,
     options: &Options,
     environment: &Environment,
 ) -> Result<Outcome, PublishError> {
@@ -35,6 +36,7 @@ pub fn republish(
         Registry::Npm => npm(allow_drops, options, environment),
         Registry::Pypi => pypi(allow_drops, options, environment),
         Registry::Oci => oci(allow_drops, options, environment),
+        Registry::Mirror => crate::publish::mirror::republish(allow_drops, manifest, options, environment),
     }
 }
 

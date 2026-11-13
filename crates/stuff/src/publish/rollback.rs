@@ -24,7 +24,7 @@ pub fn rollback(
             &config.cf_profile,
             &config.oci.blobs_bucket,
         )?)),
-        Registry::Cargo | Registry::Npm | Registry::Pypi => None,
+        Registry::Cargo | Registry::Npm | Registry::Pypi | Registry::Mirror => None,
     };
     let verify_target = |metadata: &R2Client| match &blobs {
         Some(blobs) => oci::verify_generation_blobs(

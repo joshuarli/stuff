@@ -4,7 +4,8 @@
 # Env: STUFF_CARGO_BASE / STUFF_NPM_BASE / STUFF_PYPI_BASE / STUFF_OCI_BASE
 # override the default https://{crates,npm,pypi,oci}.17166969.xyz origins (stuff honors the
 # same variables). NPM_REGISTRY / PYPI_INDEX_URL override the
-# package-manager URLs similarly.
+# package-manager URLs similarly. STUFF_MIRROR_BASE overrides the static
+# artifact mirror origin (default https://mirror.17166969.xyz).
 #
 # Checks the active generations, catalog objects, essential endpoints and
 # sample artifact hashes (no Cloudflare credentials needed), then probes
@@ -54,5 +55,35 @@ if [ -n "$OCI_PKG" ] && [ "$OCI_PKG" != "null null" ]; then
 else
   echo "skip: oci registry is empty"
 fi
+
+MIRROR_BASE=${STUFF_MIRROR_BASE:-https://mirror.17166969.xyz}
+echo "--- mirror SHA256SUMS and one artifact"
+sums=$(curl -fsS "$MIRROR_BASE/current/SHA256SUMS") || fail "mirror SHA256SUMS fetch failed"
+line=$(printf '%s\n' "$sums" | sed -n 1p)
+case "$line" in
+  *"  "*.zip) ;;
+  *) fail "mirror SHA256SUMS line is malformed: $line" ;;
+esac
+set -- $line
+want_sha=$1
+name=$2
+case "$want_sha" in
+  *[!0-9a-f]*) fail "mirror SHA256SUMS hash is malformed: $line" ;;
+esac
+case "$name" in
+  */*) fail "mirror artifact name has a path separator: $name" ;;
+esac
+mirror_tmp=$(mktemp -d)
+trap 'rm -rf "$mirror_tmp"' EXIT INT TERM
+curl -fsS -o "$mirror_tmp/$name" "$MIRROR_BASE/current/$name" || fail "mirror artifact $name fetch failed"
+if command -v sha256sum >/dev/null 2>&1; then
+  actual_sha=$(sha256sum "$mirror_tmp/$name" | cut -d' ' -f1)
+else
+  actual_sha=$(shasum -a 256 "$mirror_tmp/$name" | cut -d' ' -f1)
+fi
+[ "$actual_sha" = "$want_sha" ] || fail "mirror artifact $name hash mismatch"
+rm -rf "$mirror_tmp"
+trap - EXIT INT TERM
+echo "mirror artifact $name matches SHA256SUMS"
 
 echo "OK: deployed registries answer through HTTP and their package managers"

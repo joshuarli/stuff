@@ -340,10 +340,22 @@ Initial publication and consumer cutover are operator steps, not CI:
 3. Cut consumers over repository by repository, pinning the mirrored
    digest or alias, verifying one consumer before the next. Do not cut a
    consumer over before the promoted generation verifies.
+## Publish the static mirror
+
+`stuff publish mirror` re-hosts static artifacts the `~/usr` installer downloads — Node.js, Codex, OpenCode, installer scripts, and dwl — under `mirror.17166969.xyz` as one homogeneous format: every pinned upstream is extracted, filtered to a list of members that matter, and re-zipped once. Consumers never see tarballs or zips with unknown layouts, only `<id>.zip`. The manifest lives in [`mirror/manifest.toml`](../mirror/manifest.toml); [crates/mymirror](../crates/mymirror/README.md) documents the format. GitHub-hosted artifacts are deliberately not mirrored yet.
+
+```sh
+stuff publish mirror --dry-run
+stuff publish mirror
+```
+
+Each entry pins an upstream URL, an upstream SHA-256, and an optional keep list (`keep = ["bin/**", "lib/**"]`) applied after stripping leading components. The build downloads the upstream once, verifies the SHA-256 before anything else happens, extracts (`.tar.gz`, `.tar.xz`, `.zip`, or a raw file), drops members outside the keep list, and writes a deterministic DEFLATE zip (fixed timestamps, Unix file types and modes, symlink targets that stay inside the archive root). The generation contains `<id>.zip` per entry plus `catalog.json` (schemaVersion 1, with the standard `packages` list used by the drop guard) and `SHA256SUMS`; `current` selects the live generation like the other registries. Downloads are cached by upstream SHA-256 under `~/.cache/stuff/mirror/objects` and re-verified on every reuse. When the live marker already names the generation derived from the manifest and every expected remote object is present, the publish rebuilds nothing: it only ensures the local `current` symlink points at that generation and reports `unchanged`, so a republish of an unchanged manifest downloads nothing, uploads nothing, and touches no upstream.
+
+Because bumping an artifact's pinned `version` removes the old row from `packages`, the shared drop guard treats a version bump as a removal: `stuff publish mirror` exits 3 and lists the dropped pins. Pass `--allow-drops` when the bump is intended — this is the one publish verb that accepts the flag; `stuff republish mirror` also rebuilds from the manifest (with `--allow-drops` like the other registries and `--manifest PATH` to use a non-default manifest), and `stuff rollback mirror GENERATION` restores a previous generation. The bucket is `stuff-mirror` (configurable as the `mirror` section in `config.json`, like `npm`), the publish is a normal transaction against it, and the Worker custom domain `mirror.17166969.xyz` serves it like the static registries. The OCI inventory mode is separate and unrelated: it re-hosts container images through `stuff publish oci --inventory`.
 
 ## Republish without new packages
 
-A renderer or catalog change reaches a registry's pages only when that registry publishes again. `stuff republish cargo|npm|pypi|oci` does that without package inputs: it reads the live generation, renders it again under the current renderer, and promotes it. Unchanged output reports no new generation. The bucket keeps older manifests until `make gc` prunes generations outside its retention window.
+A renderer or catalog change reaches a registry's pages only when that registry publishes again. `stuff republish cargo|npm|pypi|oci` does that without package inputs: it reads the live generation, renders it again under the current renderer, and promotes it. `stuff republish mirror` re-derives the mirror generation from the manifest instead — cached upstream downloads make that an unchanged no-op when the manifest did not change. Unchanged output reports no new generation. The bucket keeps older manifests until `make gc` prunes generations outside its retention window.
 
 Republish uses the observed live generation as its promotion base even when this machine's last promoted generation is older. If another publisher changes `current` during the operation, republish refuses the competing update; rerun it to render the new live generation.
 
@@ -433,7 +445,7 @@ interactive challenge. Keep these zone settings for `17166969.xyz`:
 - The `/ingest/` rate limit at 20 requests per 10 seconds per source IP and colo; do not
   rate-limit or challenge the read paths.
 - No Managed Challenge, JS Challenge, or Turnstile rule on `crates.`, `npm.`, `pypi.`,
-  `oci.`, `stuff.`, `oci-blobs.`, or `crates-blobs.`.
+  `oci.`, `stuff.`, `oci-blobs.`, `crates-blobs.`, or `mirror.`.
 
 Cargo downloads `.crate` files from `crates-blobs.17166969.xyz`, an R2 custom domain
 on `stuff-mycrates`, so they never invoke the Worker. Each generation's
@@ -461,7 +473,7 @@ curl -fsS -o /dev/null -w '%{http_code}\n' \
 make smoke-deployed
 ```
 
-This builds the `stuff` binary and runs `deploy/deployed-smoke.sh`. The check is read-only and needs no Cloudflare credentials. It runs `stuff doctor --sample-artifacts` against the active generations, catalog objects, and sample artifact hashes, plus `npm view`, `uv pip install --dry-run`, and `oras manifest fetch` probes.
+This builds the `stuff` binary and runs `deploy/deployed-smoke.sh`. The check is read-only and needs no Cloudflare credentials. It runs `stuff doctor --sample-artifacts` against the active generations, catalog objects, and sample artifact hashes, plus `npm view`, `uv pip install --dry-run`, and `oras manifest fetch` probes, and verifies the static artifact mirror by downloading the first `SHA256SUMS` artifact and hashing it.
 
 ## Roll back a generation
 

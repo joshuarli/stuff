@@ -39,6 +39,7 @@ pub fn shared_stores(registry: Registry, config: &Config) -> Vec<SharedStore> {
             bucket: config.oci.blobs_bucket.clone(),
             prefix: "sha256/",
         }],
+        Registry::Mirror => Vec::new(),
     }
 }
 
@@ -48,6 +49,7 @@ pub fn metadata_bucket(registry: Registry, config: &Config) -> String {
         Registry::Npm => config.npm.bucket.clone(),
         Registry::Pypi => config.pypi.bucket.clone(),
         Registry::Oci => config.oci.bucket.clone(),
+        Registry::Mirror => config.mirror.bucket.clone(),
     }
 }
 
