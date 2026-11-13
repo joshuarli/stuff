@@ -76,6 +76,31 @@ def test_rule_is_registered_and_selectable() -> None:
     assert any(rule.id == "audit-upgrades" for rule in audit_upgrade_rules())
     selected = selected_rules(rule_ids=["audit-upgrades"])
     assert [rule.id for rule in selected] == ["audit-upgrades"]
+
+
+def test_frontend_baseline_is_owned_by_policy_during_audit_and_upgrade(tmp_path: Path, monkeypatch) -> None:
+    from repomod.audit import LockedDependency
+    from repomod.rules import audit_upgrades
+
+    root = repo_root(tmp_path)
+    write_pnpm_project(root)
+    monkeypatch.setattr(audit_upgrades, "load_frontend_tool_versions", lambda _repository: {"vite": "8.3.8"})
+    monkeypatch.setattr(audit_upgrades, "_collect_locked", lambda *_: ([
+        LockedDependency("npm", "vite", "8.3.8", True),
+        LockedDependency("npm", "effect", "4.0.6", True),
+    ], []))
+    findings = _outdated_findings(root, repository("typescript"), {}, NOW, lambda _e, _n: "99.0.0")
+    assert len(findings) == 1
+    assert "effect" in findings[0].message
+    monkeypatch.setattr(audit_upgrades.shutil, "which", lambda _: "/usr/bin/pnpm")
+    calls = []
+
+    def run(task, _cache):
+        calls.append(task.argv)
+
+    monkeypatch.setattr(audit_upgrades, "_run_upgrade_task", run)
+    assert audit_upgrades.upgrade_in_sandbox(root, repository("typescript"), tmp_path / "copy", upstream=False)
+    assert calls == [["pnpm", "update", "--latest", "!vite"]]
     offline = selected_rules(local_only=True)
     assert all(rule.id != "audit-upgrades" for rule in offline)
 

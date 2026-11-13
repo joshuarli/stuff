@@ -42,6 +42,7 @@ from repomod.audit import (
 from repomod.catalog import parse_dependency_ignore
 from repomod.io import read_toml
 from repomod.rules.python_standard import load_approved_python_tool_versions
+from repomod.rules.typescript_standard import load_frontend_tool_versions
 from repomod.types import Finding, Repository, Rule, TagPredicate, operational, violation
 
 _RULE_ID = "audit-upgrades"
@@ -381,6 +382,7 @@ def _outdated_findings(
 ) -> list[Finding]:
     locked, _ = _collect_locked(root, repository)
     skipped = _non_registry_names(root)
+    skipped.update(("npm", name.casefold()) for name in load_frontend_tool_versions(repository))
 
     def key_for(ecosystem: str, name: str) -> tuple[str, str]:
         if ecosystem == "crates":
@@ -742,6 +744,10 @@ def upgrade_in_sandbox(root: Path, repository: Repository, work: Path, *, upstre
     for task in tasks:
         relative = task.directory.relative_to(root)
         rebased = UpgradeTask(work / relative.as_posix(), task.argv, task.tool)
+        if task.tool == "pnpm":
+            versions = load_frontend_tool_versions(repository)
+            if versions:
+                rebased.argv = [*rebased.argv, *(f"!{name}" for name in versions)]
         _run_upgrade_task(_upstream_task(rebased) if upstream else rebased, cache_dir)
     return True
 

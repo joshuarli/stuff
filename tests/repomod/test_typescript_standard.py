@@ -78,6 +78,69 @@ def test_typescript_tool_pins_reject_symlinked_source(tmp_path: Path) -> None:
         load_typescript_tool_pins(path)
 
 
+def test_frontend_baseline_checks_nested_consumers_without_pinning_library_peers(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    policy = tmp_path / "policy"
+    policy.mkdir()
+    (policy / "frontend-toolchain.toml").write_text(
+        'repositories = ["acme/demo"]\n[packages]\nvitest = "5.1.0"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(typescript_standard.paths, "POLICY", policy)
+    packages = [
+        (tmp_path / "package.json", {"peerDependencies": {"vitest": ">=5"}}),
+        (tmp_path / "web/package.json", {"devDependencies": {"vitest": "5.0.5"}}),
+    ]
+    findings = typescript_standard._frontend_toolchain_findings(tmp_path, packages, repository())
+    assert len(findings) == 1
+    assert findings[0].file == "web/package.json"
+    assert "pin vitest to 5.1.0" in findings[0].message
+    packages[1][1]["devDependencies"]["vitest"] = "5.1.0"
+    assert typescript_standard._frontend_toolchain_findings(tmp_path, packages, repository()) == []
+    packages[1][1]["devDependencies"]["vitest"] = "5.0.5"
+    other = Repository(RepoId("acme", "other"), ("typescript",))
+    assert typescript_standard._frontend_toolchain_findings(tmp_path, packages, other) == []
+
+
+def test_frontend_baseline_rejects_version_ranges(tmp_path: Path, monkeypatch) -> None:
+    (tmp_path / "frontend-toolchain.toml").write_text(
+        'repositories = ["acme/demo"]\n[packages]\nvitest = "^5.1.0"\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(typescript_standard.paths, "POLICY", tmp_path)
+    findings = typescript_standard._frontend_toolchain_findings(tmp_path, [], repository())
+    assert len(findings) == 1
+    assert findings[0].kind == "operational"
+    assert "exact package versions" in findings[0].message
+
+
+@pytest.mark.parametrize("command", ["node --test test/*.test.ts", "node scripts/test-runner.mjs"])
+def test_typescript_alignment_preserves_node_test_suites(tmp_path: Path, command: str) -> None:
+    package = package_data()
+    package["devDependencies"].pop("vitest")
+    package["scripts"]["test"] = command
+    make_project(tmp_path, package)
+    assert _typescript_stack_findings(tmp_path, repository("library", "typescript")) == []
+    package["scripts"]["test"] = "echo node --test"
+    make_project(tmp_path, package)
+    assert any("test script" in item.message for item in _typescript_stack_findings(
+        tmp_path, repository("library", "typescript")
+    ))
+
+
+def test_typescript_check_follows_local_group_scripts_and_terminates_cycles(tmp_path: Path) -> None:
+    package = package_data()
+    package["scripts"]["check:web"] = package["scripts"]["check"]
+    package["scripts"]["check"] = "pnpm run check:web && cargo check -q"
+    make_project(tmp_path, package)
+    assert _typescript_stack_findings(tmp_path, repository("library", "typescript")) == []
+    package["scripts"]["check:web"] = "pnpm run check"
+    make_project(tmp_path, package)
+    findings = _typescript_stack_findings(tmp_path, repository("library", "typescript"))
+    assert any("check script run lint and type checking" in item.message for item in findings)
+
+
 def test_typescript_rule_reports_symlinked_tool_pins_as_operational(
     tmp_path: Path,
     monkeypatch,

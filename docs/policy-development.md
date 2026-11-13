@@ -381,7 +381,8 @@ Block-style workflow version lists remain manual findings. When a repository has
 stable Node.js and the newest stable pnpm release in the approved major (including `next-12`
 when it leads `latest`); `pins refresh` updates those approvals. The rule checks
 runtime pins offline, requires `tsrs` 0.23.0 or newer built as TypeScript 7 or newer, strict
-type checking, Oxlint 1.92 or newer with type-aware linting from that `tsrs` package, and Vitest.
+type checking, Oxlint 1.92 or newer with type-aware linting from that `tsrs` package, and Vitest 5
+or Node test commands (including Node suite launchers).
 A direct `oxlint-tsgolint` dependency is a finding. It also
 removes Deno configuration and npm, Bun, or Vite+ script commands. Apps also use Effect 4. Frontend
 apps use Vite 8 and Solid 2. An app counts as a frontend when it depends on a UI framework
@@ -389,6 +390,16 @@ apps use Vite 8 and Solid 2. An app counts as a frontend when it depends on a UI
 Nested package manifests are inspected, and a pnpm workspace coordinator without its own TypeScript
 source or configuration is checked as a package authority rather than a TypeScript package.
 The package check script can call Oxlint and `tsrs --noEmit` directly or invoke their scripts.
+
+`fleet/policy/frontend-toolchain.toml` owns the tested frontend package versions for its
+listed repositories. The rule checks existing direct dependency, dev-dependency, and optional
+dependency declarations in every inspected manifest against those exact pins. It does not
+require unused tools or constrain published library peer ranges. Upgrade coupled packages
+together, verify frozen installs, type checks, lint, production builds and applicable browser
+tests, then update the policy and consumers. Cloudflare SDK/runtime packages remain a separate
+compatibility group. Existing Node tests and project-specific build configurations remain valid.
+`audit-upgrades` excludes these approved packages from independent latest-version checks and
+pnpm upgrades; the frontend policy check owns their alignment.
 
 Rust dependency choices and bans are owned by `fleet/dependency-roles.toml` and the
 [audit rules](audit.md), not an additional `rust-deps` rule.

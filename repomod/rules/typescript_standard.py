@@ -256,6 +256,60 @@ def _dependency_versions(package: dict[str, Any]) -> dict[str, str]:
     return dependencies
 
 
+def load_frontend_tool_versions(repository: Repository) -> dict[str, str]:
+    policy = paths.POLICY / "frontend-toolchain.toml"
+    try:
+        if policy.is_symlink():
+            raise ValueError("frontend toolchain policy must not be a symlink")
+        data = tomllib.loads(policy.read_text(encoding="utf-8"))
+        repositories = data.get("repositories")
+        package_versions = data.get("packages")
+        if (
+            set(data) != {"repositories", "packages"}
+            or not isinstance(repositories, list)
+            or not all(isinstance(name, str) for name in repositories)
+            or not isinstance(package_versions, dict)
+            or not package_versions
+        ):
+            raise ValueError("frontend toolchain policy requires repositories and exact package versions")
+        versions: dict[str, str] = {}
+        for name, version in package_versions.items():
+            if not isinstance(name, str) or not isinstance(version, str) or not re.fullmatch(
+                r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", version,
+            ):
+                raise ValueError("frontend toolchain policy requires exact package versions")
+            versions[name] = version
+    except (OSError, ValueError) as error:
+        raise ValueError(f"cannot read frontend toolchain policy: {error}") from error
+    return versions if str(repository.id) in repositories else {}
+
+
+def _frontend_toolchain_findings(
+    root: Path,
+    packages: list[tuple[Path, dict[str, Any]]],
+    repository: Repository,
+) -> list[Finding]:
+    try:
+        versions = load_frontend_tool_versions(repository)
+    except ValueError as error:
+        return [_finding(repository, "frontend-toolchain.toml", str(error), kind="operational")]
+    findings = []
+    for manifest, package in packages:
+        for field in ("dependencies", "devDependencies", "optionalDependencies"):
+            dependencies = package.get(field)
+            if not isinstance(dependencies, dict):
+                continue
+            for name, expected in versions.items():
+                actual = dependencies.get(name)
+                if actual is not None and actual != expected:
+                    findings.append(_finding(
+                        repository,
+                        manifest.relative_to(root).as_posix(),
+                        f"pin {name} to {expected} from fleet/policy/frontend-toolchain.toml; found {actual}",
+                    ))
+    return findings
+
+
 def _typescript_compiler(package: dict[str, Any]) -> str | None:
     dependencies = _dependency_versions(package)
     if "typescript" in dependencies:
@@ -913,6 +967,24 @@ def _check_runs_lint_and_typecheck(command: str) -> bool:
     return lint and typecheck
 
 
+def _expanded_check_script(scripts: dict[str, Any]) -> str | None:
+    pending = ["check"]
+    visited: set[str] = set()
+    commands: list[str] = []
+    while pending:
+        name = pending.pop()
+        command = scripts.get(name)
+        if name in visited or not isinstance(command, str):
+            continue
+        visited.add(name)
+        commands.append(command)
+        pending.extend(
+            tokens[2] for tokens in _shell_commands(command)
+            if len(tokens) >= 3 and tokens[:2] == ("pnpm", "run")
+        )
+    return "; ".join(commands) if commands else None
+
+
 def _typescript_stack_findings(root: Path, repository: Repository) -> list[Finding]:
     manifests = _manifest_paths(root)
     if not manifests:
@@ -951,6 +1023,7 @@ def _typescript_stack_findings(root: Path, repository: Repository) -> list[Findi
                         f"remove legacy Deno configuration {name}",
                     )
                 )
+    findings.extend(_frontend_toolchain_findings(root, packages, repository))
     findings.extend(_package_typescript_findings(root, packages, package_roots, repository))
     findings.extend(_runtime_pin_findings(root, package_roots, pins, repository))
     for manifest, package in _typescript_manifests(root, packages):
@@ -988,19 +1061,21 @@ def _typescript_stack_findings(root: Path, repository: Repository) -> list[Findi
                     "define typecheck with tsrs --noEmit as the authoritative type check",
                 )
             )
-        check = scripts.get("check")
+        check = _expanded_check_script(scripts)
         if not isinstance(check, str) or not _check_runs_lint_and_typecheck(check):
             findings.append(_finding(repository, relative, "make the check script run lint and type checking"))
         if isinstance(scripts.get("test"), str):
             version = dependencies.get("vitest")
-            if version is None:
-                findings.append(_finding(repository, relative, "use Vitest 5 for the package test script"))
-            elif not _range_has_minimum(version, 5):
+            node_tests = re.match(r"^node\s", scripts["test"].strip()) is not None
+            if version is not None and not _range_has_minimum(version, 5):
                 findings.append(
                     _finding(repository, relative, f"Vitest dependency {version} must have a lower bound of 5")
                 )
-            if "vitest" not in scripts["test"]:
-                findings.append(_finding(repository, relative, "run the package test script with Vitest"))
+            if not node_tests:
+                if version is None:
+                    findings.append(_finding(repository, relative, "use Vitest 5 or Node for the package test script"))
+                if "vitest" not in scripts["test"]:
+                    findings.append(_finding(repository, relative, "run the package test script with Vitest or Node"))
             if not isinstance(check, str) or "test" not in check:
                 findings.append(_finding(repository, relative, "make the check script run tests"))
     if "app" in repository.tags and "library" not in repository.tags:

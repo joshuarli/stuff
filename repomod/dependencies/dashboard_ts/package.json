@@ -4,12 +4,12 @@
   "type": "module",
   "packageManager": "pnpm@12.20.0",
   "engines": {
-    "node": ">=26.13.0"
+    "node": ">=26.13.1"
   },
   "scripts": {
     "build": "tsrs",
     "check": "pnpm run lint && pnpm run typecheck",
-    "lint": "oxlint *.ts",
+    "lint": "oxlint --type-aware *.ts",
     "typecheck": "tsrs --noEmit"
   },
   "devDependencies": {
