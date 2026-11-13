@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 import pytest
@@ -300,8 +299,10 @@ def test_macos_path_collision_is_rejected(
 def test_add_repository_is_idempotent_and_preserves_catalog_comments(
     tmp_path: Path,
 ) -> None:
-    path = tmp_path / "catalog.toml"
-    shutil.copyfile(CATALOG_PATH, path)
+    path = write_catalog(
+        tmp_path / "catalog.toml",
+        '[repos."joshuarli"]\ntool = ["tool"]\n\n#[overrides."joshuarli/old-fork"]\n#ignore = ["rust-toolchain"]\n',
+    )
     before = path.read_text(encoding="utf-8")
     catalog = load_catalog(
         path,
@@ -310,7 +311,7 @@ def test_add_repository_is_idempotent_and_preserves_catalog_comments(
 
     assert add_repository(catalog, "new-owner", "new-tool", ["tool"])
     updated = path.read_text(encoding="utf-8")
-    assert '#[overrides."laputa-systems/ntpd-rs"]' in updated
+    assert '#[overrides."joshuarli/old-fork"]' in updated
     assert 'root = "~/repos"' in updated
     assert '[repos."new-owner"]\nnew-tool = ["tool"]' in updated
 
@@ -422,3 +423,86 @@ def test_malformed_dependency_ignores_are_rejected(tmp_path: Path, code: str) ->
     )
     with pytest.raises(CatalogError, match="dependency ignore"):
         load_catalog(path, {"HOME": str(tmp_path)})
+
+
+def test_delete_repositories_removes_entries_overrides_and_emptied_owner_tables(tmp_path: Path) -> None:
+    from repomod.catalog import delete_repositories
+
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        'version = 3\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n\n'
+        '[repos."acme"]\nkeep = ["tool"]\ngone = ["IGNORE", "tool"]\nwaiting = []\n# keep-comment\n\n'
+        '[repos."other"]\ntool = ["tool"]\n\n'
+        '[overrides."acme/gone"]\n'
+        'ignore = ["rust-project:lockfile:compare"]\n'
+        'ignore_reason = "upstream workspace"\n'
+        '[overrides."acme/keep"]\n'
+        'ignore = ["language-tags"]\n'
+        'ignore_reason = "snapshots"\n',
+        encoding="utf-8",
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+
+    assert delete_repositories(catalog, ["other/tool", "acme/gone", "ACME/waiting", "acme/absent"]) == [
+        "acme/gone",
+        "acme/waiting",
+        "other/tool",
+    ]
+    updated = path.read_text(encoding="utf-8")
+    assert '[repos."acme"]' in updated
+    assert 'keep = ["tool"]' in updated
+    assert "waiting" not in updated
+    assert "gone" not in updated
+    assert '[repos."other"]' not in updated
+    assert "# keep-comment" in updated
+    assert '[overrides."acme/gone"]' not in updated
+    assert '[overrides."acme/keep"]' in updated
+    reloaded = load_catalog(path, {"HOME": str(tmp_path)})
+    assert [str(repo.id) for repo in reloaded.repositories] == ["acme/keep"]
+
+
+def test_delete_repositories_returns_empty_and_leaves_file_alone_for_unknown_names(
+    tmp_path: Path,
+) -> None:
+    from repomod.catalog import delete_repositories
+
+    path = write_catalog(tmp_path / "catalog.toml", '[repos."acme"]\ntool = ["tool"]')
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+    before = path.read_text(encoding="utf-8")
+
+    assert delete_repositories(catalog, ["acme/absent", "other/tool"]) == []
+    assert path.read_text(encoding="utf-8") == before
+
+
+def test_delete_repositories_refuses_to_delete_the_last_repository(tmp_path: Path) -> None:
+    from repomod.catalog import delete_repositories
+
+    path = write_catalog(tmp_path / "catalog.toml", '[repos."acme"]\ntool = ["tool"]')
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+    before = path.read_text(encoding="utf-8")
+
+    with pytest.raises(CatalogError, match="empty"):
+        delete_repositories(catalog, ["acme/tool"])
+    assert path.read_text(encoding="utf-8") == before
+
+
+def test_delete_repositories_leaves_file_untouched_when_an_override_would_dangle(
+    tmp_path: Path,
+) -> None:
+    from repomod.catalog import delete_repositories
+
+    path = tmp_path / "catalog.toml"
+    path.write_text(
+        'version = 1\n\n[workspace]\nroot = "~/repos"\npersonal_owner = "joshuarli"\n\n'
+        '[repos."acme"]\nkeep = ["tool"]\ngone = ["tool"]\n\n'
+        '[overrides. "acme/gone"]\n'
+        "autofix = false\n"
+        'reason = "hand-edited spacing"\n',
+        encoding="utf-8",
+    )
+    catalog = load_catalog(path, {"HOME": str(tmp_path)})
+    before = path.read_text(encoding="utf-8")
+
+    with pytest.raises(CatalogError, match="overrides for deleted repositories"):
+        delete_repositories(catalog, ["acme/gone"])
+    assert path.read_text(encoding="utf-8") == before

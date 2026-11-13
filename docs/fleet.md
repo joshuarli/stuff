@@ -23,9 +23,12 @@ Other owners use `OWNER/REPO`.
 
 ## Discover and add repositories
 
-`repomod discover` compares active GitHub repositories against `fleet/catalog.toml`. It adds new
-repositories with empty tag arrays and lists pending repositories and tracked entries missing from GitHub.
-It checks every owner in the catalog unless you pass `--owner`. The command writes the catalog.
+`repomod discover` compares active GitHub repositories against `fleet/catalog.toml`. It removes
+catalogued entries GitHub reports as archived (including pending and `IGNORE` entries and any
+overrides), adds new repositories with empty tag arrays, and lists pending repositories and
+tracked entries missing from GitHub. Only entries confirmed archived are deleted; remote errors
+leave the catalog untouched. It checks every owner in the catalog unless you pass `--owner`.
+The command writes the catalog.
 
 ```sh
 uv run repomod discover
@@ -38,7 +41,7 @@ to exclude a repository from management and discovery; other tags can stay for l
 [tagging semantics](tagging.md) for tag meanings. Then fetch checkouts:
 
 Discovery's JSON output includes `pending`, `uncatalogued`
-(entries added in this run), and `missing`.
+(entries added in this run), `removed` (archived entries deleted in this run), and `missing`.
 If your catalog has a `[pending]` table from an earlier version, move each entry to its
 owner's `[repos."owner"]` table and remove the `[pending]` table.
 Move entries from an older `[ignored]` table to their owner sections and add `"IGNORE"` to their tags.

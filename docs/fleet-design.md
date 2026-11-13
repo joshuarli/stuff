@@ -2,7 +2,9 @@
 
 repomod uses one curated catalog, canonical local Git checkouts, read-only GitHub status, and
 explicit repair and topic writes. Git records source changes. repomod has no status database or
-repair ledger.
+repair ledger. `repomod discover` deletes catalogued entries GitHub reports as archived, including
+pending and `IGNORE` entries and their overrides, so the catalog reflects reality without manual
+cleanup; only a confirmed `isArchived` result deletes, and remote errors never do.
 
 ## State and ownership
 

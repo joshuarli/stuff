@@ -12,6 +12,12 @@ from repomod import github
 from repomod.catalog import CatalogError, add_pending, add_repository, load_catalog
 from repomod.cmd.discover import _discover
 from repomod.cmd.topics import _topics
+from repomod.types import RemoteRepository
+
+
+@pytest.fixture(autouse=True)
+def no_remote_metadata(monkeypatch):
+    monkeypatch.setattr("repomod.github.remote_metadata", lambda repositories: {})
 
 
 def catalog(path: Path, text: str) -> Path:
@@ -122,7 +128,7 @@ def test_discover_cli_matches_exactly_and_supports_json(tmp_path: Path, monkeypa
     args = argparse.Namespace(owner=["acme"], json=True)
     assert _discover(args) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload == {"owners": ["acme"], "uncatalogued": [], "missing": [], "pending": []}
+    assert payload == {"owners": ["acme"], "uncatalogued": [], "missing": [], "pending": [], "removed": []}
 
 
 def test_discover_cli_validates_and_deduplicates_owners(tmp_path: Path, monkeypatch) -> None:
@@ -244,3 +250,104 @@ def test_concurrent_discovery_keeps_both_updates_and_can_promote(tmp_path: Path)
     current = load_catalog(path)
     assert {str(repo) for repo in current.pending} == {"acme/two"}
     assert {str(repo.id) for repo in current.repositories} == {"acme/keep", "acme/one"}
+
+def test_discover_removes_archived_repositories_and_their_overrides(tmp_path: Path, monkeypatch, capsys) -> None:
+    path = catalog(
+        tmp_path / "catalog.toml",
+        'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
+        '[repos."acme"]\nkeep = ["tool"]\ngone = ["tool"]\nignored = ["IGNORE"]\n'
+        '[overrides."acme/gone"]\n'
+        'ignore = ["rust-project:lockfile:compare"]\n'
+        'ignore_reason = "upstream keeps its own workspace"\n',
+    )
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: load_catalog(path))
+    monkeypatch.setattr("repomod.github.discover", lambda owners: ["acme/keep"])
+    monkeypatch.setattr(
+        "repomod.github.remote_metadata",
+        lambda repositories: {
+            "acme/keep": RemoteRepository("acme/keep", "main", "0" * 40, False),
+            "acme/gone": RemoteRepository("acme/gone", None, None, True),
+            "acme/ignored": RemoteRepository("acme/ignored", None, None, True),
+        },
+    )
+    args = argparse.Namespace(owner=[], json=False)
+
+    assert _discover(args) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "removed (archived on GitHub) (2):",
+        "  acme/gone",
+        "  acme/ignored",
+        "added to pending (0): none",
+        "catalog matches GitHub",
+    ]
+    updated = path.read_text(encoding="utf-8")
+    assert "gone" not in updated
+    assert "ignored" not in updated
+    assert "[overrides." not in updated
+    reloaded = load_catalog(path)
+    assert [str(repo.id) for repo in reloaded.repositories] == ["acme/keep"]
+
+
+def test_discover_json_reports_removed_archived_repositories(tmp_path: Path, monkeypatch, capsys) -> None:
+    path = catalog(
+        tmp_path / "catalog.toml",
+        'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
+        '[repos."acme"]\nkeep = ["tool"]\ngone = ["IGNORE"]\n',
+    )
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: load_catalog(path))
+    monkeypatch.setattr("repomod.github.discover", lambda owners: ["acme/keep"])
+    monkeypatch.setattr(
+        "repomod.github.remote_metadata",
+        lambda repositories: {"acme/gone": RemoteRepository("acme/gone", None, None, True)},
+    )
+    args = argparse.Namespace(owner=[], json=True)
+
+    assert _discover(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["removed"] == ["acme/gone"]
+    assert payload["missing"] == []
+
+
+def test_discover_removes_archived_pending_entries(tmp_path: Path, monkeypatch, capsys) -> None:
+    path = catalog(
+        tmp_path / "catalog.toml",
+        'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
+        '[repos."acme"]\nkeep = ["tool"]\nwaiting = []\n',
+    )
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: load_catalog(path))
+    monkeypatch.setattr("repomod.github.discover", lambda owners: ["acme/keep"])
+    monkeypatch.setattr(
+        "repomod.github.remote_metadata",
+        lambda repositories: {"acme/waiting": RemoteRepository("acme/waiting", None, None, True)},
+    )
+    args = argparse.Namespace(owner=[], json=True)
+
+    assert _discover(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["removed"] == ["acme/waiting"]
+    assert payload["pending"] == []
+    assert load_catalog(path).pending == ()
+
+
+def test_discover_keeps_repositories_with_unknown_archival_state(tmp_path: Path, monkeypatch, capsys) -> None:
+    path = catalog(
+        tmp_path / "catalog.toml",
+        'version = 3\n[workspace]\nroot = "~/repos"\npersonal_owner = "acme"\n'
+        '[repos."acme"]\nkeep = ["tool"]\nmaybe = ["tool"]\n',
+    )
+    before = path.read_text(encoding="utf-8")
+    monkeypatch.setattr("repomod.cmd.common.default_catalog", lambda: load_catalog(path))
+    monkeypatch.setattr("repomod.github.discover", lambda owners: ["acme/keep"])
+    monkeypatch.setattr(
+        "repomod.github.remote_metadata",
+        lambda repositories: {
+            "acme/maybe": RemoteRepository("acme/maybe", None, None, None, "http 500"),
+        },
+    )
+    args = argparse.Namespace(owner=[], json=True)
+
+    assert _discover(args) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["removed"] == []
+    assert payload["missing"] == ["acme/maybe"]
+    assert path.read_text(encoding="utf-8") == before

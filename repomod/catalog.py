@@ -510,6 +510,75 @@ def add_pending(catalog: Catalog, names: list[str]) -> list[str]:
     return added
 
 
+def _section_has_content(section: str) -> bool:
+    return bool(section.strip())
+
+
+@catalog_write
+def delete_repositories(catalog: Catalog, names: list[str]) -> list[str]:
+    known: dict[str, str] = {
+        str(repo.id).casefold(): str(repo.id) for repo in (*catalog.repositories, *catalog.ignored)
+    }
+    known.update({str(repo).casefold(): str(repo) for repo in catalog.pending})
+    wanted: list[RepoId] = []
+    seen: set[str] = set()
+    for name in names:
+        try:
+            repo_id = RepoId.parse(name)
+        except ValueError as error:
+            raise CatalogError(str(error)) from error
+        validate_identifier(repo_id.owner, "owner")
+        validate_identifier(repo_id.name, "repository")
+        key = str(repo_id).casefold()
+        display = known.get(key)
+        if display is not None and key not in seen:
+            wanted.append(RepoId.parse(display))
+            seen.add(key)
+    if not wanted:
+        return []
+    updated = catalog.path.read_text(encoding="utf-8")
+    for repo_id in wanted:
+        owner_header = f'[repos."{_toml_string(repo_id.owner)}"]'
+        header = re.search(rf"(?m)^{re.escape(owner_header)}[ \t]*$", updated)
+        if header is None:
+            raise CatalogError(f"missing repository table for {repo_id}")
+        section_start = header.end()
+        next_header = re.search(r"(?m)^\[", updated[section_start:])
+        section_end = section_start + next_header.start() if next_header else len(updated)
+        section = updated[section_start:section_end]
+        entry = re.search(rf"(?m)^{re.escape(repo_id.name)}[ \t]*=[^\n]*\n?", section)
+        if entry is None:
+            raise CatalogError(f"cannot delete {repo_id}: entry changed")
+        section = section[: entry.start()] + section[entry.end() :]
+        if _section_has_content(section):
+            updated = updated[:section_start] + section + updated[section_end:]
+        else:
+            updated = updated[: header.start()] + updated[section_end:]
+        override_header = f'[overrides."{_toml_string(str(repo_id))}"]'
+        override = re.search(rf"(?mi)^{re.escape(override_header)}[ \t]*$", updated)
+        if override is not None:
+            following = re.search(r"(?m)^\[", updated[override.end() :])
+            table_end = override.end() + following.start() if following else len(updated)
+            updated = updated[: override.start()] + updated[table_end:]
+    try:
+        parsed = tomllib.loads(updated)
+    except tomllib.TOMLDecodeError as error:
+        raise CatalogError(f"deleting repositories would make catalog invalid: {error}") from error
+    repos_table = parsed.get("repos")
+    if not isinstance(repos_table, dict) or not repos_table:
+        raise CatalogError("deleting the selected repositories would empty [repos]")
+    wanted_keys = {str(repo_id).casefold() for repo_id in wanted}
+    overrides_table = parsed.get("overrides")
+    if isinstance(overrides_table, dict):
+        dangling = sorted(key for key in overrides_table if key.casefold() in wanted_keys)
+        if dangling:
+            raise CatalogError(
+                f"catalog has overrides for deleted repositories: {', '.join(dangling)}; remove them manually"
+            )
+    atomic_write(catalog.path, updated)
+    return sorted((str(repo_id) for repo_id in wanted), key=str.casefold)
+
+
 @catalog_write
 def remove_repository(catalog: Catalog, owner: str, name: str) -> bool:
     validate_identifier(owner, "owner")

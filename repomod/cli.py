@@ -107,7 +107,8 @@ def _parser() -> argparse.ArgumentParser:
     gc.add_argument("--workers", type=int, default=4)
 
     discover = commands.add_parser(
-        "discover", help="compare GitHub owner repositories against catalogued entries"
+        "discover",
+        help="sync catalogued entries with GitHub, removing archived repositories and adding new ones to pending",
     )
     discover.add_argument("--owner", action="append", default=[])
     discover.add_argument("--json", action="store_true")
