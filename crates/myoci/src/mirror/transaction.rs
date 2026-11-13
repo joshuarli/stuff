@@ -107,6 +107,11 @@ fn collect(root: &Path, dir: &Path, out: &mut Vec<(PathBuf, PathBuf)>) -> Result
                 Error::Integrity(format!("staged file escapes its root: {}", path.display()))
             })?;
             out.push((relative.to_path_buf(), path));
+        } else {
+            return Err(Error::Integrity(format!(
+                "staged file is not a regular file: {}",
+                path.display()
+            )));
         }
     }
     Ok(())
