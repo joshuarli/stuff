@@ -29,6 +29,7 @@ members = [
   "crates/h12tiny-tls-system",
   "crates/h12tiny-client-sync",
   "crates/myoci",
+  "crates/mymirror",
   "crates/mynpm",
   "crates/mypypi",
   "crates/stuff-store",
