@@ -1,0 +1,29 @@
+schema_version = 1
+policy_version = 1
+inventory_fingerprint = "sha256:3adf6e719c6f3ba6dd9d525e223f2063c601957c12d7c7133c0551d410dc95f5"
+
+[[entries]]
+id = "manylinux-amd64"
+source = "quay.io/pypa/manylinux_2_28_x86_64@sha256:7e41b1c7fd64dfc69703a1124b43c404382973ee06ec5d764b85c34d2221fded"
+source_repository = "quay.io/pypa/manylinux_2_28_x86_64"
+destination = "quay.io/pypa/manylinux_2_28_x86_64"
+aliases = ["pinned"]
+platforms = ["linux/amd64"]
+referrers = "snapshot"
+root_media_type = "application/vnd.docker.distribution.manifest.v2+json"
+root_digest = "sha256:7e41b1c7fd64dfc69703a1124b43c404382973ee06ec5d764b85c34d2221fded"
+root_size = 5544
+resolved_platforms = ["linux/amd64"]
+
+[[entries]]
+id = "manylinux-arm64"
+source = "quay.io/pypa/manylinux_2_28_aarch64@sha256:54b271d9562a3686298880df05367909e949ed317e7b1b79b59c696d75f78676"
+source_repository = "quay.io/pypa/manylinux_2_28_aarch64"
+destination = "quay.io/pypa/manylinux_2_28_aarch64"
+aliases = ["pinned"]
+platforms = ["linux/arm64"]
+referrers = "snapshot"
+root_media_type = "application/vnd.docker.distribution.manifest.v2+json"
+root_digest = "sha256:54b271d9562a3686298880df05367909e949ed317e7b1b79b59c696d75f78676"
+root_size = 5544
+resolved_platforms = ["linux/arm64"]

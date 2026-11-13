@@ -257,6 +257,9 @@ fn take(argv: &[String], i: &mut usize, flag: &str) -> Result<String> {
 }
 
 pub fn run(argv: &[String]) -> Result<()> {
+    if argv.first().map(String::as_str) == Some("mirror") {
+        return crate::mirror::run(&argv[1..]);
+    }
     let parsed = parse_args(argv)?;
     let state = State::new(PathBuf::from(&parsed.state_dir));
     match parsed.command {
@@ -479,6 +482,7 @@ pub fn print_help() {
          \x20 serve --push               enable writes; requires --state-dir and --writer-url\n\
          \x20 writer                     run the blob writer ([--bind ADDR] [--max-connections N])\n\
          \x20 bench --base-url URL --repo NAME --tag TAG [--output FILE] [--runs N] [--label TEXT]\n\
+         \x20 mirror resolve|plan|sync     reproducible OCI mirroring (see `myoci mirror`)\n\
          \n\
          import options:\n\
          \x20 --repository NAME            destination repository (required)\n\

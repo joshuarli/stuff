@@ -26,6 +26,7 @@ stuff-catalog = { version = "0.1.0", path = "../stuff-catalog" }
 stuff-oci = { version = "0.1.0", path = "../stuff-oci" }
 stuff-store = { version = "0.1.0", path = "../stuff-store" }
 stuff-url = { version = "0.1.0", path = "../stuff-url" }
+toml_edit = { version = "0.25.19", default-features = false, features = ["parse"] }
 
 [dev-dependencies]
 tempfile = "3.13"

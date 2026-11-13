@@ -634,6 +634,7 @@ dependencies = [
  "stuff-store",
  "stuff-url",
  "tempfile",
+ "toml_edit",
 ]
 
 [[package]]

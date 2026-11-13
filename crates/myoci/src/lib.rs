@@ -5,6 +5,7 @@ pub mod cli;
 pub mod error;
 pub mod import;
 pub mod inspect;
+pub mod mirror;
 pub mod publish;
 pub mod push;
 pub mod serve;
