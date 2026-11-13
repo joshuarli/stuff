@@ -196,7 +196,8 @@ def _dependency_panel(rows: Sequence[Repository], link: PackageLink) -> str:
         "By dependency",
         _language_legend(
             "Direct dependencies in every repository, by what removing one frees. "
-            "Frees is colored by the dependency's language; the hatched segment is Shared, the part another dependency also brings in."
+            "Frees is colored by the dependency's language; the hatched segment is Shared, "
+            "the part another dependency also brings in."
         )
         + f'<p class="weight-count" data-dep-count>{_e(_dependency_count(len(shown), len(ordered)))}</p>'
         + f'<ul class="weight-list" data-dep-list aria-label="Direct dependencies by what removing them frees">'
@@ -243,7 +244,8 @@ def _dependency_row(dependency: Dependency, visible: bool, scale: int, link: Pac
         f'{"" if drawn else " hidden"} aria-hidden="true">'
         f'<span class="seg mark-{dependency.package.language}" data-frees style="flex-grow:{frees.bytes}"'
         f'{"" if frees.bytes else " hidden"}></span>'
-        f'<span class="seg mark-{dependency.package.language}-soft" data-shared style="flex-grow:{shared.bytes}"{"" if shared.bytes else " hidden"}>'
+        f'<span class="seg mark-{dependency.package.language}-soft" data-shared style="flex-grow:{shared.bytes}"'
+        f'{"" if shared.bytes else " hidden"}>'
         "</span></span>"
         f'<span class="weight-value{"" if frees.bytes else " weight-none"}" data-value>{_e(value_text(frees))}</span>'
         "</span></div></li>"
