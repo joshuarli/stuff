@@ -463,7 +463,7 @@ curl -fsS -o /dev/null -w '%{http_code}\n' \
 make smoke-deployed
 ```
 
-This builds the `stuff` binary and runs `deploy/deployed-smoke.sh`. The check is read-only and needs no Cloudflare credentials. It runs `stuff doctor --sample-artifacts` against the active generations, catalog objects, and sample artifact hashes, plus `npm view`, `uv pip install --dry-run`, and `oras manifest fetch` probes.
+This builds the `stuff` binary and runs `deploy/deployed-smoke.sh`. The check is read-only and needs no Cloudflare credentials. It runs `stuff doctor --sample-artifacts` against the active generations, catalog objects, and sample artifact hashes, plus `npm view`, `uv pip install --dry-run`, and `oras manifest fetch` probes, and verifies the static artifact mirror by downloading the first `SHA256SUMS` artifact and hashing it.
 
 ## Roll back a generation
 
