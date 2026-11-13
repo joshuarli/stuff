@@ -201,8 +201,8 @@ fn object_report(
         }
         known_bytes += object.size;
         let object_present = match object.role {
-            ObjectRole::Manifest => !state_present || state.manifest_path(&object.digest).is_file(),
-            ObjectRole::Config | ObjectRole::Layer => !state_present || blobs.contains(&object.digest),
+            ObjectRole::Manifest => state_present && state.manifest_path(&object.digest).is_file(),
+            ObjectRole::Config | ObjectRole::Layer => state_present && blobs.contains(&object.digest),
         };
         if object_present {
             present += 1;
