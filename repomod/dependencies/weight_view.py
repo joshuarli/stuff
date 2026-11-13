@@ -196,7 +196,7 @@ def _dependency_panel(rows: Sequence[Repository], link: PackageLink) -> str:
         "By dependency",
         _language_legend(
             "Direct dependencies in every repository, by what removing one frees. "
-            "Frees is colored by the dependency's language; the lighter segment is Shared, the part another dependency also brings in."
+            "Frees is colored by the dependency's language; the hatched segment is Shared, the part another dependency also brings in."
         )
         + f'<p class="weight-count" data-dep-count>{_e(_dependency_count(len(shown), len(ordered)))}</p>'
         + f'<ul class="weight-list" data-dep-list aria-label="Direct dependencies by what removing them frees">'

@@ -102,7 +102,7 @@ Overview.
   direct or transitive. **By dependency** ranks direct dependencies across repositories by the same
   measure, the top 30 shown. Removing a direct dependency frees it and the packages only it reaches.
   Bars are colored by the dependency's language; the part another counted
-  direct dependency also reaches is drawn as a lighter segment of the same hue, and a package that is
+  direct dependency also reaches is drawn as a hatched segment of the same hue, and a package that is
   itself declared directly is never freed by removing another. Your own direct packages hold what
   they reach. Each repository keeps its 12 largest dependencies per language and filter
   combination. **Duplicate versions** lists repositories that build two versions of one package. A package counts once per repository however many lockfiles, targets, or projects

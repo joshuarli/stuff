@@ -93,11 +93,11 @@ p.zero, p.unknown { margin: 0; padding: var(--ui-inset); }
 .mark-pypi { --mark: var(--ui-lang-pypi); }
 .mark-go { --mark: var(--ui-lang-go); }
 .mark-other { --mark: var(--ui-lang-other); }
-.mark-npm-soft { --mark: color-mix(in srgb, var(--ui-lang-npm) 30%, var(--ui-surface)); }
-.mark-cargo-soft { --mark: color-mix(in srgb, var(--ui-lang-cargo) 30%, var(--ui-surface)); }
-.mark-pypi-soft { --mark: color-mix(in srgb, var(--ui-lang-pypi) 30%, var(--ui-surface)); }
-.mark-go-soft { --mark: color-mix(in srgb, var(--ui-lang-go) 30%, var(--ui-surface)); }
-.mark-other-soft { --mark: color-mix(in srgb, var(--ui-lang-other) 30%, var(--ui-surface)); }
+.mark-npm-soft { --mark: repeating-linear-gradient(135deg, color-mix(in srgb, var(--ui-lang-npm) 55%, var(--ui-surface)) 0 2px, var(--ui-surface) 2px 5px); }
+.mark-cargo-soft { --mark: repeating-linear-gradient(135deg, color-mix(in srgb, var(--ui-lang-cargo) 55%, var(--ui-surface)) 0 2px, var(--ui-surface) 2px 5px); }
+.mark-pypi-soft { --mark: repeating-linear-gradient(135deg, color-mix(in srgb, var(--ui-lang-pypi) 55%, var(--ui-surface)) 0 2px, var(--ui-surface) 2px 5px); }
+.mark-go-soft { --mark: repeating-linear-gradient(135deg, color-mix(in srgb, var(--ui-lang-go) 55%, var(--ui-surface)) 0 2px, var(--ui-surface) 2px 5px); }
+.mark-other-soft { --mark: repeating-linear-gradient(135deg, color-mix(in srgb, var(--ui-lang-other) 55%, var(--ui-surface)) 0 2px, var(--ui-surface) 2px 5px); }
 .track { padding: var(--ui-space-xs) 0; }
 .fill { display: flex; gap: 2px; min-width: 2px; }
 .seg { position: relative; flex: 1 1 0; min-width: 2px; background: var(--mark); }
