@@ -81,6 +81,23 @@ p.zero, p.unknown { margin: 0; padding: var(--ui-inset); }
 .mark-warn { --mark: var(--ui-warn); }
 .mark-bad { --mark: var(--ui-bad); }
 .mark-unknown { --mark: repeating-linear-gradient(135deg, color-mix(in srgb, var(--ui-viz-ghost) 45%, var(--ui-surface)) 0 2px, var(--ui-surface) 2px 5px); }
+:root {
+  --ui-lang-npm: var(--ui-viz-blue);
+  --ui-lang-cargo: #d55e00;
+  --ui-lang-pypi: #009e73;
+  --ui-lang-go: #e69f00;
+  --ui-lang-other: var(--ui-viz-ghost);
+}
+.mark-npm { --mark: var(--ui-lang-npm); }
+.mark-cargo { --mark: var(--ui-lang-cargo); }
+.mark-pypi { --mark: var(--ui-lang-pypi); }
+.mark-go { --mark: var(--ui-lang-go); }
+.mark-other { --mark: var(--ui-lang-other); }
+.mark-npm-soft { --mark: color-mix(in srgb, var(--ui-lang-npm) 30%, var(--ui-surface)); }
+.mark-cargo-soft { --mark: color-mix(in srgb, var(--ui-lang-cargo) 30%, var(--ui-surface)); }
+.mark-pypi-soft { --mark: color-mix(in srgb, var(--ui-lang-pypi) 30%, var(--ui-surface)); }
+.mark-go-soft { --mark: color-mix(in srgb, var(--ui-lang-go) 30%, var(--ui-surface)); }
+.mark-other-soft { --mark: color-mix(in srgb, var(--ui-lang-other) 30%, var(--ui-surface)); }
 .track { padding: var(--ui-space-xs) 0; }
 .fill { display: flex; gap: 2px; min-width: 2px; }
 .seg { position: relative; flex: 1 1 0; min-width: 2px; background: var(--mark); }
@@ -89,8 +106,7 @@ p.zero, p.unknown { margin: 0; padding: var(--ui-inset); }
 .fill-thin .seg:first-child { border-radius: 4px 0 0 4px; }
 .fill-thin .seg:last-child { border-radius: 0 4px 4px 0; }
 .fill-thin .seg:only-child { border-radius: 4px; }
-.fill-bar { flex: none; height: 12px; }
-.fill-bar .seg:last-child { border-radius: 0 4px 4px 0; }
+.fill-bar { flex: none; height: 12px; overflow: hidden; border-radius: 0 4px 4px 0; }
 .bar-list { display: flex; flex-direction: column; gap: var(--ui-space-sm); margin: var(--ui-space-sm) 0 0; padding: 0; list-style: none; }
 .bar-link { color: inherit; text-decoration: none; outline-offset: 4px; border-radius: 4px; padding: 2px 6px; margin: -2px -6px; }
 .bar-link:hover { background: var(--ui-hover); }

@@ -120,6 +120,22 @@ def cell_text(sized: bool, total: Total) -> tuple[str, str]:
     return str(total.packages), "no size"
 
 
+def _language_legend(caption: str) -> str:
+    return ui.legend([(language.short, ui.Mark(language.key)) for language in LANGUAGES], caption)
+
+
+def _repository_segments(row: Repository) -> str:
+    totals = row.totals[DEFAULT_VARIANT]
+    parts = []
+    for language in LANGUAGES:
+        bytes_ = totals[language.key].bytes
+        parts.append(
+            f'<span class="seg mark-{language.key}" data-seg="{language.key}" style="flex-grow:{bytes_}"'
+            f'{"" if bytes_ else " hidden"}></span>'
+        )
+    return "".join(parts)
+
+
 def page(rows: Sequence[Repository], link: PackageLink, extra: str = "") -> str:
     header = ui.page_header(
         "Weight",
@@ -148,7 +164,8 @@ def page(rows: Sequence[Repository], link: PackageLink, extra: str = "") -> str:
     body.append(
         ui.panel(
             "By repository",
-            f'<ul class="weight-list" data-weight-list aria-label="Third-party weight by repository">'
+            _language_legend("Each bar stacks one segment per language.")
+            + f'<ul class="weight-list" data-weight-list aria-label="Third-party weight by repository">'
             f"{''.join(_row(row, scale, link) for row in ordered)}</ul>"
             f'<p class="weight-empty" data-empty-line{"" if empty_text(ordered, everything) else " hidden"}>'
             f"{_e(empty_text(ordered, everything))}</p>",
@@ -177,9 +194,9 @@ def _dependency_panel(rows: Sequence[Repository], link: PackageLink) -> str:
     items = "".join(_dependency_row(item, id(item) in shown, scale, link) for item in [*ordered, *unlisted])
     return ui.panel(
         "By dependency",
-        ui.legend(
-            (("Frees", ui.Mark.ACCENT), ("Shared", ui.Mark.GHOST)),
-            "Direct dependencies in every repository, by what removing one frees.",
+        _language_legend(
+            "Direct dependencies in every repository, by what removing one frees. "
+            "Frees is colored by the dependency's language; the lighter segment is Shared, the part another dependency also brings in."
         )
         + f'<p class="weight-count" data-dep-count>{_e(_dependency_count(len(shown), len(ordered)))}</p>'
         + f'<ul class="weight-list" data-dep-list aria-label="Direct dependencies by what removing them frees">'
@@ -224,9 +241,9 @@ def _dependency_row(dependency: Dependency, visible: bool, scale: int, link: Pac
         f'<span data-dep-note>{_e(dependency_note(frees, shared))}</span></span></span>'
         f'<span class="weight-bar"><span class="fill fill-bar" data-fill style="--r:{ratio:.4f}"'
         f'{"" if drawn else " hidden"} aria-hidden="true">'
-        f'<span class="seg mark-accent" data-frees style="flex-grow:{frees.bytes}"'
+        f'<span class="seg mark-{dependency.package.language}" data-frees style="flex-grow:{frees.bytes}"'
         f'{"" if frees.bytes else " hidden"}></span>'
-        f'<span class="seg mark-ghost" data-shared style="flex-grow:{shared.bytes}"{"" if shared.bytes else " hidden"}>'
+        f'<span class="seg mark-{dependency.package.language}-soft" data-shared style="flex-grow:{shared.bytes}"{"" if shared.bytes else " hidden"}>'
         "</span></span>"
         f'<span class="weight-value{"" if frees.bytes else " weight-none"}" data-value>{_e(value_text(frees))}</span>'
         "</span></div></li>"
@@ -319,7 +336,7 @@ def _row(row: Repository, scale: int, link: PackageLink) -> str:
         f'<span class="weight-note" data-note>{_e(note_text(total))}</span></span>'
         f'<span class="weight-bar"><span class="fill fill-bar" data-fill style="--r:{ratio:.4f}"'
         f'{"" if total.bytes else " hidden"} aria-hidden="true">'
-        '<span class="seg mark-accent"></span></span>'
+        f"{_repository_segments(row)}</span>"
         f'<span class="weight-value{"" if total.bytes else " weight-none"}" data-value>{_e(value_text(total))}</span>'
         "</span></summary>"
         f'<div class="weight-body">{_repository_dependencies(row, link)}{_packages(row, total, link)}'

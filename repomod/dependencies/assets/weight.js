@@ -282,6 +282,13 @@
         if (fill !== null) {
             fill.style.setProperty("--r", (scale > 0 ? sum.bytes / scale : 0).toFixed(4));
             fill.hidden = sum.bytes === 0;
+            const variant = row.totals[variantKey(view)];
+            for (const segment of Array.from(fill.querySelectorAll("[data-seg]"))) {
+                const lang = segment.getAttribute("data-seg") ?? "";
+                const bytes = isLang(lang) && view.langs.includes(lang) ? (variant?.[lang].bytes ?? 0) : 0;
+                segment.style.flexGrow = String(bytes);
+                segment.hidden = bytes === 0;
+            }
         }
         const value = element.querySelector("[data-value]");
         if (value !== null) {

@@ -94,13 +94,15 @@ Overview.
   not listed.
 - **Weight** (`weight.html`) shows which owned repositories carry the most third-party code, so you
   can choose where to slim and which dependency to drop. **By repository** draws one bar per
-  repository, on one scale, largest first, with the value in text at the bar's end. A repository with
+  repository, on one scale, largest first, with the value in text at the bar's end. Each bar stacks
+  one segment per language: npm blue, Cargo vermillion, PyPI green, Go orange, and Other gray. A repository with
   no packages for the current selection has no bar: one muted line under the chart names them, and
   the table view still lists every repository. Each repository opens its direct dependencies by what
   removing one frees, then its heaviest packages: name, version, size, registry, and whether it is
   direct or transitive. **By dependency** ranks direct dependencies across repositories by the same
-  measure, the top 30 shown. Removing a direct dependency frees it and the packages only it reaches;
-  packages another counted direct dependency also reaches are drawn as shared, and a package that is
+  measure, the top 30 shown. Removing a direct dependency frees it and the packages only it reaches.
+  Bars are colored by the dependency's language; the part another counted
+  direct dependency also reaches is drawn as a lighter segment of the same hue, and a package that is
   itself declared directly is never freed by removing another. Your own direct packages hold what
   they reach. Each repository keeps its 12 largest dependencies per language and filter
   combination. **Duplicate versions** lists repositories that build two versions of one package. A package counts once per repository however many lockfiles, targets, or projects
@@ -144,8 +146,9 @@ Overview.
   ecosystem. Search (`/`) finds any package.
   `packages.html#pkg=pkg:cargo/serde` deep-links to its versions and consumers.
 
-Charts use status colors only where color means severity, and one hue or emphasis elsewhere. The
-library's categorical series colors fail the normal-vision separation check. Hovering a mark shows
+Charts use status colors only where color means severity, and one hue or emphasis elsewhere; weight.html is the
+exception, coloring bar segments by language with colorblind-safe Okabe-Ito hues. The library's categorical
+series colors fail the normal-vision separation check. Hovering a mark shows
 its value, and every charted value also appears as text.
 
 ## Curated roles

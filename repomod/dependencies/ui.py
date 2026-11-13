@@ -27,6 +27,11 @@ class Mark(Enum):
     WARN = "warn"
     BAD = "bad"
     UNKNOWN = "unknown"
+    NPM = "npm"
+    CARGO = "cargo"
+    PYPI = "pypi"
+    GO = "go"
+    OTHER = "other"
 
 
 @dataclass(frozen=True, slots=True)
