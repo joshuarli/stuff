@@ -61,6 +61,9 @@ pub fn commit_locked(state: &State) -> Result<Recovery> {
             transaction.display()
         )));
     }
+    sync_tree(&staged)?;
+    stuff_store::sync_dir(&transaction)?;
+    stuff_store::sync_dir(state.root())?;
     stuff_store::write_file_durable(&marker, b"committed\n")?;
     apply_staged(state, &staged)?;
     std::fs::remove_dir_all(&transaction).map_err(|error| {
@@ -89,6 +92,24 @@ fn staged_files(staged: &Path) -> Result<Vec<(PathBuf, PathBuf)>> {
     collect(staged, staged, &mut out)?;
     out.sort_by(|a, b| a.0.cmp(&b.0));
     Ok(out)
+}
+
+fn sync_tree(dir: &std::path::Path) -> Result<()> {
+    let mut entries = Vec::new();
+    let iterator = std::fs::read_dir(dir)
+        .map_err(|error| Error::Operation(format!("could not read {}: {error}", dir.display())))?;
+    for entry in iterator {
+        let entry = entry.map_err(|error| Error::Operation(format!("could not read {}: {error}", dir.display())))?;
+        entries.push(entry.path());
+    }
+    entries.sort();
+    for path in entries {
+        if path.is_dir() {
+            sync_tree(&path)?;
+        }
+    }
+    stuff_store::sync_dir(dir)?;
+    Ok(())
 }
 
 fn collect(root: &Path, dir: &Path, out: &mut Vec<(PathBuf, PathBuf)>) -> Result<()> {

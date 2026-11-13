@@ -22,6 +22,7 @@ pub struct GraphOutcome {
     pub objects: Vec<crate::mirror::cache::CacheObject>,
     pub manifests: usize,
     pub descriptors: u64,
+    pub skipped_referrers: u64,
 }
 
 pub fn resolve_entry(
@@ -32,7 +33,7 @@ pub fn resolve_entry(
 ) -> Result<GraphOutcome> {
     let mut walker = Walker::new(http, base, repository, entry);
     let (root, image) = walker.resolve_root()?;
-    walker.note_descriptor(&root, 0)?;
+    walker.note_descriptor(&root)?;
     walker.note_object(&root, crate::mirror::cache::ObjectRole::Manifest);
     walker.walk_image(&root, image, None, 0)?;
     if entry.referrers == ReferrersMode::Snapshot {
@@ -57,6 +58,7 @@ pub fn resolve_entry(
         objects,
         manifests: walker.manifests,
         descriptors: walker.descriptor_count,
+        skipped_referrers: walker.skipped_referrers,
     })
 }
 
@@ -72,6 +74,7 @@ struct Walker<'a> {
     referrers: FxHashMap<(String, String), LockedReferrer>,
     visited_referrers: FxHashSet<Digest>,
     objects: Vec<crate::mirror::cache::CacheObject>,
+    skipped_referrers: u64,
 }
 
 impl<'a> Walker<'a> {
@@ -93,6 +96,7 @@ impl<'a> Walker<'a> {
             referrers: FxHashMap::default(),
             visited_referrers: FxHashSet::default(),
             objects: Vec::new(),
+            skipped_referrers: 0,
         }
     }
 
@@ -175,7 +179,7 @@ impl<'a> Walker<'a> {
         match &image {
             Image::Index(index) => {
                 for child in &index.manifests {
-                    self.note_descriptor(child, depth + 1)?;
+                    self.note_descriptor(child)?;
                     if is_manifest_like(&child.media_type) {
                         self.note_object(child, crate::mirror::cache::ObjectRole::Manifest);
                     }
@@ -214,7 +218,7 @@ impl<'a> Walker<'a> {
                     self.note_object(blob, crate::mirror::cache::ObjectRole::Layer);
                 }
                 for blob in std::iter::once(&manifest.config).chain(manifest.layers.iter()) {
-                    self.note_descriptor(blob, depth + 1)?;
+                    self.note_descriptor(blob)?;
                 }
             }
         }
@@ -274,17 +278,11 @@ impl<'a> Walker<'a> {
         });
     }
 
-    fn note_descriptor(&mut self, _descriptor: &Descriptor, depth: u32) -> Result<()> {
+    fn note_descriptor(&mut self, _descriptor: &Descriptor) -> Result<()> {
         self.descriptor_count += 1;
         if self.descriptor_count > MAX_GRAPH_DESCRIPTORS {
             return Err(Error::Limit(format!(
                 "entry {:?} exceeds the {MAX_GRAPH_DESCRIPTORS}-descriptor limit",
-                self.entry.id
-            )));
-        }
-        if depth > MAX_GRAPH_DEPTH {
-            return Err(Error::Limit(format!(
-                "entry {:?} exceeds the graph depth limit of {MAX_GRAPH_DEPTH}",
                 self.entry.id
             )));
         }
@@ -306,7 +304,7 @@ impl<'a> Walker<'a> {
                 )));
             }
             for referrer in self.fetch_referrers(&subject)? {
-                self.note_descriptor(&referrer, depth + 1)?;
+                self.note_descriptor(&referrer)?;
                 if referrer.digest == subject {
                     continue;
                 }
@@ -334,7 +332,7 @@ impl<'a> Walker<'a> {
         Ok(())
     }
 
-    fn fetch_referrers(&self, subject: &Digest) -> Result<Vec<Descriptor>> {
+    fn fetch_referrers(&mut self, subject: &Digest) -> Result<Vec<Descriptor>> {
         let url = format!("{}/referrers/{subject}", self.base);
         let response = self.http.get_authed(
             &url,
@@ -359,6 +357,7 @@ impl<'a> Walker<'a> {
         let mut descriptors = Vec::with_capacity(index.manifests.len());
         for descriptor in index.manifests {
             if !is_manifest_like(&descriptor.media_type) {
+                self.skipped_referrers += 1;
                 continue;
             }
             if descriptor.size > MAX_MANIFEST_BYTES {

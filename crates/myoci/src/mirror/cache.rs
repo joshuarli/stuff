@@ -56,6 +56,10 @@ impl MirrorCache {
         PathBuf::from(format!("{}.cache", lock_path.display()))
     }
 
+    pub fn entry_objects(&self, id: &str) -> Option<&[CacheObject]> {
+        self.entries.iter().find(|entry| entry.id == id).map(|entry| entry.objects.as_slice())
+    }
+
     pub fn load(lock_path: &Path) -> Result<Self> {
         let cache_path = Self::path_for(lock_path);
         let text = crate::mirror::inventory::read_capped(&cache_path, "lock cache")?;
@@ -163,17 +167,6 @@ impl MirrorCache {
         })
     }
 
-    pub fn objects_for(&self, id: &str) -> Vec<CacheObject> {
-        self.entries
-            .iter()
-            .find(|entry| entry.id == id)
-            .map(|entry| entry.objects.clone())
-            .unwrap_or_default()
-    }
-
-    pub fn total_objects(&self) -> usize {
-        self.entries.iter().map(|entry| entry.objects.len()).sum()
-    }
 }
 
 fn parse_entry(value: &deser_value::Value, index: usize) -> Result<EntryCache> {

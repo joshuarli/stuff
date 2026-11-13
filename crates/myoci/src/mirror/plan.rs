@@ -53,6 +53,11 @@ pub fn run(options: &MirrorOptions) -> Result<()> {
     let state_dir = PathBuf::from(options.state_dir.as_deref().expect("validated"));
     let state = State::new(state_dir.clone());
     let state_present = state_dir.is_dir();
+    let _lock = if state_present {
+        Some(state.lock()?)
+    } else {
+        None
+    };
     if state_present {
         let pending = state_dir.join(".mirror-transaction");
         if pending.exists() {
@@ -189,7 +194,18 @@ fn object_report(
             total_objects: None,
         };
     };
-    let objects: Vec<CacheObject> = cache.objects_for(entry_id);
+    let Some(objects) = cache.entry_objects(entry_id).filter(|objects| !objects.is_empty()) else {
+        totals.graph_known = false;
+        return ObjectReport {
+            graph: "unknown",
+            present: None,
+            missing: None,
+            known_bytes: None,
+            transfer_bytes: None,
+            total_objects: None,
+        };
+    };
+    let objects: Vec<CacheObject> = objects.to_vec();
     let mut present = 0u64;
     let mut missing = 0u64;
     let mut known_bytes = 0u64;

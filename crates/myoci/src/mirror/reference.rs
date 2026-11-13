@@ -68,7 +68,7 @@ pub fn normalize_registry(host: &str) -> String {
     }
 }
 
-fn split_registry<'a>(name: &'a str, context: &str) -> Result<(String, String)> {
+fn split_registry(name: &str, context: &str) -> Result<(String, String)> {
     let mut parts = name.split('/');
     let first = parts.next().unwrap_or_default();
     let looks_like_host = first.contains('.')

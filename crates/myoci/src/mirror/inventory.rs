@@ -179,6 +179,7 @@ impl Inventory {
     fn validate(&self) -> Result<()> {
         let mut ids = rustc_hash::FxHashSet::default();
         let mut tag_owners: rustc_hash::FxHashMap<(String, String), String> = rustc_hash::FxHashMap::default();
+        let mut destination_owners: rustc_hash::FxHashMap<String, String> = rustc_hash::FxHashMap::default();
         for entry in &self.entries {
             if !ids.insert(entry.id.clone()) {
                 return Err(Error::Input(format!("inventory: duplicate entry id {:?}", entry.id)));
@@ -192,6 +193,12 @@ impl Inventory {
                         entry.id
                     )));
                 }
+            }
+            if let Some(owner) = destination_owners.insert(destination.clone(), entry.id.clone()) {
+                return Err(Error::Input(format!(
+                    "inventory: destination {destination} is declared by both {owner:?} and {:?}; each destination may appear once",
+                    entry.id
+                )));
             }
         }
         Ok(())

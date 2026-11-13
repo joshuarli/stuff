@@ -154,7 +154,7 @@ impl Provenance {
                 if let Some(artifact_type) = &referrer.artifact_type {
                     out.push_str(&format!(",\"artifactType\":{}", json_escape(artifact_type)));
                 }
-                out.push_str("}");
+                out.push('}');
             }
             out.push_str("]}");
         }

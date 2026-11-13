@@ -45,7 +45,7 @@ fn valid_inventory(entries: &[&str]) -> String {
     let mut out = String::from("schema_version = 1\npolicy_version = 1\n\n");
     for entry in entries {
         out.push_str(entry);
-        out.push_str("\n");
+        out.push('\n');
     }
     out
 }
@@ -162,6 +162,13 @@ fn inventory_and_lock() {
         entry("id = \"two\"\nsource = \"quay.io/example/two@sha256:576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4\"\ndestination = \"quay.io/example/two\"\naliases = [\"pinned\"]\n").as_str(),
     ]);
     parse_inventory(&same_alias_other_destination).unwrap();
+
+    let shared_destination_disjoint_aliases = valid_inventory(&[
+        valid_entry("aliases = [\"amd64\"]\n").as_str(),
+        entry("id = \"two\"\nsource = \"quay.io/example/two@sha256:576055fc159808ebb0b91a55303a512f5730a93e036977f652e59adc769debf4\"\ndestination = \"quay.io/example/one\"\naliases = [\"arm64\"]\n").as_str(),
+    ]);
+    let error = parse_inventory(&shared_destination_disjoint_aliases).unwrap_err();
+    assert!(format!("{error}").contains("declared by both"), "{error}");
 
     let within_entry_duplicate = valid_inventory(&[valid_entry("aliases = [\"pinned\", \"pinned\"]\n").as_str()]);
     let error = parse_inventory(&within_entry_duplicate).unwrap_err();
@@ -358,7 +365,7 @@ fn mirror_entry(id: &str, source: &str, destination: &str, aliases: &str, platfo
     format!("[[entries]]\nid = \"{id}\"\nsource = \"{source}\"\ndestination = \"{destination}\"\naliases = [{aliases}]\nplatforms = [{platforms}]\nreferrers = \"{referrers}\"\n")
 }
 
-fn resolve<'a>(inventory: &Path, lock: &Path, extra: &'a [&str]) -> std::process::Output {
+fn resolve(inventory: &Path, lock: &Path, extra: &[&str]) -> std::process::Output {
     let mut argv = vec![
         "mirror",
         "resolve",
@@ -2222,4 +2229,51 @@ fn operational_contract() {
     assert!(inspection.contains("stable"), "{inspection}");
     let output = myoci_args(&["verify".to_string(), "--state-dir".to_string(), path(&readme_state).to_string()]);
     assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+}
+
+#[test]
+fn targeted_refresh_without_cache_reports_unknown() {
+    let layer_a: &[u8] = b"cache unknown layer A";
+    let layer_b: &[u8] = b"cache unknown layer B";
+
+    let workspace = tempfile::tempdir().unwrap();
+    let dir = workspace.path();
+
+    let fixture = Fixture::new("example/unknowncache");
+    let (root_a, _config_a, _size_a) = single_image_fixture(&fixture, "linux", "amd64", None, layer_a);
+    fixture.add_tag("stable", &root_a);
+    fixture.add_tag("canary", &root_a);
+
+    let inventory = write_inventory(
+        dir,
+        &[
+            mirror_entry("unknown-one", &format!("{}/example/unknowncache:stable", fixture.address), "docker.io/example/unknown-one", "\"pinned\"", "\"linux/amd64\"", "none"),
+            mirror_entry("unknown-two", &format!("{}/example/unknowncache:canary", fixture.address), "docker.io/example/unknown-two", "\"pinned\"", "\"linux/amd64\"", "none"),
+        ],
+    );
+    let lock = lock_path(dir);
+    let output = resolve(&inventory, &lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+
+    // Simulate a discarded cache: a targeted refresh cannot invent the
+    // preserved entry's graph and must report unknown, never zero objects.
+    std::fs::remove_file(format!("{}.cache", lock.display())).unwrap();
+    let (root_b, _config_b, _size_b) = single_image_fixture(&fixture, "linux", "amd64", None, layer_b);
+    fixture.add_tag("canary", &root_b);
+    let output = resolve(&inventory, &lock, &["--entry", "unknown-two"]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+
+    let output = plan_output(&inventory, &lock, &dir.join("unknown-state"), &[]);
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let one_section = stdout.split("entry unknown-two").next().unwrap();
+    assert!(one_section.contains("graph unknown"), "{one_section}");
+    assert!(!one_section.contains("0 missing of 0"), "{one_section}");
+    assert!(stdout.contains("entry unknown-two"), "{stdout}");
+    assert!(stdout.contains("totals: graph unknown"), "{stdout}");
+
+    let output = plan_output(&inventory, &lock, &dir.join("unknown-json-state"), &["--json"]);
+    let json = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(0));
+    assert!(json.contains("\"graph\":\"unknown\""), "{json}");
 }

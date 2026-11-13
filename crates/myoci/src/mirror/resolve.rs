@@ -47,7 +47,12 @@ pub fn run(options: &MirrorOptions) -> Result<()> {
     let rendered = lock.render();
     stuff_store::write_file_durable(lock_path, rendered.as_bytes())?;
     let cache = build_cache(&old_cache, rendered.as_bytes(), &inventory, &resolved_objects)?;
-    stuff_store::write_file_durable(&MirrorCache::path_for(lock_path), cache.render().as_bytes())?;
+    if let Err(error) = stuff_store::write_file_durable(&MirrorCache::path_for(lock_path), cache.render().as_bytes()) {
+        eprintln!(
+            "myoci: warning: could not write the lock cache at {}: {error}; plan estimates will report unknown",
+            MirrorCache::path_for(lock_path).display()
+        );
+    }
     for entry in &lock.entries {
         println!(
             "resolved {} root {} ({} additional referrers)",
@@ -69,11 +74,14 @@ fn build_cache(
     let mut entries = Vec::with_capacity(inventory.entries.len());
     for entry in &inventory.entries {
         let objects = match resolved_objects.get(&entry.id) {
-            Some(objects) => objects.clone(),
-            None => old_cache
+            Some(objects) if !objects.is_empty() => objects.clone(),
+            _ => match old_cache
                 .as_ref()
-                .map(|cache| cache.objects_for(&entry.id))
-                .unwrap_or_default(),
+                .and_then(|cache| cache.entry_objects(&entry.id))
+            {
+                Some(objects) if !objects.is_empty() => objects.to_vec(),
+                _ => continue,
+            },
         };
         entries.push(EntryCache {
             id: entry.id.clone(),
@@ -191,6 +199,12 @@ fn resolve_one(
 ) -> Result<(LockedEntry, Vec<crate::mirror::cache::CacheObject>)> {
     let base = registry_base(&entry.source.registry, &entry.source.repository);
     let outcome = resolve_entry(http, &base, &entry.source.repository, entry)?;
+    if outcome.skipped_referrers > 0 {
+        eprintln!(
+            "myoci: entry {:?}: {} attachment(s) with unsupported media types were not recorded",
+            entry.id, outcome.skipped_referrers
+        );
+    }
     let mut aliases: Vec<String> = entry.aliases.iter().map(|alias| alias.as_str().to_string()).collect();
     aliases.sort();
     let mut platforms: Vec<String> = entry.platforms.iter().map(crate::mirror::PlatformRequirement::render).collect();

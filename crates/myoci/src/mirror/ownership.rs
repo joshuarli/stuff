@@ -187,7 +187,7 @@ pub fn render_ownership(records: &FxHashMap<(String, String), AliasOwnership>) -
     let mut first_repo = true;
     for repo in repos {
         let mut tags = by_repo.remove(repo).expect("collected above");
-        tags.sort_by(|(a, _), (b, _)| a.cmp(b));
+        tags.sort_by_key(|(tag, _)| *tag);
         if !first_repo {
             out.push(',');
         }

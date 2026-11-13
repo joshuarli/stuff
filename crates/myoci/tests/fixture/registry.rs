@@ -205,8 +205,10 @@ pub fn manifest_json(
     .into_bytes()
 }
 
+type ChildEntry<'a> = (&'a str, u64, &'a str, Option<(&'a str, &'a str, Option<&'a str>)>);
+
 pub fn index_json(
-    children: &[(&str, u64, &str, Option<(&str, &str, Option<&str>)>)],
+    children: &[ChildEntry<'_>],
     subject: Option<(&str, u64, &str)>,
     artifact_type: Option<&str>,
 ) -> Vec<u8> {
@@ -268,10 +270,10 @@ fn handle_connection(
         if trimmed.is_empty() {
             break;
         }
-        if let Some((name, value)) = trimmed.split_once(':') {
-            if name.eq_ignore_ascii_case("content-length") {
-                content_length = value.trim().parse().unwrap_or(0);
-            }
+        if let Some((name, value)) = trimmed.split_once(':')
+            && name.eq_ignore_ascii_case("content-length")
+        {
+            content_length = value.trim().parse().unwrap_or(0);
         }
     }
     if content_length > 0 {

@@ -84,7 +84,8 @@ impl RegistryHttp {
             percent_encode(bearer.service.as_deref().unwrap_or("")),
             percent_encode(&scope)
         );
-        token_url = stuff_url::Url::parse(&format!("{}?{query}", token_url.as_str().trim_end_matches(['?', '&'])))
+        let token_url_text = token_endpoint_url(token_url.as_str(), &query);
+        token_url = stuff_url::Url::parse(&token_url_text)
             .map_err(|error| Error::Network(format!("invalid token URL: {error}")))?;
         let response = self.get_json(token_url.as_str(), "application/json", None, 1 << 20)?;
         if response.status != 200 {
@@ -133,7 +134,7 @@ impl RegistryHttp {
                 percent_encode(bearer.service.as_deref().unwrap_or("")),
                 percent_encode(&scope)
             );
-            let token_url = format!("{}?{query}", bearer.realm.trim_end_matches(['?', '&']));
+            let token_url = token_endpoint_url(&bearer.realm, &query);
             let response = self.get_json(&token_url, "application/json", None, 1 << 20)?;
             if response.status != 200 {
                 return Err(Error::Network(format!(
@@ -211,6 +212,7 @@ impl RegistryHttp {
             let joined = base
                 .join(&location)
                 .map_err(|error| Error::Network(format!("invalid redirect {location}: {error}")))?;
+            check_redirect_target(&joined)?;
             return self.open(joined.as_str(), accept, None, depth + 1);
         }
         Ok(raw)
@@ -297,13 +299,91 @@ fn drain(mut body: ResponseBody, max_body: u64, url: &str, out: &mut Vec<u8>) ->
     }
 }
 
+fn token_endpoint_url(realm: &str, query: &str) -> String {
+    let base = realm.trim_end_matches(['?', '&']);
+    let separator = if base.contains('?') { '&' } else { '?' };
+    format!("{base}{separator}{query}")
+}
+
+fn check_redirect_target(target: &stuff_url::Url) -> Result<()> {
+    match target.scheme() {
+        "https" => {}
+        "http" => {
+            let host = target.host_str().unwrap_or("");
+            if !is_loopback(host) {
+                return Err(Error::Network(format!(
+                    "refusing to follow a plain-HTTP redirect to {target}"
+                )));
+            }
+        }
+        scheme => {
+            return Err(Error::Network(format!(
+                "refusing to follow a redirect with scheme {scheme:?}"
+            )));
+        }
+    }
+    if let Some(host) = target.host_str() {
+        let bare = host.trim_start_matches('[').trim_end_matches(']');
+        if is_loopback(bare) {
+            return Ok(());
+        }
+        if let Ok(address) = bare.parse::<std::net::IpAddr>()
+            && is_private_address(&address)
+        {
+            return Err(Error::Network(format!(
+                "refusing to follow a redirect to a private address {address}"
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn is_private_address(address: &std::net::IpAddr) -> bool {
+    match address {
+        std::net::IpAddr::V4(ipv4) => {
+            ipv4.is_loopback() || ipv4.is_private() || ipv4.is_link_local() || ipv4.is_unspecified()
+        }
+        std::net::IpAddr::V6(ipv6) => {
+            if let Some(mapped) = ipv6.to_ipv4_mapped() {
+                return is_private_address(&std::net::IpAddr::V4(mapped));
+            }
+            let segments = ipv6.segments();
+            ipv6.is_loopback()
+                || ipv6.is_unspecified()
+                || (segments[0] & 0xfe00) == 0xfc00
+                || (segments[0] & 0xffc0) == 0xfe80
+        }
+    }
+}
+
 pub fn is_transient_status(status: u16) -> bool {
     matches!(status, 408 | 429 | 500 | 502 | 503 | 504)
 }
 
 pub fn is_loopback(host: &str) -> bool {
-    let host_only = host.split(':').next().unwrap_or(host);
-    matches!(host_only, "localhost" | "127.0.0.1" | "[::1]" | "::1")
+    fn ip_is_loopback(text: &str) -> bool {
+        matches!(text.parse::<std::net::IpAddr>(), Ok(address) if address.is_loopback())
+    }
+    if let Some(rest) = host.strip_prefix('[') {
+        return match rest.find(']') {
+            Some(end) => ip_is_loopback(&rest[..end]),
+            None => false,
+        };
+    }
+    if host.matches(':').count() == 1 {
+        let host_only = host.split(':').next().unwrap_or(host);
+        if host_only.eq_ignore_ascii_case("localhost") {
+            return true;
+        }
+        return ip_is_loopback(host_only);
+    }
+    host.eq_ignore_ascii_case("localhost") || ip_is_loopback(host)
+}
+
+impl Default for RegistryHttp {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 pub fn registry_base(registry: &str, repository: &str) -> String {
@@ -384,4 +464,65 @@ fn percent_encode(value: &str) -> String {
         }
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn token_endpoint_url_handles_realms_with_and_without_queries() {
+        assert_eq!(
+            token_endpoint_url("https://registry.example.com/token", "service=x&scope=y"),
+            "https://registry.example.com/token?service=x&scope=y"
+        );
+        assert_eq!(
+            token_endpoint_url("https://registry.example.com/token?tenant=a&", "service=x&scope=y"),
+            "https://registry.example.com/token?tenant=a&service=x&scope=y"
+        );
+        assert_eq!(
+            token_endpoint_url("https://registry.example.com/token?tenant=a", "service=x&scope=y"),
+            "https://registry.example.com/token?tenant=a&service=x&scope=y"
+        );
+        assert_eq!(
+            token_endpoint_url("https://registry.example.com/token?", "service=x&scope=y"),
+            "https://registry.example.com/token?service=x&scope=y"
+        );
+    }
+
+    #[test]
+    fn redirects_are_bounded_by_scheme_and_address() {
+        let parse = |text: &str| stuff_url::Url::parse(text).unwrap();
+        assert!(check_redirect_target(&parse("https://cdn.example.com/layer")).is_ok());
+        assert!(check_redirect_target(&parse("http://127.0.0.1:8080/blob")).is_ok());
+        assert!(check_redirect_target(&parse("http://[::1]/blob")).is_ok());
+        assert!(check_redirect_target(&parse("http://10.1.2.3/blob")).is_err());
+        assert!(check_redirect_target(&parse("http://169.254.169.254/latest")).is_err());
+        assert!(check_redirect_target(&parse("https://192.168.0.1/")).is_err());
+        assert!(check_redirect_target(&parse("https://10.0.0.5/")).is_err());
+        assert!(check_redirect_target(&parse("https://[fd00::1]/")).is_err());
+        assert!(check_redirect_target(&parse("file:///etc/passwd")).is_err());
+        assert!(check_redirect_target(&parse("gopher://127.0.0.1/")).is_err());
+        assert!(check_redirect_target(&parse("https://docker.io/library/alpine")).is_ok());
+    }
+}
+
+#[cfg(test)]
+mod host_tests {
+    use super::*;
+
+    #[test]
+    fn loopback_detection_handles_hosts_ports_and_v6() {
+        assert!(is_loopback("127.0.0.1"));
+        assert!(is_loopback("127.0.0.2:8080"));
+        assert!(is_loopback("localhost"));
+        assert!(is_loopback("localhost:8080"));
+        assert!(is_loopback("[::1]"));
+        assert!(is_loopback("[::1]:8080"));
+        assert!(is_loopback("::1"));
+        assert!(!is_loopback("10.0.0.1"));
+        assert!(!is_loopback("192.168.1.1:8080"));
+        assert!(!is_loopback("registry-1.docker.io"));
+        assert!(!is_loopback("docker.io"));
+    }
 }

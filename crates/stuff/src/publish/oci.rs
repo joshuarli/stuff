@@ -110,11 +110,11 @@ pub fn publish_with(
         Ok(Staged::new(paths.site_dir.clone()))
     })?;
     let mut outcome = report.outcome();
-    outcome.packages = package_ids(source);
+    outcome.packages = package_ids(source)?;
     Ok(outcome)
 }
 
-fn package_ids(source: &OciSource) -> Vec<String> {
+fn package_ids(source: &OciSource) -> Result<Vec<String>, PublishError> {
     let mut ids: Vec<String> = match source {
         OciSource::Images(images) => images
             .iter()
@@ -128,26 +128,45 @@ fn package_ids(source: &OciSource) -> Vec<String> {
             tag.as_deref().unwrap_or("latest")
         )],
         OciSource::Mirror { lock, .. } => {
-            let mut entries: Vec<String> = myoci::mirror::MirrorLock::load(Path::new(lock))
-                .map(|lock| {
-                    lock.entries
+            let lock = myoci::mirror::MirrorLock::load(Path::new(lock)).map_err(|error| {
+                crate::publish::PublishError::Integrity(format!(
+                    "the mirror lock at {lock} could not be reloaded after the publish: {error}"
+                ))
+            })?;
+            let mut entries: Vec<String> = lock
+                .entries
+                .iter()
+                .flat_map(|entry| {
+                    entry
+                        .aliases
                         .iter()
-                        .flat_map(|entry| {
-                            entry
-                                .aliases
-                                .iter()
-                                .map(move |alias| format!("{}:{}", entry.destination, alias))
-                        })
-                        .collect()
+                        .map(move |alias| format!("{}:{}", entry.destination, alias))
                 })
-                .unwrap_or_default();
+                .collect();
             entries.sort();
             entries
         }
     };
     ids.sort();
     ids.dedup();
-    ids
+    Ok(ids)
+}
+
+fn sibling_dir(dir: &std::path::Path, sibling: &str) -> std::path::PathBuf {
+    dir.with_file_name(format!(
+        "{}.{sibling}",
+        dir.file_name().and_then(|name| name.to_str()).unwrap_or("state")
+    ))
+}
+
+fn swap_state_aside(state_dir: &std::path::Path, stale_dir: &std::path::Path) -> Result<(), PublishError> {
+    std::fs::rename(state_dir, stale_dir).map_err(|error| {
+        PublishError::Integrity(format!(
+            "could not move {} aside to {} for the state rebuild: {error}",
+            state_dir.display(),
+            stale_dir.display()
+        ))
+    })
 }
 
 fn sync_live_state(
@@ -156,6 +175,31 @@ fn sync_live_state(
     blobs_bucket: &str,
     paths: &OciPaths,
 ) -> Result<(), PublishError> {
+    let fresh_dir = sibling_dir(&paths.state_dir, "fresh");
+    let stale_dir = sibling_dir(&paths.state_dir, "stale");
+
+    // Recover a state rebuild interrupted between the two renames. The
+    // adopted generation is complete and verified, so it is preferred;
+    // the sidelined old state is the fallback.
+    if !paths.state_dir.exists() {
+        if fresh_dir.is_dir() {
+            std::fs::rename(&fresh_dir, &paths.state_dir).map_err(|error| {
+                PublishError::Integrity(format!(
+                    "could not restore {} after an interrupted state rebuild: {error}",
+                    fresh_dir.display()
+                ))
+            })?;
+            let _ = remove_dir_if_present(&stale_dir);
+        } else if stale_dir.is_dir() {
+            std::fs::rename(&stale_dir, &paths.state_dir).map_err(|error| {
+                PublishError::Integrity(format!(
+                    "could not restore {} after an interrupted state rebuild: {error}",
+                    stale_dir.display()
+                ))
+            })?;
+        }
+    }
+
     let Some(marker) = promote::read_marker(client, metadata_bucket)? else {
         return Ok(());
     };
@@ -173,9 +217,25 @@ fn sync_live_state(
         pull_generation_blobs(client, blobs_bucket, paths, &report.generation)?;
     }
 
-    remove_dir_if_present(&paths.state_dir)?;
-    let state = myoci::state::State::new(paths.state_dir.clone());
-    myoci::publish::adopt(&state, &paths.site_dir).map_err(map_myoci_error)?;
+    // Rebuild the local state from the live generation without deleting
+    // the directory any concurrent command may have open: adopt into a
+    // fresh directory, then swap it into place atomically. The old
+    // directory is sidelined first and removed only after the new one is
+    // complete.
+    remove_dir_if_present(&fresh_dir)?;
+    remove_dir_if_present(&stale_dir)?;
+    let fresh_state = myoci::state::State::new(fresh_dir.clone());
+    myoci::publish::adopt(&fresh_state, &paths.site_dir).map_err(map_myoci_error)?;
+    if paths.state_dir.exists() {
+        swap_state_aside(&paths.state_dir, &stale_dir)?;
+    }
+    std::fs::rename(&fresh_dir, &paths.state_dir).map_err(|error| {
+        PublishError::Integrity(format!(
+            "could not move {} into place after the state rebuild: {error}",
+            fresh_dir.display()
+        ))
+    })?;
+    let _ = remove_dir_if_present(&stale_dir);
     Ok(())
 }
 
@@ -407,6 +467,12 @@ fn import_source(
             }
         }
         OciSource::Mirror { inventory, lock } => {
+            let parsed = myoci::mirror::Inventory::load(Path::new(inventory)).map_err(map_myoci_error)?;
+            if parsed.entries.is_empty() {
+                return Err(PublishError::Usage(format!(
+                    "mirror inventory {inventory} has no entries; refusing to publish an empty generation"
+                )));
+            }
             myoci::mirror::sync::run_locked(state, Path::new(inventory), Path::new(lock), false)
                 .map(|(_, _)| ())
                 .map_err(map_myoci_error)?;

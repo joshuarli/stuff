@@ -36,6 +36,34 @@ pub struct Acquisition {
     pub bytes_fetched: u64,
 }
 
+const MIRROR_TEMP_GRACE: std::time::Duration = std::time::Duration::from_secs(2 * 60 * 60);
+
+fn sweep_stale_upload_temps(state: &crate::state::State) {
+    let dir = state.uploads_dir();
+    let Ok(entries) = std::fs::read_dir(&dir) else {
+        return;
+    };
+    let cutoff = std::time::SystemTime::now() - MIRROR_TEMP_GRACE;
+    for entry in entries.flatten() {
+        let file_name = entry.file_name();
+        let Some(name) = file_name.to_str() else {
+            continue;
+        };
+        if !(name.starts_with("mirror-") && name.ends_with(".tmp")) {
+            continue;
+        }
+        let Ok(metadata) = entry.metadata() else {
+            continue;
+        };
+        let Ok(modified) = metadata.modified() else {
+            continue;
+        };
+        if modified < cutoff {
+            let _ = std::fs::remove_file(entry.path());
+        }
+    }
+}
+
 pub fn acquire(
     state: &crate::state::State,
     inventory: &Inventory,
@@ -44,6 +72,7 @@ pub fn acquire(
     offline: bool,
 ) -> Result<Acquisition> {
     state.init()?;
+    sweep_stale_upload_temps(state);
     let mut present_blobs = state.read_blobs()?;
     let mut entries = Vec::with_capacity(lock.entries.len());
     let mut totals = AcquireCounts::default();
@@ -164,8 +193,7 @@ fn acquire_entry(
                     missing.push(format!("manifest {digest}"));
                     continue;
                 }
-                let bytes = fetch_manifest(http, base, repository, &work.descriptor, &entry.id)?;
-                bytes
+                fetch_manifest(http, base, repository, &work.descriptor, &entry.id)?
             }
         };
         let image = parse_image(&bytes)
