@@ -61,8 +61,8 @@ touches GitHub topics. Preview the difference with `topics diff`, then publish
 the catalog tag set with `topics apply`:
 
 ```sh
-uv run repomod topics diff --repo joshuarli/mypypi
-uv run repomod topics apply --repo joshuarli/mypypi
+uv run repomod topics diff --repo joshuarli/stuff
+uv run repomod topics apply --repo joshuarli/stuff
 ```
 
 When a repository leaves the catalog (for example after a rename), its old
