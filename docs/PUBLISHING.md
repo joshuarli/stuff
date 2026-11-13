@@ -233,13 +233,16 @@ repository root; the inventory and lock live in `deploy/oci-mirror.toml` and
 1. Add the `[[entries]]` block to `deploy/oci-mirror.toml`: a `source`
    reference (tag or digest; Docker Hub shorthand is normalized), a
    `destination` repository, `aliases`, `platforms`, and `referrers`
-   (`snapshot` to observe referrers, `none` to skip discovery).
+   (`snapshot` to observe referrers, `none` to skip discovery). Each
+   destination may appear once across the inventory; two entries cannot
+   write one destination.
 2. Regenerate the lock:
    `myoci mirror resolve --config deploy/oci-mirror.toml --lock deploy/oci-mirror.lock`.
    It verifies the root, the full graph (nested indexes, configs, layers,
    embedded attestations) and referrer discovery, then writes the lock
    atomically; one failed entry aborts the whole resolution and nothing is
-   written.
+   written. Attachments whose media types are not manifests or indexes are
+   not recorded; resolve prints how many were skipped.
 3. Review the lock diff. Commit inventory and lock together.
 
 ### Refresh a selected entry
@@ -287,8 +290,13 @@ missing objects; it performs zero network requests.
 `stuff publish oci --inventory deploy/oci-mirror.toml --lock deploy/oci-mirror.lock`
 validates the batch, acquires and verifies the locked descriptors, commits
 local metadata, renders, syncs blobs and metadata, and promotes `current`
-conditionally. It never resolves tags. The generation carries a
-deterministic `provenance.json` sidecar. A failure before promotion leaves
+conditionally. It never resolves tags. An inventory with zero entries is
+refused with a usage error; an empty generation is never promoted. The
+generation carries a deterministic `provenance.json` sidecar. The publishing
+machine first reconciles its local state with the live generation by adopting
+into a fresh directory and swapping it in, so a concurrent command never
+observes a half-rebuilt state; the previous directory is removed only after
+the swap. A failure before promotion leaves
 the previously promoted generation untouched; the report separates local
 preparation from remote promotion. The `stuff-oci-layout` and `--image`
 modes stay mutually exclusive with this one.
@@ -296,7 +304,9 @@ modes stay mutually exclusive with this one.
 ### Repair missing content
 
 A missing local object: run `myoci mirror plan` to see it, then re-run the
-locked sync; acquisition re-fetches exactly the missing digests. A missing
+locked sync; acquisition re-fetches exactly the missing digests.
+Interrupted acquisitions can leave `mirror-*.tmp` files under `.uploads/`;
+they are swept automatically once older than two hours. A missing
 remote object: `stuff publish oci --inventory ... --lock ...` re-uploads it
 and repairs the generation before reporting success; the previously promoted
 generation keeps serving until then. Conflicting immutable remote objects
