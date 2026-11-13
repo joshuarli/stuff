@@ -435,7 +435,7 @@ interactive challenge. Keep these zone settings for `17166969.xyz`:
 - The `/ingest/` rate limit at 20 requests per 10 seconds per source IP and colo; do not
   rate-limit or challenge the read paths.
 - No Managed Challenge, JS Challenge, or Turnstile rule on `crates.`, `npm.`, `pypi.`,
-  `oci.`, `stuff.`, `oci-blobs.`, or `crates-blobs.`.
+  `oci.`, `stuff.`, `oci-blobs.`, `crates-blobs.`, or `mirror.`.
 
 Cargo downloads `.crate` files from `crates-blobs.17166969.xyz`, an R2 custom domain
 on `stuff-mycrates`, so they never invoke the Worker. Each generation's
