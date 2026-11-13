@@ -1,10 +1,170 @@
 #![forbid(unsafe_code)]
 
 use crate::error::{Error, Result};
+use crate::mirror::graph::resolve_entry;
+use crate::mirror::http::{registry_base, RegistryHttp};
+use crate::mirror::inventory::Inventory;
+use crate::mirror::lock::{LockedEntry, MirrorLock};
 use crate::mirror::MirrorOptions;
+use std::path::Path;
 
-pub fn run(_options: &MirrorOptions) -> Result<()> {
-    Err(Error::Operation(
-        "mirror resolve is not implemented yet; this build cannot fetch or pin graphs".to_string(),
-    ))
+pub fn run(options: &MirrorOptions) -> Result<()> {
+    let inventory = Inventory::load(Path::new(&options.config))?;
+    let lock_path = Path::new(&options.lock);
+    let selected = dedupe(&options.entries);
+    let existing = load_existing(lock_path, &inventory, &selected)?;
+    let mut entries = Vec::with_capacity(inventory.entries.len());
+    let http = RegistryHttp::new();
+    let mut preserved = 0usize;
+    for entry in &inventory.entries {
+        let resolved = if !selected.is_empty() && !selected.contains(&entry.id) {
+            preserved += 1;
+            existing
+                .as_ref()
+                .and_then(|lock| lock.entry(&entry.id))
+                .expect("entry membership checked")
+                .clone()
+        } else {
+            resolve_one(&http, entry)?
+        };
+        entries.push(resolved);
+    }
+    let lock = MirrorLock {
+        inventory_fingerprint: inventory.fingerprint(),
+        entries,
+    };
+    let rendered = lock.render();
+    stuff_store::write_file_durable(lock_path, rendered.as_bytes())?;
+    for entry in &lock.entries {
+        println!(
+            "resolved {} root {} ({} additional referrers)",
+            entry.id,
+            entry.root_digest,
+            entry.additional_referrers.len()
+        );
+    }
+    println!("wrote {} ({} entries, {preserved} preserved)", lock_path.display(), lock.entries.len());
+    Ok(())
+}
+
+fn dedupe(entries: &[String]) -> Vec<String> {
+    let mut out = Vec::with_capacity(entries.len());
+    for entry in entries {
+        if !out.contains(entry) {
+            out.push(entry.clone());
+        }
+    }
+    out
+}
+
+fn load_existing(
+    lock_path: &Path,
+    inventory: &Inventory,
+    selected: &[String],
+) -> Result<Option<MirrorLock>> {
+    if selected.is_empty() {
+        return Ok(None);
+    }
+    let lock = MirrorLock::load(lock_path).map_err(|error| {
+        Error::Input(format!(
+            "resolve --entry requires an existing valid lock at {}: {error}",
+            lock_path.display()
+        ))
+    })?;
+    let lock_ids: rustc_hash::FxHashSet<&str> = lock.entries.iter().map(|entry| entry.id.as_str()).collect();
+    let inventory_ids: rustc_hash::FxHashSet<&str> = inventory.entries.iter().map(|entry| entry.id.as_str()).collect();
+    let missing_from_lock: Vec<&str> = inventory_ids.difference(&lock_ids).copied().collect();
+    let missing_from_inventory: Vec<&str> = lock_ids.difference(&inventory_ids).copied().collect();
+    if !missing_from_lock.is_empty() || !missing_from_inventory.is_empty() {
+        let mut detail = String::new();
+        if !missing_from_lock.is_empty() {
+            detail.push_str(&format!(" missing from the lock: {};", missing_from_lock.join(", ")));
+        }
+        if !missing_from_inventory.is_empty() {
+            detail.push_str(&format!(" missing from the inventory: {};", missing_from_inventory.join(", ")));
+        }
+        return Err(Error::Input(format!(
+            "lock and inventory disagree;{detail} rerun `myoci mirror resolve` without --entry"
+        )));
+    }
+    for name in selected {
+        if inventory.entry(name).is_none() {
+            return Err(Error::Input(format!(
+                "selected entry {name:?} is not in the inventory"
+            )));
+        }
+    }
+    for entry in &inventory.entries {
+        if selected.contains(&entry.id) {
+            continue;
+        }
+        let locked = lock.entry(&entry.id).expect("membership checked");
+        ensure_unselected_unchanged(entry, locked)?;
+    }
+    Ok(Some(lock))
+}
+
+fn ensure_unselected_unchanged(
+    entry: &crate::mirror::inventory::InventoryEntry,
+    locked: &LockedEntry,
+) -> Result<()> {
+    let locked_source = crate::mirror::reference::RegistryReference::parse(&locked.source, "lock source")?;
+    if locked_source.repository_id() != entry.source.repository_id()
+        || locked_source.reference != entry.source.reference
+    {
+        return Err(Error::Input(format!(
+            "unselected entry {:?} changed in the inventory; rerun `myoci mirror resolve` or select it with --entry",
+            entry.id
+        )));
+    }
+    if locked.destination != entry.destination.repository_id() {
+        return Err(Error::Input(format!(
+            "unselected entry {:?} changed destination; rerun `myoci mirror resolve` or select it with --entry",
+            entry.id
+        )));
+    }
+    let aliases: Vec<String> = entry.aliases.iter().map(|alias| alias.as_str().to_string()).collect();
+    if locked.aliases != aliases {
+        return Err(Error::Input(format!(
+            "unselected entry {:?} changed aliases; rerun `myoci mirror resolve` or select it with --entry",
+            entry.id
+        )));
+    }
+    let platforms: Vec<String> = entry.platforms.iter().map(crate::mirror::PlatformRequirement::render).collect();
+    if locked.platforms != platforms {
+        return Err(Error::Input(format!(
+            "unselected entry {:?} changed platforms; rerun `myoci mirror resolve` or select it with --entry",
+            entry.id
+        )));
+    }
+    if locked.referrers != entry.referrers {
+        return Err(Error::Input(format!(
+            "unselected entry {:?} changed referrers mode; rerun `myoci mirror resolve` or select it with --entry",
+            entry.id
+        )));
+    }
+    Ok(())
+}
+
+fn resolve_one(http: &RegistryHttp, entry: &crate::mirror::inventory::InventoryEntry) -> Result<LockedEntry> {
+    let base = registry_base(&entry.source.registry, &entry.source.repository);
+    let outcome = resolve_entry(http, &base, &entry.source.repository, entry)?;
+    let mut aliases: Vec<String> = entry.aliases.iter().map(|alias| alias.as_str().to_string()).collect();
+    aliases.sort();
+    let mut platforms: Vec<String> = entry.platforms.iter().map(crate::mirror::PlatformRequirement::render).collect();
+    platforms.sort();
+    Ok(LockedEntry {
+        id: entry.id.clone(),
+        source: entry.source.declared.clone(),
+        source_repository: entry.source.repository_id(),
+        destination: entry.destination.repository_id(),
+        aliases,
+        platforms,
+        referrers: entry.referrers,
+        root_media_type: outcome.root_media_type,
+        root_digest: outcome.root_digest,
+        root_size: outcome.root_size,
+        resolved_platforms: outcome.resolved_platforms,
+        additional_referrers: outcome.additional_referrers,
+    })
 }

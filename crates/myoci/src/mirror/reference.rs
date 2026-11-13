@@ -8,6 +8,7 @@ pub struct RegistryReference {
     pub registry: String,
     pub repository: String,
     pub reference: Option<Reference>,
+    pub declared: String,
 }
 
 impl RegistryReference {
@@ -20,6 +21,7 @@ impl RegistryReference {
             registry,
             repository,
             reference,
+            declared: text.to_string(),
         })
     }
 

@@ -1,3 +1,7 @@
+#[path = "fixture/registry.rs"]
+mod registry;
+
+use registry::{config_json, index_json, manifest_json, referrer_descriptor, Fixture};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -241,13 +245,23 @@ fn inventory_and_lock() {
     let error = parse_lock(&duplicate_referrers).unwrap_err();
     assert!(format!("{error}").contains("duplicate referrer"), "{error}");
 
+    let missing = dir_guard();
     let mirror = Command::new(env!("CARGO_BIN_EXE_myoci"))
-        .args(["mirror", "resolve", "--config", path(&seed_inventory_path()), "--lock", path(&seed_lock_path())])
+        .args(["mirror", "resolve", "--config", path(&missing.join("missing.toml")), "--lock", path(&missing.join("missing.lock"))])
+        .output()
+        .unwrap();
+    assert_eq!(mirror.status.code(), Some(1));
+    let stderr = String::from_utf8(mirror.stderr).unwrap();
+    assert!(stderr.contains("inventory"), "{stderr}");
+
+    let mirror = Command::new(env!("CARGO_BIN_EXE_myoci"))
+        .args(["mirror", "plan", "--config", path(&seed_inventory_path()), "--lock", path(&seed_lock_path()), "--state-dir", path(&missing.join("state"))])
         .output()
         .unwrap();
     assert_eq!(mirror.status.code(), Some(1));
     let stderr = String::from_utf8(mirror.stderr).unwrap();
     assert!(stderr.contains("not implemented"), "{stderr}");
+    assert!(!missing.join("state").exists(), "plan must not initialize state");
 
     let mirror = Command::new(env!("CARGO_BIN_EXE_myoci"))
         .args(["mirror", "sync", "--config", path(&seed_inventory_path()), "--lock", path(&seed_lock_path()), "--state-dir", ".work/tmp/mirror-state"])
@@ -261,3 +275,328 @@ fn inventory_and_lock() {
 fn path(path: &Path) -> &str {
     path.to_str().unwrap()
 }
+
+fn dir_guard() -> PathBuf {
+    let dir = PathBuf::from(ROOT).join("../../.work/tmp/mirror-cli");
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+const OCI_MANIFEST: &str = "application/vnd.oci.image.manifest.v1+json";
+const OCI_INDEX: &str = "application/vnd.oci.image.index.v1+json";
+const OCI_CONFIG: &str = "application/vnd.oci.image.config.v1+json";
+const OCI_LAYER_GZIP: &str = "application/vnd.oci.image.layer.v1.tar+gzip";
+const IN_TOTO: &str = "application/vnd.in-toto+json";
+const LAYER_BYTES: &[u8] = b"manylinux layer bytes";
+
+fn inventory_path(dir: &Path) -> PathBuf {
+    dir.join("mirror.toml")
+}
+
+fn lock_path(dir: &Path) -> PathBuf {
+    dir.join("mirror.lock")
+}
+
+fn write_inventory(dir: &Path, entries: &[String]) -> PathBuf {
+    std::fs::create_dir_all(dir).unwrap();
+    let path = inventory_path(dir);
+    let mut text = String::from("schema_version = 1\npolicy_version = 1\n\n");
+    for entry in entries {
+        text.push_str(entry);
+        text.push('\n');
+    }
+    std::fs::write(&path, text).unwrap();
+    path
+}
+
+fn single_image_fixture(fixture: &Fixture, os: &str, architecture: &str, variant: Option<&str>, layer: &[u8]) -> (String, String, u64) {
+    let config_bytes = config_json(os, architecture, variant);
+    let config_digest = fixture.add_config(&config_bytes);
+    let layer_digest = fixture.add_blob(layer, OCI_LAYER_GZIP);
+    let manifest = manifest_json(
+        &config_digest,
+        config_bytes.len() as u64,
+        OCI_CONFIG,
+        &[(layer_digest, layer.len() as u64, OCI_LAYER_GZIP.to_string())],
+        None,
+        None,
+    );
+    let manifest_size = manifest.len() as u64;
+    let root = fixture.add_manifest(manifest, OCI_MANIFEST);
+    (root, config_digest, manifest_size)
+}
+
+fn mirror_entry(id: &str, source: &str, destination: &str, aliases: &str, platforms: &str, referrers: &str) -> String {
+    format!("[[entries]]\nid = \"{id}\"\nsource = \"{source}\"\ndestination = \"{destination}\"\naliases = [{aliases}]\nplatforms = [{platforms}]\nreferrers = \"{referrers}\"\n")
+}
+
+fn resolve<'a>(inventory: &Path, lock: &Path, extra: &'a [&str]) -> std::process::Output {
+    let mut argv = vec![
+        "mirror",
+        "resolve",
+        "--config",
+        path(inventory),
+        "--lock",
+        path(lock),
+    ];
+    argv.extend_from_slice(extra);
+    Command::new(env!("CARGO_BIN_EXE_myoci")).args(&argv).output().unwrap()
+}
+
+#[test]
+fn resolve_snapshots() {
+    let workspace = tempfile::tempdir().unwrap();
+    let dir = workspace.path();
+
+    let fixture = Fixture::new("example/app");
+    let (root_digest, _config, root_size) = single_image_fixture(&fixture, "linux", "amd64", None, LAYER_BYTES);
+    fixture.add_tag("stable", &root_digest);
+    let source = format!("{}/example/app:stable", fixture.address);
+
+    let inventory = write_inventory(
+        dir,
+        &[mirror_entry("app", &source, "quay.io/example/app", "\"pinned\"", "\"linux/amd64\"", "snapshot")],
+    );
+    let lock = lock_path(dir);
+
+    let output = resolve(&inventory, &lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let first_bytes = std::fs::read_to_string(&lock).unwrap();
+    let resolved = myoci::mirror::MirrorLock::parse(&first_bytes).unwrap();
+    let locked_entry = resolved.entry("app").unwrap();
+    assert_eq!(locked_entry.root_digest.as_str(), root_digest);
+    assert_eq!(locked_entry.root_size, root_size);
+    assert_eq!(locked_entry.root_media_type, OCI_MANIFEST);
+    assert_eq!(locked_entry.resolved_platforms, vec!["linux/amd64".to_string()]);
+    assert_eq!(locked_entry.aliases, vec!["pinned".to_string()]);
+    assert_eq!(resolved.inventory_fingerprint, myoci::mirror::Inventory::load(&inventory).unwrap().fingerprint());
+    let counts = fixture.counts();
+    assert_eq!(counts.blob_get, 0, "resolve must not read layer bodies");
+    assert_eq!(counts.config_get, 1, "single-manifest roots read the config once");
+    assert_eq!(counts.referrers_get, 1);
+
+    let output = resolve(&inventory, &lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let second_bytes = std::fs::read_to_string(&lock).unwrap();
+    assert_eq!(first_bytes, second_bytes, "unchanged upstream must render identical lock bytes");
+
+    // Tag moves to a different manifest; resolve must record the new root.
+    let (other_root, _, _) = single_image_fixture(&fixture, "linux", "amd64", None, b"layer v2");
+    fixture.add_tag("stable", &other_root);
+    let output = resolve(&inventory, &lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let resolved = myoci::mirror::MirrorLock::parse(&std::fs::read_to_string(&lock).unwrap()).unwrap();
+    assert_eq!(resolved.entry("app").unwrap().root_digest.as_str(), other_root);
+
+    // A failed resolution must not touch the lock.
+    let unsupported = write_inventory(
+        &dir.join("windows"),
+        &[mirror_entry("app", &source, "quay.io/example/app", "\"pinned\"", "\"windows/amd64\"", "snapshot")],
+    );
+    let before = std::fs::read(&lock).unwrap();
+    let output = resolve(&unsupported, &lock, &[]);
+    assert_eq!(output.status.code(), Some(3));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("required platform"), "{stderr}");
+    assert_eq!(std::fs::read(&lock).unwrap(), before, "failed resolve rewrote the lock");
+
+    // Referrer discovery failure fails resolution; empty discovery is fine.
+    let failing = Fixture::new("example/failing");
+    let (failing_root, _, _) = single_image_fixture(&failing, "linux", "amd64", None, LAYER_BYTES);
+    failing.add_tag("stable", &failing_root);
+    failing.set_referrers_status(500);
+    let failing_dir = dir.join("failing");
+    std::fs::create_dir_all(&failing_dir).unwrap();
+    let failing_inventory = write_inventory(
+        &failing_dir,
+        &[mirror_entry("failing", &format!("{}/example/failing:stable", failing.address), "quay.io/example/failing", "", "\"linux/amd64\"", "snapshot")],
+    );
+    let failing_lock = lock_path(&failing_dir);
+    let output = resolve(&failing_inventory, &failing_lock, &[]);
+    assert_ne!(output.status.code(), Some(0));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("referrer discovery"), "{stderr}");
+    assert!(!failing_lock.exists(), "failed resolution wrote a lock");
+
+    // referrers = "none" skips discovery entirely, even when the API is broken.
+    let none_dir = dir.join("none");
+    std::fs::create_dir_all(&none_dir).unwrap();
+    let none_inventory = write_inventory(
+        &none_dir,
+        &[mirror_entry("none", &format!("{}/example/failing:stable", failing.address), "quay.io/example/none", "", "\"linux/amd64\"", "none")],
+    );
+    let none_lock = lock_path(&none_dir);
+    let referrers_before = failing.counts().referrers_get;
+    let output = resolve(&none_inventory, &none_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert_eq!(failing.counts().referrers_get, referrers_before, "referrers=none must not call the API");
+
+    // Empty referrer observation is a valid, recorded-empty result.
+    let empty_dir = dir.join("empty");
+    std::fs::create_dir_all(&empty_dir).unwrap();
+    let empty_fixture = Fixture::new("example/empty");
+    let (empty_root, _, _) = single_image_fixture(&empty_fixture, "linux", "amd64", None, LAYER_BYTES);
+    empty_fixture.add_tag("stable", &empty_root);
+    let empty_inventory = write_inventory(
+        &empty_dir,
+        &[mirror_entry("empty", &format!("{}/example/empty:stable", empty_fixture.address), "quay.io/example/empty", "", "\"linux/amd64\"", "snapshot")],
+    );
+    let empty_lock = lock_path(&empty_dir);
+    let output = resolve(&empty_inventory, &empty_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let resolved = myoci::mirror::MirrorLock::parse(&std::fs::read_to_string(&empty_lock).unwrap()).unwrap();
+    assert!(resolved.entry("empty").unwrap().additional_referrers.is_empty());
+    assert_eq!(empty_fixture.counts().referrers_get, 1);
+
+    // Targeted refresh preserves the unselected entry even when its tag moved upstream.
+    let dual_dir = dir.join("dual");
+    std::fs::create_dir_all(&dual_dir).unwrap();
+    let dual = Fixture::new("example/dual");
+    let (a_root, _, _) = single_image_fixture(&dual, "linux", "amd64", None, b"layer a");
+    let (b_root, _, _) = single_image_fixture(&dual, "linux", "arm64", None, b"layer b");
+    dual.add_tag("stable-a", &a_root);
+    dual.add_tag("stable-b", &b_root);
+    let dual_inventory = write_inventory(
+        &dual_dir,
+        &[
+            mirror_entry("dual-a", &format!("{}/example/dual:stable-a", dual.address), "quay.io/example/dual-a", "", "\"linux/amd64\"", "none"),
+            mirror_entry("dual-b", &format!("{}/example/dual:stable-b", dual.address), "quay.io/example/dual-b", "", "\"linux/arm64\"", "none"),
+        ],
+    );
+    let dual_lock = lock_path(&dual_dir);
+    let output = resolve(&dual_inventory, &dual_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let (b_moved, _, _) = single_image_fixture(&dual, "linux", "arm64", None, b"layer b v2");
+    dual.add_tag("stable-b", &b_moved);
+    let output = resolve(&dual_inventory, &dual_lock, &["--entry", "dual-a"]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let locked = myoci::mirror::MirrorLock::parse(&std::fs::read_to_string(&dual_lock).unwrap()).unwrap();
+    assert_eq!(locked.entry("dual-a").unwrap().root_digest.as_str(), a_root);
+    assert_eq!(locked.entry("dual-b").unwrap().root_digest.as_str(), b_root, "unselected entry must be preserved from the lock");
+    let output = resolve(&dual_inventory, &dual_lock, &["--entry", "dual-b"]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let locked = myoci::mirror::MirrorLock::parse(&std::fs::read_to_string(&dual_lock).unwrap()).unwrap();
+    assert_eq!(locked.entry("dual-b").unwrap().root_digest.as_str(), b_moved);
+    assert_eq!(locked.entry("dual-a").unwrap().root_digest.as_str(), a_root);
+
+    // --entry requires a valid lock, known entry names, and an unchanged unselected entry.
+    let output = resolve(&dual_inventory, &dual_dir.join("missing.lock"), &["--entry", "dual-a"]);
+    assert_ne!(output.status.code(), Some(0));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("existing valid lock"), "{stderr}");
+    let output = resolve(&dual_inventory, &dual_lock, &["--entry", "does-not-exist"]);
+    assert_ne!(output.status.code(), Some(0));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("not in the inventory"), "{stderr}");
+    let changed_inventory = write_inventory(
+        &dual_dir.join("changed"),
+        &[
+            mirror_entry("dual-a", &format!("{}/example/dual:stable-a", dual.address), "quay.io/example/dual-a", "", "\"linux/amd64\"", "none"),
+            mirror_entry("dual-b", &format!("{}/example/dual:stable-b", dual.address), "quay.io/example/different", "", "\"linux/arm64\"", "none"),
+        ],
+    );
+    let output = resolve(&changed_inventory, &dual_lock, &["--entry", "dual-a"]);
+    assert_ne!(output.status.code(), Some(0));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("unselected entry"), "{stderr}");
+
+    // Nested indexes, variants, and embedded attestations.
+    let graph_dir = dir.join("graph");
+    std::fs::create_dir_all(&graph_dir).unwrap();
+    let graph = Fixture::new("example/graph");
+    let (arm64_root, _, arm64_size) = single_image_fixture(&graph, "linux", "arm", Some("v8"), b"arm layer");
+    let empty_config = config_json("unknown", "unknown", None);
+    let empty_config_digest = graph.add_config(&empty_config);
+    let attestation = manifest_json(
+        &empty_config_digest,
+        empty_config.len() as u64,
+        OCI_CONFIG,
+        &[],
+        Some((&arm64_root, arm64_size, OCI_MANIFEST)),
+        Some(IN_TOTO),
+    );
+    let attestation_size = attestation.len() as u64;
+    let attestation_digest = graph.add_manifest(attestation, OCI_MANIFEST);
+    let nested = index_json(
+        &[(&arm64_root, arm64_size, OCI_MANIFEST, Some(("linux", "arm", Some("v8"))))],
+        None,
+        None,
+    );
+    let nested_size = nested.len() as u64;
+    let nested_digest = graph.add_manifest(nested, OCI_INDEX);
+    let root_index = index_json(
+        &[
+            (&nested_digest, nested_size, OCI_INDEX, Some(("linux", "arm", Some("v8")))),
+            (&attestation_digest, attestation_size, OCI_MANIFEST, Some(("unknown", "unknown", None))),
+        ],
+        None,
+        None,
+    );
+    let root_index_digest = graph.add_manifest(root_index, OCI_INDEX);
+    graph.add_tag("stable", &root_index_digest);
+    let graph_inventory = write_inventory(
+        &graph_dir,
+        &[mirror_entry("graph", &format!("{}/example/graph:stable", graph.address), "quay.io/example/graph", "", "\"linux/arm/v8\"", "snapshot")],
+    );
+    let graph_lock = lock_path(&graph_dir);
+    let output = resolve(&graph_inventory, &graph_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let resolved = myoci::mirror::MirrorLock::parse(&std::fs::read_to_string(&graph_lock).unwrap()).unwrap();
+    assert_eq!(resolved.entry("graph").unwrap().root_digest.as_str(), root_index_digest);
+    assert_eq!(resolved.entry("graph").unwrap().resolved_platforms, vec!["linux/arm/v8".to_string()]);
+    let counts = graph.counts();
+    assert_eq!(counts.blob_get, 0, "attestation and image layers must not be read");
+    assert_eq!(counts.config_get, 0, "descriptor platforms were present, no config fetch needed");
+    let _ = empty_config_digest;
+
+    // A requirement for a different variant fails; the lock is untouched.
+    let wrong_dir = dir.join("wrong");
+    std::fs::create_dir_all(&wrong_dir).unwrap();
+    let wrong_inventory = write_inventory(
+        &wrong_dir,
+        &[mirror_entry("wrong", &format!("{}/example/graph:stable", graph.address), "quay.io/example/wrong", "", "\"linux/arm/v7\"", "snapshot")],
+    );
+    let wrong_lock = lock_path(&wrong_dir);
+    let output = resolve(&wrong_inventory, &wrong_lock, &[]);
+    assert_eq!(output.status.code(), Some(3));
+    assert!(!wrong_lock.exists());
+
+    // Referrers are observed for the root and child manifests and discovered recursively.
+    let ref_dir = dir.join("refs");
+    std::fs::create_dir_all(&ref_dir).unwrap();
+    let refs = Fixture::new("example/refs");
+    let (refs_root, _, _) = single_image_fixture(&refs, "linux", "amd64", None, LAYER_BYTES);
+    refs.add_tag("stable", &refs_root);
+    let att_of_root = referrer_descriptor(OCI_MANIFEST, &format!("sha256:{:0>64}", "11"), 100, Some(IN_TOTO));
+    refs.add_referrer(&refs_root, att_of_root);
+    let att_root_descriptor_digest = format!("sha256:{:0>64}", "11");
+    let att_of_att = referrer_descriptor(OCI_MANIFEST, &format!("sha256:{:0>64}", "22"), 100, Some("application/vnd.unknown"));
+    refs.add_referrer(&att_root_descriptor_digest, att_of_att);
+    let refs_inventory = write_inventory(
+        &ref_dir,
+        &[mirror_entry("refs", &format!("{}/example/refs:stable", refs.address), "quay.io/example/refs", "", "\"linux/amd64\"", "snapshot")],
+    );
+    let refs_lock = lock_path(&ref_dir);
+    let output = resolve(&refs_inventory, &refs_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let resolved = myoci::mirror::MirrorLock::parse(&std::fs::read_to_string(&refs_lock).unwrap()).unwrap();
+    let referrers = &resolved.entry("refs").unwrap().additional_referrers;
+    let pairs: Vec<(&str, &str)> = referrers
+        .iter()
+        .map(|referrer| (referrer.subject.as_str(), referrer.digest.as_str()))
+        .collect();
+    let att_of_att_digest = format!("sha256:{:0>64}", "22");
+    let mut expected = vec![
+        (refs_root.as_str(), att_root_descriptor_digest.as_str()),
+        (att_root_descriptor_digest.as_str(), att_of_att_digest.as_str()),
+    ];
+    let mut pairs = pairs;
+    pairs.sort_by_key(|(subject, digest)| (subject.to_string(), digest.to_string()));
+    expected.sort_by_key(|(subject, digest)| (subject.to_string(), digest.to_string()));
+    assert_eq!(
+        pairs, expected,
+        "referrers must be recorded with their subjects and deduplicated"
+    );
+}
+

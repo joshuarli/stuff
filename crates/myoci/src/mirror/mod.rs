@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+pub mod graph;
+pub mod http;
 pub mod inventory;
 pub mod lock;
 mod plan;
