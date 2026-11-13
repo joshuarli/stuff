@@ -127,6 +127,23 @@ fn package_ids(source: &OciSource) -> Vec<String> {
             repository,
             tag.as_deref().unwrap_or("latest")
         )],
+        OciSource::Mirror { lock, .. } => {
+            let mut entries: Vec<String> = myoci::mirror::MirrorLock::load(Path::new(lock))
+                .map(|lock| {
+                    lock.entries
+                        .iter()
+                        .flat_map(|entry| {
+                            entry
+                                .aliases
+                                .iter()
+                                .map(move |alias| format!("{}:{}", entry.destination, alias))
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            entries.sort();
+            entries
+        }
     };
     ids.sort();
     ids.dedup();
@@ -388,6 +405,11 @@ fn import_source(
                 myoci::import::import_from(state, &image.reference, &repository, None)
                     .map_err(map_myoci_error)?;
             }
+        }
+        OciSource::Mirror { inventory, lock } => {
+            myoci::mirror::sync::run_locked(state, Path::new(inventory), Path::new(lock), false)
+                .map(|(_, _)| ())
+                .map_err(map_myoci_error)?;
         }
     }
     Ok(())

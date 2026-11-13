@@ -227,3 +227,95 @@ fn oci_bootstrap_reuses_cached_layers_without_redownload() {
         .count();
     assert_eq!(blob_gets, 0, "expected 0 blob GETs because layers were cached");
 }
+
+#[test]
+fn the_mirror_mode_publishes_with_provenance_and_replays_unchanged() {
+    let fake = FakeS3::start_verified();
+    let work = tempfile::tempdir().expect("temp dir");
+    let home = work.path().join("home");
+    let environment = environment(&fake, &home);
+    let paths = OciPaths::from_environment(&environment);
+
+    // Serve the fixture layout as a loopback OCI registry for the mirror to resolve.
+    let serve_state_dir = work.path().join("serve-state");
+    let serve_state = myoci::state::State::new(serve_state_dir);
+    let fixture_repo = stuff_oci::RepositoryName::parse("example/app").expect("repository");
+    myoci::import::import_layout(&serve_state, &layout(), &fixture_repo, None).expect("import layout");
+    let serve_site = work.path().join("serve-site");
+    myoci::publish::publish(&serve_state, &serve_site, myoci::publish::DEFAULT_PUBLIC_URL)
+        .expect("publish fixture site");
+    let port = std::net::TcpListener::bind("127.0.0.1:0")
+        .expect("bind ephemeral port")
+        .local_addr()
+        .expect("ephemeral port")
+        .port();
+    std::thread::spawn(move || {
+        let _ = myoci::serve::run(myoci::serve::ServeOptions {
+            site_dir: serve_site,
+            bind: format!("127.0.0.1:{port}"),
+            max_connections: 16,
+            push: None,
+        });
+    });
+    let mut served = false;
+    for _ in 0..200 {
+        if std::net::TcpStream::connect(("127.0.0.1", port)).is_ok() {
+            served = true;
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    assert!(served, "the loopback registry did not start");
+
+    // Resolve the mirror inventory against the fixture registry.
+    let inventory_path = work.path().join("mirror.toml");
+    std::fs::write(
+        &inventory_path,
+        format!(
+            "schema_version = 1\npolicy_version = 1\n\n[[entries]]\nid = \"sim\"\nsource = \"127.0.0.1:{port}/example/app:stable\"\ndestination = \"example/app\"\naliases = [\"pinned\"]\nplatforms = [\"linux/amd64\"]\nreferrers = \"none\"\n"
+        ),
+    )
+    .expect("write inventory");
+    let lock_path = work.path().join("mirror.lock");
+    myoci::mirror::resolve::run(&myoci::mirror::MirrorOptions {
+        command: myoci::mirror::MirrorCommand::Resolve,
+        config: inventory_path.to_string_lossy().into_owned(),
+        lock: lock_path.to_string_lossy().into_owned(),
+        state_dir: None,
+        locked: false,
+        json: false,
+        offline: false,
+        entries: vec![],
+    })
+    .expect("resolve mirror lock");
+
+    let request = Request::Publish {
+        request: PublishRequest::Oci(OciSource::Mirror {
+            inventory: inventory_path.to_string_lossy().into_owned(),
+            lock: lock_path.to_string_lossy().into_owned(),
+        }),
+        options: Options::default(),
+    };
+    let outcome = stuff::publish::run(request.clone(), &environment).expect("mirror publish");
+    assert_eq!(outcome.status, Status::Published);
+
+    let generation = current_generation(&paths.site_dir);
+    let objects = fake.state();
+    assert!(
+        objects.iter().any(|object| {
+            object.bucket == METADATA_BUCKET && object.key == format!("generations/{generation}/provenance.json")
+        }),
+        "the published generation has no provenance sidecar remotely",
+    );
+    let repository_json = std::fs::read_to_string(paths.state_dir.join("repositories/docker.io/example/app/repository.json"))
+        .expect("read adopted repository");
+    assert!(repository_json.contains("\"pinned\""), "{repository_json}");
+    assert!(repository_json.contains("\"pinned\""), "{repository_json}");
+    let sidecar = std::fs::read_to_string(paths.state_dir.join("provenance.json")).expect("read adopted provenance");
+    assert!(sidecar.contains("\"id\":\"sim\""), "{sidecar}");
+    myoci::verify::verify_state(&myoci::state::State::new(paths.state_dir.clone()))
+        .expect("adopted state does not verify");
+
+    let second = stuff::publish::run(request, &environment).expect("replay");
+    assert_eq!(second.status, Status::Unchanged);
+}

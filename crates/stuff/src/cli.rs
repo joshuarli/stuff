@@ -558,6 +558,8 @@ fn parse_oci_publish(args: &[String], index: &mut usize) -> Result<(OciSource, O
     let mut layout = None;
     let mut repository = None;
     let mut tag = None;
+    let mut inventory = None;
+    let mut mirror_lock = None;
     let mut options = Options::default();
     while *index < args.len() {
         let arg = args[*index].as_str();
@@ -585,6 +587,14 @@ fn parse_oci_publish(args: &[String], index: &mut usize) -> Result<(OciSource, O
                 let value = next_value(args, index, "--tag")?;
                 assign_once(&mut tag, "--tag", value)?;
             }
+            "--inventory" => {
+                let value = next_value(args, index, "--inventory")?;
+                assign_once(&mut inventory, "--inventory", value)?;
+            }
+            "--lock" => {
+                let value = next_value(args, index, "--lock")?;
+                assign_once(&mut mirror_lock, "--lock", value)?;
+            }
             other if other.starts_with('-') => {
                 return Err(usage_error(format!("unknown option: {other}")));
             }
@@ -596,21 +606,39 @@ fn parse_oci_publish(args: &[String], index: &mut usize) -> Result<(OciSource, O
         }
         *index += 1;
     }
-    if images.is_empty() {
-        let dir = layout.ok_or_else(|| {
-            usage_error("publish oci requires --image REPO=REF or --layout DIR")
-        })?;
-        let repository = repository
-            .ok_or_else(|| usage_error("publish oci --layout requires --repository NAME"))?;
-        Ok((OciSource::Layout { dir, repository, tag }, options))
-    } else {
-        if layout.is_some() || repository.is_some() || tag.is_some() {
+    if !images.is_empty() {
+        if layout.is_some()
+            || repository.is_some()
+            || tag.is_some()
+            || inventory.is_some()
+            || mirror_lock.is_some()
+        {
             return Err(usage_error(
-                "publish oci accepts either --image or --layout, not both",
+                "publish oci accepts either --image, --layout, or --inventory/--lock, not a mix",
             ));
         }
-        Ok((OciSource::Images(images), options))
+        return Ok((OciSource::Images(images), options));
     }
+    if let Some(inventory) = inventory {
+        let lock = mirror_lock.ok_or_else(|| {
+            usage_error("publish oci --inventory requires --lock FILE")
+        })?;
+        if layout.is_some() || repository.is_some() || tag.is_some() {
+            return Err(usage_error(
+                "publish oci accepts either --inventory/--lock or --layout, not both",
+            ));
+        }
+        return Ok((OciSource::Mirror { inventory, lock }, options));
+    }
+    if mirror_lock.is_some() {
+        return Err(usage_error("publish oci --lock requires --inventory FILE"));
+    }
+    let dir = layout.ok_or_else(|| {
+        usage_error("publish oci requires --image REPO=REF, --layout DIR, or --inventory FILE --lock FILE")
+    })?;
+    let repository = repository
+        .ok_or_else(|| usage_error("publish oci --layout requires --repository NAME"))?;
+    Ok((OciSource::Layout { dir, repository, tag }, options))
 }
 
 fn parse_republish(args: &[String]) -> Result<Parsed> {
@@ -1057,6 +1085,22 @@ mod tests {
         assert_eq!(repository, "repo/name");
         assert_eq!(tag.as_deref(), Some("latest"));
         assert!(options.dry_run);
+
+        let (request, options) = publish_request(&[
+            "publish",
+            "oci",
+            "--inventory",
+            "mirror.toml",
+            "--lock",
+            "mirror.lock",
+            "--json",
+        ]);
+        let PublishRequest::Oci(OciSource::Mirror { inventory, lock }) = request else {
+            panic!("{request:?}")
+        };
+        assert_eq!(inventory, "mirror.toml");
+        assert_eq!(lock, "mirror.lock");
+        assert!(options.json);
     }
 
     #[test]
@@ -1090,9 +1134,16 @@ mod tests {
             vec!["publish", "oci", "--image", "repo="],
             vec!["publish", "oci", "--image", "=ref"],
             vec!["publish", "oci", "--image", "repo=ref", "--layout", "dir"],
+            vec!["publish", "oci", "--image", "repo=ref", "--inventory", "mirror.toml"],
             vec!["publish", "oci", "--image", "repo=ref", "--repository", "repo"],
             vec!["publish", "oci", "--image", "repo=ref", "--tag", "latest"],
             vec!["publish", "oci", "--layout", "dir", "--repository", "repo", "extra"],
+            vec!["publish", "oci", "--inventory", "mirror.toml"],
+            vec!["publish", "oci", "--lock", "mirror.lock"],
+            vec!["publish", "oci", "--inventory", "mirror.toml", "--layout", "dir"],
+            vec!["publish", "oci", "--inventory", "mirror.toml", "--lock", "mirror.lock", "--repository", "repo"],
+            vec!["publish", "oci", "--inventory", "mirror.toml", "--lock", "mirror.lock", "--tag", "t"],
+            vec!["publish", "oci", "--inventory", "mirror.toml", "--lock", "mirror.lock", "--image", "repo=ref"],
         ] {
             usage_rejected(&argv);
         }

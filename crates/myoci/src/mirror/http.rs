@@ -301,10 +301,13 @@ pub fn is_transient_status(status: u16) -> bool {
     matches!(status, 408 | 429 | 500 | 502 | 503 | 504)
 }
 
+pub fn is_loopback(host: &str) -> bool {
+    let host_only = host.split(':').next().unwrap_or(host);
+    matches!(host_only, "localhost" | "127.0.0.1" | "[::1]" | "::1")
+}
+
 pub fn registry_base(registry: &str, repository: &str) -> String {
-    let host_only = registry.split(':').next().unwrap_or(registry);
-    let is_loopback = matches!(host_only, "localhost" | "127.0.0.1" | "[::1]" | "::1");
-    let scheme = if is_loopback { "http" } else { "https" };
+    let scheme = if is_loopback(registry) { "http" } else { "https" };
     let host = if registry == "docker.io" {
         "registry-1.docker.io"
     } else {

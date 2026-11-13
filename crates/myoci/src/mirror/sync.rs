@@ -16,8 +16,29 @@ use std::path::{Path, PathBuf};
 use stuff_oci::{Digest, RepositoryName, Tag};
 
 pub fn run(options: &MirrorOptions) -> Result<()> {
-    let inventory = Inventory::load(Path::new(&options.config))?;
-    let lock_path = Path::new(&options.lock);
+    let state_dir = crate::mirror::state_dir_path(options);
+    let state = State::new(state_dir);
+    let (acquisition, report) = run_locked(
+        &state,
+        Path::new(&options.config),
+        Path::new(&options.lock),
+        options.offline,
+    )?;
+    if options.json {
+        println!("{}", render_json(options.offline, &acquisition, &report));
+    } else {
+        print!("{}", render_text(options.offline, &acquisition, &report));
+    }
+    Ok(())
+}
+
+pub fn run_locked(
+    state: &State,
+    inventory_path: &Path,
+    lock_path: &Path,
+    offline: bool,
+) -> Result<(Acquisition, CommitReport)> {
+    let inventory = Inventory::load(inventory_path)?;
     let lock = MirrorLock::load(lock_path).map_err(|error| {
         Error::Input(format!(
             "sync requires a valid lock at {}: {error}; run `myoci mirror resolve`",
@@ -25,17 +46,10 @@ pub fn run(options: &MirrorOptions) -> Result<()> {
         ))
     })?;
     lock.validate_for_inventory(&inventory)?;
-    let state_dir = crate::mirror::state_dir_path(options);
-    let state = State::new(state_dir);
     let http = RegistryHttp::new();
-    let acquisition = acquire(&state, &inventory, &lock, &http, options.offline)?;
-    let report = commit(&state, &lock, &acquisition)?;
-    if options.json {
-        println!("{}", render_json(options.offline, &acquisition, &report));
-    } else {
-        print!("{}", render_text(options.offline, &acquisition, &report));
-    }
-    Ok(())
+    let acquisition = acquire(state, &inventory, &lock, &http, offline)?;
+    let report = commit(state, &lock, &acquisition)?;
+    Ok((acquisition, report))
 }
 
 pub struct AliasReport {

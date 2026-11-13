@@ -125,10 +125,33 @@ stuff publish oci --image example/app=ghcr.io/example/app:v1
 stuff publish oci --layout tests/fixtures/oci/layout --repository example/app \
   --tag stable
 
+stuff publish oci --inventory deploy/oci-mirror.toml --lock deploy/oci-mirror.lock
+
 stuff republish oci
 ```
 
 An empty `stuff-oci` bucket makes the first publication.
+
+The mirror input mode publishes the entries from an inventory file and
+their lock. The inventory pins a source by digest or tag; `myoci mirror
+resolve --config <inventory> --lock <lock>` refreshes the lock, verifying
+roots, graphs, platforms, and referrers, then writes the lock atomically.
+A publish with `--inventory` and `--lock` never resolves tags: it acquires
+exactly the locked descriptors, verifies the batch, applies the declared
+aliases in one recoverable transaction, renders the generation, and
+promotes it. It is mutually exclusive with `--image` and `--layout`. The
+published generation carries a deterministic `provenance.json` sidecar
+recording the inventory fingerprint, policy, resolved platforms, and
+applied aliases; roll back generations as usual with
+`stuff rollback oci <generation>`. Acquiring the batch does not enforce
+pinned aliases alone: an unmanaged alias whose bytes differ from the lock
+aborts the publication before anything is promoted, and no alias moves.
+The publish prepares local state and site first, then syncs blobs and
+metadata, then promotes `current` conditionally; a failure before
+promotion leaves the previously promoted generation untouched, and the
+report separates local preparation from remote promotion. Keep one
+publishing machine per registry: a home pinned to an older live generation
+is refused with exit 3 instead of overwriting a competing publication.
 
 `--image` imports through pinned `oras`; `--layout` imports a local OCI image
 layout. Import verifies every digest and size, walks indexes and referrers,

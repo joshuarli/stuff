@@ -149,8 +149,13 @@ pub fn import_from(
         .or_else(|| reference_tag(reference).map(str::to_string))
         .unwrap_or_else(|| "latest".to_string());
     let destination = format!("{}:{layout_tag}", scratch.path().display());
+    let mut args = vec!["cp", "--to-oci-layout"];
+    if crate::mirror::http::is_loopback(reference.split('/').next().unwrap_or(reference)) {
+        args.push("--from-plain-http");
+    }
+    args.extend([reference, destination.as_str()]);
     let output = Command::new(&oras)
-        .args(["cp", "--to-oci-layout", reference, &destination])
+        .args(&args)
         .output()
         .map_err(|e| Error::Operation(format!("could not run oras: {e}")))?;
     if !output.status.success() {

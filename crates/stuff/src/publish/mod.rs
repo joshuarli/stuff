@@ -128,6 +128,7 @@ impl OciImage {
 pub enum OciSource {
     Images(Vec<OciImage>),
     Layout { dir: String, repository: String, tag: Option<String> },
+    Mirror { inventory: String, lock: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -372,8 +373,11 @@ pub fn help_text(command: &str) -> Option<String> {
             "    SPEC is name==version\n",
             "    --wheel publishes first-party pure-Python (none-any) wheels built by uv build or pip wheel\n",
             "  stuff publish oci (--image REPO=REF [--image REPO=REF...] |\n",
-            "    --layout DIR --repository NAME [--tag TAG])\n",
-            "    [--dry-run] [--json] [--verbose]\n\n",
+            "    --layout DIR --repository NAME [--tag TAG] |\n",
+            "    --inventory FILE --lock FILE)\n",
+            "    [--dry-run] [--json] [--verbose]\n",
+            "    --inventory/--lock mirrors a mirror file's pinned entries and manages\n",
+            "    the aliases it declares\n\n",
         ),
         "republish" => concat!(
             "stuff republish\n\n",
