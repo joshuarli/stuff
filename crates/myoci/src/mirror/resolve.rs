@@ -12,6 +12,13 @@ use std::path::Path;
 pub fn run(options: &MirrorOptions) -> Result<()> {
     let inventory = Inventory::load(Path::new(&options.config))?;
     let lock_path = Path::new(&options.lock);
+    let old_cache = match MirrorCache::load_if_fresh(lock_path) {
+        Ok(cache) => cache,
+        Err(error) => {
+            eprintln!("myoci: warning: discarding the previous lock cache: {error}");
+            None
+        }
+    };
     let selected = dedupe(&options.entries);
     let existing = load_existing(lock_path, &inventory, &selected)?;
     let mut entries = Vec::with_capacity(inventory.entries.len());
@@ -39,7 +46,7 @@ pub fn run(options: &MirrorOptions) -> Result<()> {
     };
     let rendered = lock.render();
     stuff_store::write_file_durable(lock_path, rendered.as_bytes())?;
-    let cache = build_cache(lock_path, rendered.as_bytes(), &inventory, &resolved_objects)?;
+    let cache = build_cache(&old_cache, rendered.as_bytes(), &inventory, &resolved_objects)?;
     stuff_store::write_file_durable(&MirrorCache::path_for(lock_path), cache.render().as_bytes())?;
     for entry in &lock.entries {
         println!(
@@ -54,18 +61,11 @@ pub fn run(options: &MirrorOptions) -> Result<()> {
 }
 
 fn build_cache(
-    lock_path: &std::path::Path,
+    old_cache: &Option<MirrorCache>,
     rendered_lock: &[u8],
     inventory: &Inventory,
     resolved_objects: &rustc_hash::FxHashMap<String, Vec<crate::mirror::cache::CacheObject>>,
 ) -> Result<MirrorCache> {
-    let old_cache = match MirrorCache::load_if_fresh(lock_path) {
-        Ok(cache) => cache,
-        Err(error) => {
-            eprintln!("myoci: warning: discarding the previous lock cache: {error}");
-            None
-        }
-    };
     let mut entries = Vec::with_capacity(inventory.entries.len());
     for entry in &inventory.entries {
         let objects = match resolved_objects.get(&entry.id) {
