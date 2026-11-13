@@ -13,6 +13,10 @@ authenticated pushes through a separate blob writer. Protocol logic lives in
 - `repositories/<name>/repository.json`, `blobs.json`, and
   `referrers/sha256/<subject>.json`.
 - `blobs/sha256/<hex>`: verified local copies of imported blobs.
+- `mirror.json`: managed alias ownership; `provenance.json`: the
+  deterministic sidecar published into generations and restored by adoption;
+  `.mirror-transaction/`: a staged batch and durable marker during a mirror
+  sync; `.state.lock`: the shared mutation lock (bounded at 5 s).
 
 `publish --site-dir DIR` writes generation-local repository views, catalog
 JSON/HTML/`llms.txt`, and an `oci/manifests/sha256/<hex>` tree under the
@@ -27,6 +31,15 @@ myoci import --state-dir STATE --layout tests/fixtures/oci/layout \
   --repository example/app --tag stable
 myoci import --state-dir STATE --from docker.io/library/alpine:3.20 \
   --repository example/alpine --tag 3.20
+myoci mirror resolve --config deploy/oci-mirror.toml --lock deploy/oci-mirror.lock
+myoci mirror resolve --entry manylinux-amd64 --config deploy/oci-mirror.toml \
+  --lock deploy/oci-mirror.lock
+myoci mirror plan --config deploy/oci-mirror.toml --lock deploy/oci-mirror.lock \
+  --state-dir STATE
+myoci mirror sync --locked --config deploy/oci-mirror.toml --lock deploy/oci-mirror.lock \
+  --state-dir STATE
+myoci mirror sync --locked --offline --config deploy/oci-mirror.toml \
+  --lock deploy/oci-mirror.lock --state-dir STATE
 myoci inspect --state-dir STATE [--json]
 myoci verify --state-dir STATE
 myoci publish --state-dir STATE --site-dir SITE [--public-url URL]
@@ -37,7 +50,25 @@ myoci untag --state-dir STATE --repository NAME --tag TAG
 
 `import --from` uses pinned `oras` 1.3.6 into a scratch layout. Import
 verifies every digest and size, walks indexes, retains subject referrers, and
-rejects sparse indexes, missing blobs, foreign layers, and schema 1.
+rejects sparse indexes, missing blobs, foreign layers, and schema 1. Plain
+HTTP is used only for loopback hosts; everything else requires TLS.
+
+## Mirror
+
+`myoci mirror resolve` refreshes the lock, verifying roots, complete graphs,
+and referrer discovery; it writes the lock atomically and never on failure.
+`myoci mirror plan` is local and read-only and never initializes state.
+`myoci mirror sync --locked` acquires exactly the locked digests (never a
+tag), applies managed aliases all-or-nothing into one recoverable transaction,
+and records ownership in state `mirror.json`; `--offline` replays acquisition
+from local state only. `--entry` refreshes a targeted entry and preserves
+the rest. `myoci publish` includes the `provenance.json` sidecar in the
+generation, and `myoci adopt` restores it; old generations without one adopt
+cleanly with no managed aliases. The full operator runbook is in
+[PUBLISHING.md](../../docs/PUBLISHING.md#operate-the-oci-mirror); the design
+is in [oci-design.md](../../docs/oci-design.md). Transaction pending errors
+name the recovering command; alias conflicts abort the whole batch with
+`conflict-unmanaged` or `conflict-stale` and move nothing.
 
 ## Serve and push
 

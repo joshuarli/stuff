@@ -125,6 +125,64 @@ mismatched digest/size, a foreign layer, and schema 1. The tag comes from
 `--tag`, else the layout's `org.opencontainers.image.ref.name`, else
 `latest`.
 
+## Mirror
+
+`myoci mirror resolve|plan|sync` mirrors declared OCI roots into this
+registry. The inventory `deploy/oci-mirror.toml` (schema and policy version
+1) declares entries: an `id`, a `source` (tag or digest reference; Docker
+Hub shorthand normalized once at parse), a `destination` repository name,
+`aliases`, `platforms` (a minimum, never a filter; OS, architecture, and an
+optional variant), and `referrers` (`snapshot` also observes direct referrer
+roots of the root and of each reachable child manifest, recursively,
+deduplicated and revisit-capped; `none` disables only that additional
+discovery). The lock `deploy/oci-mirror.lock` records what was verified:
+the normalized inventory fingerprint, the resolved root descriptor, resolved
+platforms, and each additional referrer descriptor with its subject; never
+layer bytes, sizes it did not verify, or timestamps. Deterministic
+serialization; sorted entries, aliases, platforms, and referrers.
+
+`resolve` verifies the tag against the registry, re-fetches the root by
+digest, and walks complete graphs — nested indexes, supported manifests,
+configs, layers, and index-embedded attestations — enforcing the shared caps
+(manifest 4 MiB, depth 32, 100,000 descriptors per entry). Referrer
+enumeration distinguishes empty from unsupported or failed discovery; failure
+aborts resolution, and an attachment added after `resolve` is never
+acquired. `--entry` refreshes selected entries and preserves unselected
+entries byte for byte; a policy or input change to an unselected entry fails
+instead of retaining stale data. The lock is rewritten atomically on success
+and never on failure.
+
+`resolve` also persists a reconstructible graph cache next to the lock
+(`<lock>.cache`, excluded from the repository); `plan` uses it for transfer
+estimates and degrades to `unknown`, never zero, when it is missing or
+stale.
+
+`plan` is local and read-only: desired aliases, local conflicts, missing
+objects, deduplicated known transfer bytes. It never initializes, mutates, or
+recovers state, and fails clearly when a transaction is pending.
+
+`sync --locked` acquires exactly the locked digests — never a tag, never a
+re-resolution — verifies digests, sizes, media types, and whole closures,
+skips foreign layers and unacquired storage, deduplicates shared objects,
+and imports without relying on layout order. Aliases are applied
+all-or-nothing after the entire batch revalidates against current state; a
+conflict at any entry moves no alias anywhere. The last applied mapping is
+persisted in state `mirror.json`; ownership survives adoption and rollback
+through the generation's `provenance.json` sidecar, a deterministic,
+versioned file inserted into the generation file map before the ID hash
+(inventory fingerprint, policy, source intent, root, referrers, destination,
+and applied aliases — no timestamps). `--offline` replays acquisition
+entirely from local state and fails naming missing objects otherwise.
+
+Alias ownership is all-or-nothing: removing an inventory entry or alias
+relinquishes ownership without deleting tags or objects; identical unmanaged
+aliases adopt into managed ownership; different unmanaged mappings and stale
+managed mappings refuse the batch (safe defaults, never implicit takeover).
+An interrupted commit recovers to the complete old or new metadata snapshot
+before any reader or writer proceeds, via a staged snapshot and a single
+durable marker. The full operator runbook lives in
+[PUBLISHING.md](PUBLISHING.md#operate-the-oci-mirror).
+
 ## Push authentication and writer
 
 The checked-in configuration leaves push off: the Worker has no push token, secret, or writer origin, and writes return `405`. This section describes the optional capability for a deployment that runs a writer host.

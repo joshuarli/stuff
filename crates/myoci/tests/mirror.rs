@@ -2050,3 +2050,176 @@ fn provenance_survives_targeted_refresh() {
     let replay = myoci::mirror::provenance::read_provenance(&state).unwrap().unwrap();
     assert_eq!(replay.render(), replayed, "identical replay rewrote the sidecar");
 }
+
+#[test]
+fn operational_contract() {
+    // Fixture: one amd64 image, tags "stable" and "canary" both pointing at A.
+    let workspace = tempfile::tempdir().unwrap();
+    let dir = workspace.path();
+    let layer_a: &[u8] = b"operational contract layer A";
+    let layer_b: &[u8] = b"operational contract layer B";
+
+    let fixture = Fixture::new("example/app");
+    let (root_a, _config_a, _size_a) = single_image_fixture(&fixture, "linux", "amd64", None, layer_a);
+    fixture.add_tag("stable", &root_a);
+    fixture.add_tag("canary", &root_a);
+
+    // Add: resolve the two-entry inventory; both entries land in the lock.
+    let inventory = write_inventory(
+        dir,
+        &[
+            mirror_entry("contract-one", &format!("{}/example/app:stable", fixture.address), "docker.io/example/contract-one", "\"pinned\"", "\"linux/amd64\"", "none"),
+            mirror_entry("contract-two", &format!("{}/example/app:canary", fixture.address), "docker.io/example/contract-two", "\"pinned\"", "\"linux/amd64\"", "none"),
+        ],
+    );
+    let lock = lock_path(dir);
+    let output = resolve(&inventory, &lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let lock_text = std::fs::read_to_string(&lock).unwrap();
+    assert!(lock_text.contains("contract-one"));
+    assert!(lock_text.contains("contract-two"));
+
+    // Selected refresh: only contract-two moves; contract-one is preserved byte for byte.
+    let (root_b, _config_b, _size_b) = single_image_fixture(&fixture, "linux", "amd64", None, layer_b);
+    fixture.add_tag("canary", &root_b);
+    let output = resolve(&inventory, &lock, &["--entry", "contract-two"]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let lock_text = std::fs::read_to_string(&lock).unwrap();
+    let one = lock_text.split("contract-two").next().unwrap();
+    assert!(one.contains(&root_a), "targeted refresh moved contract-one: {one}");
+    // The targeted refresh preserves contract-one's cached graph for plan estimates.
+    let output = plan_output(&inventory, &lock, &dir.join("contract-plan-state"), &[]);
+    let plan_text = String::from_utf8(output.stdout).unwrap();
+    assert!(plan_text.contains("contract-one (destination docker.io/example/contract-one):"), "{plan_text}");
+    let one_section = plan_text.split("entry contract-two").next().unwrap();
+    assert!(one_section.contains("3 missing of 3"), "{one_section}");
+
+    // Review: plan is read-only, reports the batch, and --json parses.
+    let state = dir.join("state");
+    let output = plan_output(&inventory, &lock, &state, &["--json"]);
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert!(stdout.contains("\"entries\":["), "{stdout}");
+    let before_absent = snapshot_metadata(&state);
+    let output = plan_output(&inventory, &lock, &state, &[]);
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(0));
+    assert!(stdout.contains("plan: clean"), "{stdout}");
+    assert_eq!(snapshot_metadata(&state), before_absent, "plan mutated state");
+
+    // Locked sync: aliases applied atomically; ownership recorded.
+    let output = sync_output(&inventory, &lock, &state, &[]);
+    sync_ok(output);
+    let ownership = myoci::mirror::ownership::read_ownership(&state).unwrap();
+    assert_eq!(ownership.len(), 2);
+
+    // Offline replay: zero upstream requests after the first sync.
+    let counts_before = fixture.counts();
+    let output = sync_output(&inventory, &lock, &state, &["--offline"]);
+    sync_ok(output);
+    let counts_after = fixture.counts();
+    assert_eq!(counts_after.manifest_get, counts_before.manifest_get, "offline replay fetched a manifest");
+    assert_eq!(counts_after.blob_get, counts_before.blob_get, "offline replay fetched a blob");
+    assert_eq!(counts_after.blob_head, counts_before.blob_head, "offline replay HEADed a blob");
+    assert_eq!(counts_after.config_get, counts_before.config_get, "offline replay fetched a config");
+    assert_eq!(counts_after.referrers_get, counts_before.referrers_get, "offline replay enumerated referrers");
+
+    // Publish: a generation with the deterministic sidecar is produced and adoptable.
+    let site = dir.join("site");
+    let output = myoci_publish(&state, &site);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let generation = current_generation(&site);
+    let sidecar = site.join("generations").join(&generation).join("provenance.json");
+    assert!(sidecar.is_file(), "the published generation carries no provenance sidecar");
+    let rolled_back = dir.join("rolled-back");
+    let output = myoci_args(&[
+        "adopt".to_string(),
+        "--state-dir".to_string(),
+        path(&rolled_back).to_string(),
+        "--site-dir".to_string(),
+        path(&site).to_string(),
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let output = myoci_args(&["verify".to_string(), "--state-dir".to_string(), path(&rolled_back).to_string()]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+
+    // Missing digest: offline sync with no local content fails and names what is missing.
+    let fresh_state = dir.join("fresh-state");
+    let counts_before = fixture.counts();
+    let output = sync_output(&inventory, &lock, &fresh_state, &["--offline"]);
+    let (code, _stdout, stderr) = sync_err(output);
+    assert_ne!(code, 0, "offline sync with empty state succeeded");
+    assert!(stderr.contains("missing"), "{stderr}");
+    assert_eq!(fixture.counts().manifest_get, counts_before.manifest_get, "offline replay hit the network");
+    let absent_state = dir.join("never-created-state");
+    let output = plan_output(&inventory, &lock, &absent_state, &[]);
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    assert!(stdout.contains("every object is missing"), "{stdout}");
+    assert!(!absent_state.exists(), "plan initialized the state directory");
+
+    // Conflict: an unmanaged alias with a different digest aborts the batch with nothing applied.
+    let layer_c: &[u8] = b"operational contract layer C";
+    let conflict_dir = dir.join("conflict");
+    std::fs::create_dir_all(&conflict_dir).unwrap();
+    let conflict_layout = dir.join("conflict-layout");
+    write_layout(&conflict_layout, "linux", "amd64", layer_c, "pinned");
+    let output = myoci_args(&[
+        "import".to_string(),
+        "--state-dir".to_string(),
+        path(&state).to_string(),
+        "--layout".to_string(),
+        path(&conflict_layout).to_string(),
+        "--repository".to_string(),
+        "docker.io/example/contract-three".to_string(),
+        "--tag".to_string(),
+        "pinned".to_string(),
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let conflict_inventory = write_inventory(
+        &conflict_dir,
+        &[
+            mirror_entry("contract-one", &format!("{}/example/app:stable", fixture.address), "docker.io/example/contract-one", "\"pinned\"", "\"linux/amd64\"", "none"),
+            mirror_entry("contract-two", &format!("{}/example/app:canary", fixture.address), "docker.io/example/contract-two", "\"pinned\"", "\"linux/amd64\"", "none"),
+            mirror_entry("contract-three", &format!("{}/example/app:canary", fixture.address), "docker.io/example/contract-three", "\"pinned\"", "\"linux/amd64\"", "none"),
+        ],
+    );
+    let conflict_lock = lock_path(&conflict_dir);
+    let output = resolve(&conflict_inventory, &conflict_lock, &[]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let before = snapshot_metadata(&state);
+    let output = sync_output(&conflict_inventory, &conflict_lock, &state, &[]);
+    let (code, _stdout, stderr) = sync_err(output);
+    assert_eq!(code, 4, "{stderr}");
+    assert!(stderr.contains("conflict-unmanaged"), "{stderr}");
+    assert_eq!(snapshot_metadata(&state), before, "a conflicting batch moved aliases");
+    let output = plan_output(&conflict_inventory, &conflict_lock, &state, &[]);
+    let stderr_plan = String::from_utf8(output.stderr).unwrap();
+    assert_eq!(output.status.code(), Some(4), "{stderr_plan}");
+    assert!(stderr_plan.contains("alias conflict"), "{stderr_plan}");
+    let stdout_plan = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout_plan.contains("conflict-unmanaged"), "{stdout_plan}");
+
+    // Documentation example: import a layout, inspect, verify — all succeed.
+    let readme_state = dir.join("readme-state");
+    let readme_layout = dir.join("readme-layout");
+    write_layout(&readme_layout, "linux", "amd64", b"readme doc layer", "stable");
+    let output = myoci_args(&[
+        "import".to_string(),
+        "--state-dir".to_string(),
+        path(&readme_state).to_string(),
+        "--layout".to_string(),
+        path(&readme_layout).to_string(),
+        "--repository".to_string(),
+        "example/readme".to_string(),
+        "--tag".to_string(),
+        "stable".to_string(),
+    ]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+    let output = myoci_args(&["inspect".to_string(), "--state-dir".to_string(), path(&readme_state).to_string()]);
+    assert_eq!(output.status.code(), Some(0));
+    let inspection = String::from_utf8(output.stdout).unwrap();
+    assert!(inspection.contains("stable"), "{inspection}");
+    let output = myoci_args(&["verify".to_string(), "--state-dir".to_string(), path(&readme_state).to_string()]);
+    assert_eq!(output.status.code(), Some(0), "{}", String::from_utf8(output.stderr).unwrap());
+}

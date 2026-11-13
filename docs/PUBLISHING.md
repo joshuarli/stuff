@@ -220,6 +220,117 @@ Offline proofs: `make test-oci-pull`, `make test-oci-push`,
 `make test-oci-conformance-push`, `make oci-bench`, and
 `R2_S3_* make test-r2-multipart`.
 
+## Operate the OCI mirror
+
+The mirror copies declared upstream images into this registry with locked,
+verified descriptors into a reproducible local state. Commands run from the
+repository root; the inventory and lock live in `deploy/oci-mirror.toml` and
+`deploy/oci-mirror.lock`. myoci exit codes: `2` usage, `3` integrity,
+`4` conflict, `5` limit, `6` network, `1` other.
+
+### Add or change an entry
+
+1. Add the `[[entries]]` block to `deploy/oci-mirror.toml`: a `source`
+   reference (tag or digest; Docker Hub shorthand is normalized), a
+   `destination` repository, `aliases`, `platforms`, and `referrers`
+   (`snapshot` to observe referrers, `none` to skip discovery).
+2. Regenerate the lock:
+   `myoci mirror resolve --config deploy/oci-mirror.toml --lock deploy/oci-mirror.lock`.
+   It verifies the root, the full graph (nested indexes, configs, layers,
+   embedded attestations) and referrer discovery, then writes the lock
+   atomically; one failed entry aborts the whole resolution and nothing is
+   written.
+3. Review the lock diff. Commit inventory and lock together.
+
+### Refresh a selected entry
+
+`myoci mirror resolve --entry manylinux-amd64 --config deploy/oci-mirror.toml --lock deploy/oci-mirror.lock`
+refreshes one entry and preserves every unselected entry byte for byte;
+unrelated provenance and ownership carry forward.
+
+### Review the plan
+
+`myoci mirror plan --config deploy/oci-mirror.toml --lock deploy/oci-mirror.lock --state-dir <state> [--json]`
+reports desired aliases, local conflicts (aliases unmanaged at a different
+digest, managed aliases moved by hand, adopted identical unmanaged aliases),
+missing objects (present, missing, total), and deduplicated transfer bytes.
+It is local and read-only, never initializes the state, and refuses to
+proceed while a mirror transaction is pending — the message says which
+command recovers it. A missing or stale transfer cache degrades estimates
+to `unknown`, never zero.
+
+### Locked sync
+
+`myoci mirror sync --locked --config deploy/oci-mirror.toml --lock deploy/oci-mirror.lock --state-dir <state> [--json]`
+acquires exactly the locked digests (never a tag, never an implicit
+upgrade), verifies digests and sizes, and commits aliases into
+`mirror.json` plus `provenance.json` as one recoverable transaction. A tag
+that moved upstream since `resolve` does not change what is acquired.
+`Exit 4` with `conflict-unmanaged`: an alias at the destination is not
+managed by the mirror and points at a different digest — inspect the
+destination, then add the destination to the inventory intentionally or move
+the tag by hand; nothing moves. `Exit 4` with `conflict-stale`: a managed
+alias was moved by hand away from the last applied mapping — same recovery,
+but decide deliberately before re-resolving. Foreign layers and identical
+content across entries transfer at most once; acquired immutable objects may
+remain after a failure.
+
+### Offline replay
+
+Add `--offline` to replay purely from local state:
+`myoci mirror sync --locked --offline --config ... --lock ... --state-dir <state>`.
+It succeeds only with complete local content and otherwise fails naming the
+missing objects; it performs zero network requests.
+
+### Publish
+
+`stuff publish oci --inventory deploy/oci-mirror.toml --lock deploy/oci-mirror.lock`
+validates the batch, acquires and verifies the locked descriptors, commits
+local metadata, renders, syncs blobs and metadata, and promotes `current`
+conditionally. It never resolves tags. The generation carries a
+deterministic `provenance.json` sidecar. A failure before promotion leaves
+the previously promoted generation untouched; the report separates local
+preparation from remote promotion. The `stuff-oci-layout` and `--image`
+modes stay mutually exclusive with this one.
+
+### Repair missing content
+
+A missing local object: run `myoci mirror plan` to see it, then re-run the
+locked sync; acquisition re-fetches exactly the missing digests. A missing
+remote object: `stuff publish oci --inventory ... --lock ...` re-uploads it
+and repairs the generation before reporting success; the previously promoted
+generation keeps serving until then. Conflicting immutable remote objects
+fail before any upload (exit 3) and `current` stays put; resolve which side
+is wrong, never force past the conflict.
+
+### Adopt a generation
+
+`myoci adopt --state-dir <state> --site-dir <site>` rebuilds state from a
+published generation. The `provenance.json` sidecar restores the managed
+alias ownership; generations without a sidecar adopt cleanly with no
+managed aliases, and the next locked sync adopts identical aliases back
+into managed ownership. Finish with `myoci verify --state-dir <state>`.
+
+### Roll back
+
+`stuff rollback oci <generation-id>` verifies the target generation's
+metadata and every referenced blob (against `stuff-oci-blobs`) before moving
+`current`; `--dry-run` verifies without promoting. Retained generations are
+adoptable and republishable. Missing referenced blobs make the rollback
+refuse with `current` unchanged.
+
+### Initial publication and consumer cutover
+
+Initial publication and consumer cutover are operator steps, not CI:
+
+1. Publish with the mirror mode; note the promoted generation.
+2. Verify the live registry:
+   `oras manifest fetch oci.17166969.xyz/<repo>:<alias>` and a blob pull,
+   plus `stuff doctor --sample-artifacts`.
+3. Cut consumers over repository by repository, pinning the mirrored
+   digest or alias, verifying one consumer before the next. Do not cut a
+   consumer over before the promoted generation verifies.
+
 ## Republish without new packages
 
 A renderer or catalog change reaches a registry's pages only when that registry publishes again. `stuff republish cargo|npm|pypi|oci` does that without package inputs: it reads the live generation, renders it again under the current renderer, and promotes it. Unchanged output reports no new generation. The bucket keeps older manifests until `make gc` prunes generations outside its retention window.
@@ -348,12 +459,7 @@ This builds the `stuff` binary and runs `deploy/deployed-smoke.sh`. The check is
 stuff rollback cargo <generation-id>
 ```
 
-`stuff rollback` verifies every object in the target generation's manifest before moving `current`, and records the target as this machine's promoted generation. `--dry-run` performs the verification without promoting. To roll forward, run the same command with the newer generation id; gc keeps generations newer than `current` by default, so the target survives.
-
-For OCI, that verifier currently checks only the metadata bucket. It does not
-verify the referenced image bytes in `oci.blobs_bucket`; missing layers can
-therefore escape the rollback check. The cross-bucket verification fix is in
-[TODO.md](../TODO.md).
+`stuff rollback` verifies every object in the target generation's manifest before moving `current`, and records the target as this machine's promoted generation. For OCI it also HEADs every digest in the target generation's `blobs.json` against the blob bucket and refuses the rollback, with `current` unchanged, when any referenced blob is missing. `--dry-run` performs the verification without promoting. To roll forward, run the same command with the newer generation id; gc keeps generations newer than `current` by default, so the target survives.
 
 ## Reclaim storage
 
