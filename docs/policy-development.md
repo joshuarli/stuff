@@ -378,7 +378,8 @@ Block-style workflow version lists remain manual findings. When a repository has
 `uv.lock`; it never replaces or merges an existing file.
 
 `typescript-stack` applies to TypeScript repositories. `fleet/policy/typescript-tools.toml` records the latest
-stable Node.js and pnpm releases, and `pins refresh` updates those approvals. The rule checks
+stable Node.js and the newest stable pnpm release in the approved major (including `next-12`
+when it leads `latest`); `pins refresh` updates those approvals. The rule checks
 runtime pins offline, requires `tsrs` 0.23.0 or newer built as TypeScript 7 or newer, strict
 type checking, Oxlint 1.92 or newer with type-aware linting from that `tsrs` package, and Vitest.
 A direct `oxlint-tsgolint` dependency is a finding. It also

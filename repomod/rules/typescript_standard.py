@@ -56,7 +56,7 @@ _PNPM_PACKAGE_MANAGER_VERSION = re.compile(
     r"pnpm@(?P<version>v?(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))"
     r"(?:\+[0-9A-Za-z./+=-]+)?\Z"
 )
-_PNPM_LATEST = "https://registry.npmjs.org/pnpm/latest"
+_PNPM_DIST_TAGS = "https://registry.npmjs.org/-/package/pnpm/dist-tags"
 _NODE_RELEASE_INDEX = "https://nodejs.org/dist/index.json"
 _APP_STACK = {
     "effect": 4,
@@ -139,18 +139,26 @@ def _latest_node_release() -> str:
     return max(candidates)[1].removeprefix("v")
 
 
-def _latest_pnpm_release() -> str:
-    request = urllib.request.Request(_PNPM_LATEST, headers={"User-Agent": "repomod"})
+def _latest_pnpm_release(major: int) -> str:
+    """Select the newest stable pnpm release in the approved major from npm dist-tags."""
+    request = urllib.request.Request(_PNPM_DIST_TAGS, headers={"User-Agent": "repomod"})
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             document = json.loads(response.read().decode("utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise ValueError(f"cannot read the official pnpm release: {error}") from error
-    version = document.get("version") if isinstance(document, dict) else None
-    if not isinstance(version, str) or _release_version(version) is None:
-        raise ValueError("the official pnpm release has no stable version")
-    return str(version).removeprefix("v")
-
+        raise ValueError(f"cannot read official pnpm dist-tags: {error}") from error
+    if not isinstance(document, dict):
+        raise ValueError("official pnpm dist-tags must be a mapping")
+    candidates: list[tuple[tuple[int, int, int], str]] = []
+    for entry in document.values():
+        if not isinstance(entry, str):
+            continue
+        version = _release_version(entry)
+        if version is not None and version[0] == major:
+            candidates.append((version, entry.removeprefix("v")))
+    if not candidates:
+        raise ValueError(f"official pnpm dist-tags have no stable pnpm {major} release")
+    return max(candidates)[1]
 
 def _render_typescript_tool_pins(pins: TypeScriptToolPins) -> str:
     return f'[node]\nversion = "{pins.node}"\n\n[pnpm]\nversion = "{pins.pnpm}"\n'
@@ -161,7 +169,7 @@ def refresh_typescript_tool_pins(path: Path | None = None) -> bool:
     current = load_typescript_tool_pins(target)
     with ThreadPoolExecutor(max_workers=2, thread_name_prefix="repomod-ts-pins") as pool:
         node_future = pool.submit(_latest_node_release)
-        pnpm_future = pool.submit(_latest_pnpm_release)
+        pnpm_future = pool.submit(_latest_pnpm_release, int(current.pnpm.split(".", 1)[0]))
         node = node_future.result()
         pnpm = pnpm_future.result()
     for name, previous, latest in (

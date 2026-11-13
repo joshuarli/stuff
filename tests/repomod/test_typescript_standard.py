@@ -407,7 +407,15 @@ def test_tool_pin_refresh_uses_official_current_stable_release_sources(
             {"version": "v27.0.0"},
         ]
     ).encode()
-    pnpm_index = json.dumps({"version": "12.15.0"}).encode()
+    pnpm_index = json.dumps(
+        {
+            "latest": "12.18.0",
+            "latest-12": "12.18.0",
+            "next-12": "12.20.0",
+            "latest-11": "11.28.0",
+            "next": "13.0.0-rc.1",
+        }
+    ).encode()
 
     def fake_urlopen(request: object, timeout: int) -> BytesIO:
         url = getattr(request, "full_url", "")
@@ -421,7 +429,7 @@ def test_tool_pin_refresh_uses_official_current_stable_release_sources(
 
     assert typescript_standard.refresh_typescript_tool_pins(pins_path)
     assert pins_path.read_text(encoding="utf-8") == (
-        '[node]\nversion = "27.0.0"\n\n[pnpm]\nversion = "12.15.0"\n'
+        '[node]\nversion = "27.0.0"\n\n[pnpm]\nversion = "12.20.0"\n'
     )
     assert not typescript_standard.refresh_typescript_tool_pins(pins_path)
 

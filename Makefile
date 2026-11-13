@@ -25,7 +25,7 @@ repomod-lint: ## Lint and type-check repomod
 	@uv run --group dev --quiet ty check
 
 PORT ?= 8765
-PNPM ?= pnpm dlx pnpm@12.18.0
+PNPM ?= pnpm
 RUNS ?= 3
 DASHBOARD_TS := repomod/dependencies/dashboard_ts
 
