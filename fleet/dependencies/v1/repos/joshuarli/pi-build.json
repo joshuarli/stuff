@@ -27929,11 +27929,11 @@
    "path": ".github/workflows/prepare-locks.yml"
   },
   {
-   "blob": "33c94acc143c1ecffbcb6a2decc95f711aece291",
+   "blob": "6772d3e5faeda6ee39d0ad7ce7be1dd0456465a4",
    "path": ".github/workflows/release.yml"
   },
   {
-   "blob": "d19423fffb58b3bd667f7d8d5f0ac4e1cb621bdd",
+   "blob": "6067ca30338281804fa8b77159a82e1ac1f6334e",
    "path": "Makefile"
   },
   {
@@ -27993,7 +27993,7 @@
    "path": "uv.lock"
   }
  ],
- "inputs_fingerprint": "2e1a0877367aa2cbd9fdba0ddf7e488ef7e3b6874b9639b2794ee5c5b29060c3",
+ "inputs_fingerprint": "a7bc0358a90f6bad7622ef87c8abe780a13398211fac3d378eaeea830c956964",
  "instances": [
   {
    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",

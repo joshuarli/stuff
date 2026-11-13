@@ -42,8 +42,8 @@
    "state": "partial"
   },
   "joshuarli/pi-build": {
-   "commit": "a17c28f2ebaaac32e8cd1dfb66baa4c1d725a800",
-   "inputs_fingerprint": "2e1a0877367aa2cbd9fdba0ddf7e488ef7e3b6874b9639b2794ee5c5b29060c3",
+   "commit": "50ee0e9ac7fb3e4ac05eaf7198e983f49f832cae",
+   "inputs_fingerprint": "a7bc0358a90f6bad7622ef87c8abe780a13398211fac3d378eaeea830c956964",
    "state": "partial"
   },
   "joshuarli/play": {
