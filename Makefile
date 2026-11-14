@@ -193,6 +193,10 @@ test-r2: ## Check S3 uploads, multipart SigV4, pull, gc, and pagination without 
 test-oci-publish: ## Check stuff OCI publication, blob GC, rollback, and adoption against a fake S3 endpoint
 	deploy/test-oci-publish.sh
 
+test-store-copy: ## Check the resumable bucket copy and verification against two fake S3 endpoints
+	@mkdir -p .work/tmp
+	TMPDIR="$${TMPDIR:-$(CURDIR)/.work/tmp}" sh deploy/test-store-copy.sh
+
 test-r2-gc-blobs: ## Check OCI blob GC against a fake S3 endpoint
 	cargo build -q -p stuff
 	python3 deploy/test-r2-gc-blobs.py

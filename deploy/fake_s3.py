@@ -44,6 +44,7 @@ class FakeS3Server(http.server.ThreadingHTTPServer):
         super().__init__(server_address, handler or FakeS3Handler)
         self.objects = {}
         self.etags = {}
+        self.part_sizes = {}
         self.requests = []
         self.log = []
         self.request_log_style = None
@@ -214,6 +215,7 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             etag = document.get("etag") or md5_etag(data)
             server.objects[(bucket, key)] = (data, content_type)
             server.etags[(bucket, key)] = etag
+            server.part_sizes.pop((bucket, key), None)
             if key == "current":
                 server.current[bucket] = data.decode("utf-8", "replace")
                 server.current_etag[bucket] = etag
@@ -322,6 +324,18 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             self._reply(404)
             return
         body, content_type = found
+        query = urllib.parse.parse_qs(parsed.query, keep_blank_values=True)
+        if "partNumber" in query:
+            try:
+                number = int(query["partNumber"][0])
+                sizes = server.part_sizes[(bucket, key)]
+                if number < 1 or number > len(sizes):
+                    raise ValueError
+            except (KeyError, ValueError):
+                self._reply(416)
+                return
+            start = sum(sizes[:number - 1])
+            body = body[start:start + sizes[number - 1]]
         headers = {"ETag": server.etag(bucket, key, body)}
         if content_type:
             headers["Content-Type"] = content_type
@@ -364,6 +378,7 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             self._reply(200, b"", {"ETag": etag})
             return
         etag = md5_etag(body)
+        server.part_sizes.pop((bucket, key), None)
         server.objects[(bucket, key)] = (body, self.headers.get("Content-Type", ""))
         server.etags[(bucket, key)] = etag
         self._log_put(bucket, key)
@@ -443,6 +458,7 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
             if bucket and key:
                 server.objects[(bucket, key)] = (data, self.headers.get("Content-Type", ""))
                 server.etags[(bucket, key)] = etag
+                server.part_sizes[(bucket, key)] = [len(parts[number]) for number in order]
             self._reply(200, b"<CompleteMultipartUploadResult></CompleteMultipartUploadResult>")
             return
         if self.command == "DELETE":
@@ -453,6 +469,7 @@ class FakeS3Handler(http.server.BaseHTTPRequestHandler):
                 bucket, key = self._bucket_key(parsed.path)
                 server.objects.pop((bucket, key), None)
                 server.etags.pop((bucket, key), None)
+                server.part_sizes.pop((bucket, key), None)
             self._reply(204)
             return
         if self.command in ("GET", "HEAD") and query.get("list-type") == ["2"]:
