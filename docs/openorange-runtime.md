@@ -72,6 +72,11 @@ also proved isolation: the same key gets `403` on PUT, GET and LIST of
 create through Orange against this store returned `stored:false` on the second
 create.
 
+App `vars` are public Worker bindings stored in `apps.toml`; secret names
+are declared in `secrets` and their values live only in the root-owned
+`apps/NAME.extra.env`. Names cannot overlap or replace runtime credentials.
+`oo secrets` derives the Worker binding list from both declarations.
+
 ## Topology
 
 ```

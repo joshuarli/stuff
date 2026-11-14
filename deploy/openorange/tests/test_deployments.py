@@ -1,4 +1,5 @@
 import os
+import runpy
 from dataclasses import replace
 from pathlib import Path
 import sys
@@ -62,6 +63,21 @@ class DeploymentTests(unittest.TestCase):
         cfg.raw["apps"]["discover"]["internet"] = "true"
         with self.assertRaises(oolib.ConfigError):
             oolib.validate(cfg.raw)
+
+    def test_worker_vars_and_secret_names_have_one_derived_binding_list(self):
+        cfg = oolib.load()
+        cfg.stack["etc_dir"] = self.directory.name
+        app = replace(cfg.apps["discover"], vars={"SPACE_NAME": "replacement-rehearsal"})
+        cfg.apps["discover"] = app
+        commands = runpy.run_path(str(Path(__file__).resolve().parents[1] / "bin" / "oo"))
+        commands["cmd_secrets"](cfg)
+        values = oolib.read_env(cfg.app_env(app))
+        self.assertEqual(values["SPACE_NAME"], "replacement-rehearsal")
+        self.assertIn("SPACE_NAME", values["ORANGE_WORKER_SECRETS"].split(","))
+        for invalid in [{"S3_SECRET_ACCESS_KEY": "overridden"}, {"OPERATOR_BOOTSTRAP_SHA256": "overlap"}, {"SPACE_NAME": "line\nbreak"}]:
+            cfg.raw["apps"]["discover"]["vars"] = invalid
+            with self.assertRaises(oolib.ConfigError):
+                oolib.validate(cfg.raw)
 
     def test_app_arguments_use_deployment_version_and_image_together(self):
         cfg = oolib.load()

@@ -82,8 +82,9 @@ def cmd_secrets(cfg) -> None:
                 S3_SECRET_ACCESS_KEY=cur.get("S3_SECRET_ACCESS_KEY") or oolib.token(20),
                 S3_BUCKETS=",".join(app.buckets),
                 # open-orange builds Worker secret bindings from the environment variables named here.
-                ORANGE_WORKER_SECRETS=",".join(["GATEWAY_SECRET", *app.secrets]),
+                ORANGE_WORKER_SECRETS=",".join(["GATEWAY_SECRET", *app.secrets, *app.vars]),
             )
+            env.update(app.vars)
             # Orange maps each R2 binding onto an S3 endpoint through these
             # variables (runtime-node r2/s3-backend); the bucket name is the
             # R2 `bucket_name` of the binding.

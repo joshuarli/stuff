@@ -135,6 +135,7 @@ class App:
     image: str = ""  # repository name for local builds, e.g. "oo-demo"
     memory: str = "1g"
     cpus: float = 1.0
+    vars: dict[str, str] = field(default_factory=dict)
     internet: bool = False
     health_path: str = "/"
     secrets: tuple[str, ...] = ()  # extra Worker secret names, values in apps/NAME.extra.env
@@ -293,7 +294,7 @@ def validate(raw: dict) -> Config:
     used_hosts: dict[str, str] = {}
     used_buckets: set[str] = set()
     common = {"kind", "display", "hostnames", "enabled", "health_path", "public_hostnames", "public_deny_paths"}
-    orange_keys = common | {"namespace", "ip", "port", "buckets", "image", "memory", "cpus", "secrets", "internet"}
+    orange_keys = common | {"namespace", "ip", "port", "buckets", "image", "memory", "cpus", "secrets", "internet", "vars"}
     native_keys = common | {"upstream"}
     for name, a in raw.get("apps", {}).items():
         where = f"apps.{name}"
@@ -350,11 +351,16 @@ def validate(raw: dict) -> Config:
             internet = a.get("internet", False)
             if type(internet) is not bool:
                 raise ConfigError(f"{where}.internet must be boolean")
+            variables = a.get("vars", {})
+            if not isinstance(variables, dict) or not all(isinstance(k, str) and isinstance(v, str) and "\n" not in v and "\r" not in v for k, v in variables.items()):
+                raise ConfigError(f"{where}.vars must map names to single-line strings")
             secrets_ = tuple(a.get("secrets", []))
-            for sname in secrets_:
-                if not isinstance(sname, str) or not re.match(r"^[A-Z][A-Z0-9_]{1,63}$", sname) or sname.startswith(("RIVET", "ORANGE_", "OO_", "S3_")):
+            if set(variables) & set(secrets_):
+                raise ConfigError(f"{where}: vars and secrets overlap")
+            for sname in (*secrets_, *variables):
+                if not isinstance(sname, str) or not re.match(r"^[A-Z][A-Z0-9_]{1,63}$", sname) or sname == "GATEWAY_SECRET" or sname.startswith(("RIVET", "ORANGE_", "OO_", "S3_")):
                     raise ConfigError(f"{where}: invalid secret name {sname!r}")
-            kw.update(internet=internet, secrets=secrets_, namespace=ns, ip=ip, port=port, buckets=buckets, image=a.get("image", ""),
+            kw.update(vars=dict(variables), internet=internet, secrets=secrets_, namespace=ns, ip=ip, port=port, buckets=buckets, image=a.get("image", ""),
                       memory=a.get("memory", "1g"), cpus=float(a.get("cpus", 1.0)))
         else:
             up = _req(a, "upstream", str, where)
