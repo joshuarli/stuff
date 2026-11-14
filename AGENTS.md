@@ -21,6 +21,7 @@ Run everything from the repository root.
 - repomod: `uv sync`, then `uv run repomod --help`; `make repomod-test`, `make repomod-lint`. Set `TMPDIR` to `.work/tmp` for commands that create scratch data.
 - Fleet dashboard: `make deps` syncs the checkouts, re-snapshots and commits `fleet/dependencies/v1/`, renders, and serves it; `make dashboard-ts` rebuilds its scripts after changing `repomod/dependencies/dashboard_ts/`; `make bench` measures the render.
 - Search: `make test-search`; after changing `crates/stuff-catalog/web/`, run `make search-bundle` and commit `assets/search.js` (install Worker dependencies first).
+- Catalog page styles: after bumping `@laputa-systems/ui-dashboard` in `crates/stuff-worker/package.json`, run `make catalog-css` and commit `crates/stuff-catalog/assets/ui-dashboard/`. App styles live in `crates/stuff-catalog/assets/catalog.css`. Both renderers (`stuff-catalog` and the mycrates oracle) embed them, so regenerate the mycrates golden generation with them.
 - Worker: `make worker-test`, `make worker-check`; build instructions are in its README below.
 - Offline maintenance: `make test-r2`, `make test-publish-lock`; `make test-r2-live` accesses real R2 and is opt-in.
 - Ecosystem integration: `deploy/ecosystem-smoke.sh` needs the pinned package managers, CPython, native repair tools, and network. Use `TMPDIR="$PWD/.work/tmp"` for campaign commands.
@@ -70,7 +71,10 @@ Run everything from the repository root.
 - Keep `crates/h12tiny-*` sources byte-identical to the imported `dcdf4f2` (the h12tiny roll-up preserves that history under `laputa-systems/smolith`); change upstream before updating the import.
 - The registries must stay buildable when their own package registries are unavailable: Cargo, npm,
   and PyPI dependencies of the registry crates resolve from upstream, not from stuff. The catalog
-  exempts stuff from repomod's `registry-sources` rule for this reason.
+  exempts stuff from repomod's `registry-sources` rule for this reason. The one exception is
+  `@laputa-systems/ui-dashboard`, which the catalog pages use and which is published only on stuff:
+  install it from stuff at a pinned version, and commit the stylesheets copied from it so a Rust
+  build needs neither Node nor the npm registry.
 - repomod manages stuff like any other catalogued repository. It reads the canonical checkout under
   `~/repos`, so develop in a separate clone; `fix` publishes only from an unchanged canonical
   checkout.
