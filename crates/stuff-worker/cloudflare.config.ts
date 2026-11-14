@@ -1,4 +1,4 @@
-import { bindings, defineConfig } from "cf/config";
+import { bindings, defineConfig, exports } from "cf/config";
 import * as entrypoint from "./entry.ts" with { type: "cf-worker" };
 
 export default defineConfig(() => ({
@@ -6,6 +6,7 @@ export default defineConfig(() => ({
 		name: "stuff",
 		compatibilityDate: "2026-10-30",
 		entrypoint,
+		exports: { PublicationCoordinator: exports.durableObject({ storage: "sqlite" }) },
 		cache: {
 			enabled: true,
 		},
@@ -56,6 +57,7 @@ export default defineConfig(() => ({
 			OCI_BLOBS: bindings.r2({
 				name: "stuff-oci-blobs",
 			}),
+			COORDINATOR: bindings.durableObject({ worker: "stuff", exportName: "PublicationCoordinator" }),
 			STUFF_RELEASE: bindings.text("development"),
 		},
 	},

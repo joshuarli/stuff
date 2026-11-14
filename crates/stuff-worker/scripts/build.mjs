@@ -35,6 +35,7 @@ const manifest = {
   mainModule: "entry.js",
   modules: {
     "entry.js": { type: "esm" },
+    "src/coordinator.js": { type: "esm" },
     "build/wasm/stuff_worker.js": { type: "esm" },
     "build/wasm/stuff_worker_bg.wasm": { type: "wasm" },
   },

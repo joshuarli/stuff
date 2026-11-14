@@ -1,3 +1,4 @@
+export { PublicationCoordinator } from "./src/coordinator.js";
 import {
   initSync,
   map_asset_json,
@@ -55,6 +56,10 @@ type R2ListingLike =
   | { objects: { key: string }[]; truncated: true; cursor: string }
   | { objects: { key: string }[]; truncated: false };
 
+interface CoordinatorNamespace {
+  idFromName(name: string): unknown;
+  get(id: unknown): { fetch(request: Request): Promise<Response> };
+}
 interface WorkerEnv {
   readonly STUFF_ROUTES: string;
   readonly STUFF_UNIFIED_HOST?: string;
@@ -66,7 +71,10 @@ interface WorkerEnv {
   readonly STUFF_OCI_PUSH_SECRET?: string;
   readonly STUFF_OCI_WRITER_ORIGIN?: string;
   readonly STUFF_RELEASE: string;
-  readonly [binding: string]: R2BucketLike | string | undefined;
+  readonly STUFF_COORDINATOR_ENABLED?: string;
+  readonly STUFF_COORDINATOR_TOKEN?: string;
+  readonly COORDINATOR?: CoordinatorNamespace;
+  readonly [binding: string]: R2BucketLike | CoordinatorNamespace | string | undefined;
 }
 
 interface Mapped {
@@ -170,10 +178,37 @@ interface OciGeneration {
 
 function bucket(env: WorkerEnv, binding: string): R2BucketLike {
   const found = env[binding];
-  if (!found || typeof found === "string" || !("get" in found) || typeof found.get !== "function") {
+  if (!found || typeof found === "string" || !("head" in found) || typeof found.head !== "function") {
     throw new Error(`missing R2 binding: ${binding}`);
   }
   return found;
+}
+
+const COORDINATOR_REGISTRIES: Record<string, string> = { MYCRATES: "cargo", MYNPM: "npm", PYPI: "pypi", OCI: "oci", MIRROR: "mirror" };
+async function coordinatorRequest(env: WorkerEnv, registry: string, op: string, req?: Request): Promise<Response> {
+  const namespace = env.COORDINATOR;
+  if (!namespace) throw new Error("coordinator unavailable");
+  return namespace.get(namespace.idFromName(registry)).fetch(new Request(`https://coordinator/${registry}/${op}`, req));
+}
+async function readPointer(env: WorkerEnv, binding: string, store: R2BucketLike, key: string): Promise<R2ObjectLike | null> {
+  if (env.STUFF_COORDINATOR_ENABLED !== "true" || key !== "current") return store.get(key);
+  const registry = COORDINATOR_REGISTRIES[binding];
+  if (!registry) throw new Error("unknown registry");
+  const result = await coordinatorRequest(env, registry, "current");
+  if (!result.ok) throw new Error("coordinator unavailable");
+  const current = await result.json() as { generation: string | null };
+  if (current.generation === null) return null;
+  const text = current.generation;
+  return { size: text.length, etag: "", httpEtag: "", body: null, text: async () => text };
+}
+async function authorized(req: Request, secret: string): Promise<boolean> {
+  const supplied = req.headers.get("authorization") ?? "";
+  const encoder = new TextEncoder();
+  const [a, b] = await Promise.all([crypto.subtle.digest("SHA-256", encoder.encode(supplied)), crypto.subtle.digest("SHA-256", encoder.encode(`Bearer ${secret}`))]);
+  const x = new Uint8Array(a), y = new Uint8Array(b);
+  let difference = 0;
+  for (let i = 0; i < x.length; i += 1) difference |= x[i]! ^ y[i]!;
+  return secret !== "" && difference === 0;
 }
 
 const NOT_FOUND_CACHE_CONTROL = "public, max-age=60";
@@ -188,7 +223,7 @@ function notFound(): Response {
 const UNIFIED_BINDINGS = ["MYCRATES", "MYNPM", "PYPI", "OCI", "MIRROR"] as const;
 
 async function currentGeneration(env: WorkerEnv, binding: string): Promise<string | null> {
-  const pointer = await bucket(env, binding).get("current");
+  const pointer = await readPointer(env, binding, bucket(env, binding), "current");
   if (pointer === null) {
     return null;
   }
@@ -637,7 +672,7 @@ async function ociFetch(req: Request, env: WorkerEnv, url: URL): Promise<Respons
   }
   const repository = parsed.repository ?? "";
   const meta = bucket(env, "OCI");
-  const pointer = await meta.get("current");
+  const pointer = await readPointer(env, "OCI", meta, "current");
   if (pointer === null) {
     return ociPlanResponse(
       JSON.parse(oci_error_json("NAME_UNKNOWN", repository)) as OciPlan,
@@ -728,6 +763,13 @@ async function primaryRead(
 export default {
   async fetch(req: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(req.url);
+    if (url.hostname === env.STUFF_UNIFIED_HOST && url.pathname.startsWith("/_publication/")) {
+      if (env.STUFF_COORDINATOR_ENABLED !== "true") return notFound();
+      if (!await authorized(req, env.STUFF_COORDINATOR_TOKEN ?? "")) return new Response("unauthorized", { status: 401 });
+      const match = /^\/_publication\/(cargo|npm|pypi|oci|mirror)\/(begin|renew|abort|activate|rollback|gc-claim|gc-delete|current)$/.exec(url.pathname);
+      if (!match) return notFound();
+      return coordinatorRequest(env, match[1]!, match[2]!, req);
+    }
     const ociHost = env.STUFF_OCI_HOST;
     if (
       typeof ociHost === "string" &&
@@ -737,6 +779,7 @@ export default {
         url.pathname === "/v2/" ||
         url.pathname.startsWith("/v2/"))
     ) {
+      if (env.STUFF_COORDINATOR_ENABLED === "true" && req.method !== "GET" && req.method !== "HEAD") return new Response("writes unavailable", { status: 503 });
       return ociFetch(req, env, url);
     }
     if (req.method !== "GET" && req.method !== "HEAD") {
@@ -814,7 +857,7 @@ export default {
           speculativeRead.catch(() => undefined);
         }
       }
-      const pointer = await store.get(pointerKey);
+      const pointer = await readPointer(env, mapped.bucket_binding, store, pointerKey);
       if (pointer === null) {
         lastPointerText.delete(rememberedKey);
         return notFound();
