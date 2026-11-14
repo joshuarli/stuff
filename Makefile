@@ -1,4 +1,4 @@
-.PHONY: help release lint ts-lint repomod-test repomod-lint deps dashboard-ts bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-mirror republish-oci search-bundle catalog-css test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
+.PHONY: help release lint ts-lint repomod-test repomod-lint deps dashboard-ts bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-mirror republish-oci search-bundle catalog-css test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve stuff test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -173,6 +173,15 @@ SERVE_PORT ?= 8000
 
 serve: ## Serve a published site dir locally (SITE_DIR= [SERVE_PORT=])
 	cargo run -q -p stuff-server -- --bind 127.0.0.1:$(SERVE_PORT) --route /=$(SITE_DIR)
+
+STUFF_SITE := .work/site-stuff
+STUFF_PORT ?= 8080
+
+stuff: ## Render the unified registry page from the live catalogs and serve it locally
+	@mkdir -p $(STUFF_SITE)
+	cargo run -q -p stuff -- render --output $(STUFF_SITE)/index.html
+	cargo run -q -p stuff -- render --output $(STUFF_SITE)/llms.txt
+	@exec srv -p $(STUFF_PORT) $(STUFF_SITE)
 
 test-publish-lock: ## Check the cross-repo publish lock serializes writers ([WAITERS=4])
 	@mkdir -p .work/tmp
