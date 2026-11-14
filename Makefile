@@ -1,4 +1,4 @@
-.PHONY: help release lint ts-lint repomod-test repomod-lint deps bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-mirror republish-oci search-bundle catalog-css test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve stuff test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
+.PHONY: help release lint ts-lint repomod-test repomod-lint deps bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-mirror republish-oci search-bundle catalog-css test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test worker-orange-test worker-orange-package-test gc serve stuff test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -102,6 +102,9 @@ worker-bundle: ## Build the Cloudflare worker bundle once for test and deploy
 
 worker-test: worker-bundle ## Exercise the worker bundle under the workerd runtime
 	cd $(WORKER_DIR) && pnpm run test:runtime
+
+worker-orange-package-test: worker-bundle ## Verify relocated OpenOrange image inputs
+	cd $(WORKER_DIR) && node --test test/orange-packaging.test.mjs
 
 worker-orange-test: ## Run the built registry Worker under the pinned OpenOrange with seeded storage
 	pnpm --dir crates/stuff-worker install --frozen-lockfile

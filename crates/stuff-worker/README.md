@@ -100,6 +100,12 @@ and R2 bindings and sets `STUFF_RELEASE`. `make worker-orange-test` runs the
 built Worker under the pinned `orange dev` with seeded storage for every
 registry hostname.
 
+For an image, install the existing locked Worker dependencies, commit the tree,
+then run `crates/stuff-worker/orange/build-image.sh HOST`. It builds the Worker,
+stages a portable descriptor and bundle, and builds `stuff:<commit>` on HOST
+for Linux amd64 over SSH. Supply runtime secrets separately on the host. Run
+`make worker-orange-package-test` to verify the relocated staging paths.
+
 Cloudflare-specific surfaces and what replaced them:
 
 | Surface | On OpenOrange |
