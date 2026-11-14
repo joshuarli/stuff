@@ -62,13 +62,13 @@
    "state": "partial"
   },
   "joshuarli/stats": {
-   "commit": "8a90fa1528455534326e39b9452c06ef09c6d63a",
-   "inputs_fingerprint": "50e69ba38fef6669cfa023cf8a30f82e39d55b32de87ba3c5de7f84742a887a3",
+   "commit": "1124d0e7586cc903e77341532282ca2380f6f82c",
+   "inputs_fingerprint": "aee5b5f3dc8df5b04a19d6a064ceab6087ca036c6acc425f12cd20e88cb7ff53",
    "state": "partial"
   },
   "joshuarli/stuff": {
-   "commit": "178ef3368a992a100d4b2e6f940f7364f97721ac",
-   "inputs_fingerprint": "1bc8e2ae74c8b5288147c6dd8a5c5de6820529242e7ed427b57edc50baa5e88c",
+   "commit": "93339ee6a4f388ec21f0e1a679f59c2aff7ddd49",
+   "inputs_fingerprint": "16f00156983ce6d68ab5a4f95cc1082847630b981535fa981d714bde25662953",
    "state": "partial"
   },
   "joshuarli/syncthing": {
@@ -232,8 +232,8 @@
    "state": "partial"
   },
   "laputa-systems/ssh-build": {
-   "commit": "63c22725da4e65c2b197ee7755cfd681950528ec",
-   "inputs_fingerprint": "52a2c3050cfe0cb5d255afa3a7b7f8c1b176ad98f3324edcd9a79f8d751ad3c6",
+   "commit": "ba4e5e269b1737b32cf7cdaa08e739ec06712cf5",
+   "inputs_fingerprint": "bef8d003700282cd56a2c327ef1ffe491433f52f2cfdee04c93a56f26f69ff5a",
    "state": "partial"
   },
   "laputa-systems/tm": {

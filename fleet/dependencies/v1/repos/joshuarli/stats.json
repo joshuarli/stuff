@@ -25,10 +25,28 @@
    "purl": "pkg:cargo/arrayvec"
   },
   {
+   "display_name": "assert_matches",
+   "ecosystem": "cargo",
+   "name": "assert_matches",
+   "purl": "pkg:cargo/assert_matches"
+  },
+  {
    "display_name": "autocfg",
    "ecosystem": "cargo",
    "name": "autocfg",
    "purl": "pkg:cargo/autocfg"
+  },
+  {
+   "display_name": "aya",
+   "ecosystem": "cargo",
+   "name": "aya",
+   "purl": "pkg:cargo/aya"
+  },
+  {
+   "display_name": "aya-obj",
+   "ecosystem": "cargo",
+   "name": "aya-obj",
+   "purl": "pkg:cargo/aya-obj"
   },
   {
    "display_name": "base64",
@@ -109,6 +127,12 @@
    "purl": "pkg:cargo/core-foundation-sys"
   },
   {
+   "display_name": "crc32fast",
+   "ecosystem": "cargo",
+   "name": "crc32fast",
+   "purl": "pkg:cargo/crc32fast"
+  },
+  {
    "display_name": "defmt",
    "ecosystem": "cargo",
    "name": "defmt",
@@ -167,6 +191,12 @@
    "ecosystem": "cargo",
    "name": "find-msvc-tools",
    "purl": "pkg:cargo/find-msvc-tools"
+  },
+  {
+   "display_name": "foldhash",
+   "ecosystem": "cargo",
+   "name": "foldhash",
+   "purl": "pkg:cargo/foldhash"
   },
   {
    "display_name": "getrandom",
@@ -305,6 +335,12 @@
    "ecosystem": "cargo",
    "name": "num-traits",
    "purl": "pkg:cargo/num-traits"
+  },
+  {
+   "display_name": "object",
+   "ecosystem": "cargo",
+   "name": "object",
+   "purl": "pkg:cargo/object"
   },
   {
    "display_name": "once_cell",
@@ -461,6 +497,12 @@
    "ecosystem": "cargo",
    "name": "schannel",
    "purl": "pkg:cargo/schannel"
+  },
+  {
+   "display_name": "scopeguard",
+   "ecosystem": "cargo",
+   "name": "scopeguard",
+   "purl": "pkg:cargo/scopeguard"
   },
   {
    "display_name": "security-framework",
@@ -2703,6 +2745,28 @@
    "to": "pkg:apk/musl-dev#"
   },
   {
+   "condition": "feature:aya",
+   "constraint": "0.16.0",
+   "evidence": [
+    {
+     "locator": "dependencies.aya",
+     "path": "agent/Cargo.toml"
+    },
+    {
+     "locator": "package[name=stats,version=0.1.0].dependencies[0]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "agent:cargo",
+   "optional": true,
+   "relation": "direct",
+   "resolution": "conditional",
+   "resolved_version": "0.16.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/aya@0.16.0#"
+  },
+  {
    "condition": null,
    "constraint": "0.10.2",
    "evidence": [
@@ -2711,7 +2775,7 @@
      "path": "agent/Cargo.toml"
     },
     {
-     "locator": "package[name=stats,version=0.1.0].dependencies[1]",
+     "locator": "package[name=stats,version=0.1.0].dependencies[2]",
      "path": "agent/Cargo.lock"
     }
    ],
@@ -2733,7 +2797,7 @@
      "path": "agent/Cargo.toml"
     },
     {
-     "locator": "package[name=stats,version=0.1.0].dependencies[2]",
+     "locator": "package[name=stats,version=0.1.0].dependencies[3]",
      "path": "agent/Cargo.lock"
     }
    ],
@@ -2755,7 +2819,7 @@
      "path": "agent/Cargo.toml"
     },
     {
-     "locator": "package[name=stats,version=0.1.0].dependencies[0]",
+     "locator": "package[name=stats,version=0.1.0].dependencies[1]",
      "path": "agent/Cargo.lock"
     }
    ],
@@ -2777,7 +2841,7 @@
      "path": "agent/Cargo.toml"
     },
     {
-     "locator": "package[name=stats,version=0.1.0].dependencies[3]",
+     "locator": "package[name=stats,version=0.1.0].dependencies[4]",
      "path": "agent/Cargo.lock"
     }
    ],
@@ -2799,7 +2863,7 @@
      "path": "agent/Cargo.toml"
     },
     {
-     "locator": "package[name=stats,version=0.1.0].dependencies[4]",
+     "locator": "package[name=stats,version=0.1.0].dependencies[5]",
      "path": "agent/Cargo.lock"
     }
    ],
@@ -2821,7 +2885,7 @@
      "path": "agent/Cargo.toml"
     },
     {
-     "locator": "package[name=stats,version=0.1.0].dependencies[5]",
+     "locator": "package[name=stats,version=0.1.0].dependencies[6]",
      "path": "agent/Cargo.lock"
     }
    ],
@@ -3331,6 +3395,258 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/h12tiny-client-sync@0.9.0?repository_url=https%3A%2F%2Fcrates.17166969.xyz%2Fcurrent%2Fregistry%2F#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya-obj,version=0.6.0].dependencies[0]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya-obj@0.6.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.12.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/bytes@1.12.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya-obj,version=0.6.0].dependencies[1]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya-obj@0.6.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/log@0.4.35#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya-obj,version=0.6.0].dependencies[2]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya-obj@0.6.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.40.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/object@0.40.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya-obj,version=0.6.0].dependencies[3]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya-obj@0.6.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.0.21",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/thiserror@2.0.21#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya,version=0.16.0].dependencies[0]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya@0.16.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.5.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/assert_matches@1.5.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya,version=0.16.0].dependencies[1]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya@0.16.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.6.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/aya-obj@0.6.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya,version=0.16.0].dependencies[2]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya@0.16.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.13.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/bitflags@2.13.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya,version=0.16.0].dependencies[3]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya@0.16.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.17.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/hashbrown@0.17.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya,version=0.16.0].dependencies[4]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya@0.16.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.191",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/libc@0.2.191#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya,version=0.16.0].dependencies[5]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya@0.16.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.4.35",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/log@0.4.35#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya,version=0.16.0].dependencies[6]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya@0.16.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.40.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/object@0.40.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya,version=0.16.0].dependencies[7]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya@0.16.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.21.4",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/once_cell@1.21.4#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya,version=0.16.0].dependencies[8]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya@0.16.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/scopeguard@1.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=aya,version=0.16.0].dependencies[9]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/aya@0.16.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.0.21",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/thiserror@2.0.21#"
   },
   {
    "condition": null,
@@ -4015,6 +4331,24 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/libc@0.2.191#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=crc32fast,version=1.5.5].dependencies[0]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/crc32fast@1.5.5#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/cfg-if@1.0.5#"
   },
   {
    "condition": null,
@@ -5623,6 +5957,42 @@
    "constraint": null,
    "evidence": [
     {
+     "locator": "package[name=hashbrown,version=0.17.1].dependencies[0]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/hashbrown@0.17.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.0.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/equivalent@1.0.3#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=hashbrown,version=0.17.1].dependencies[1]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/hashbrown@0.17.1#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.2.0",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/foldhash@0.2.0#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
      "locator": "package[name=http,version=1.5.0].dependencies[0]",
      "path": "Cargo.lock"
     }
@@ -6949,6 +7319,78 @@
    "scope": "runtime",
    "source_kind": "registry",
    "to": "pkg:cargo/autocfg@1.5.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=object,version=0.40.0].dependencies[0]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/object@0.40.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "1.5.5",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/crc32fast@1.5.5#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=object,version=0.40.0].dependencies[1]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/object@0.40.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "0.17.1",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/hashbrown@0.17.1#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=object,version=0.40.0].dependencies[2]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/object@0.40.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.14.2",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/indexmap@2.14.2#"
+  },
+  {
+   "condition": null,
+   "constraint": null,
+   "evidence": [
+    {
+     "locator": "package[name=object,version=0.40.0].dependencies[3]",
+     "path": "agent/Cargo.lock"
+    }
+   ],
+   "from": "pkg:cargo/object@0.40.0#",
+   "optional": false,
+   "relation": "transitive",
+   "resolution": "resolved",
+   "resolved_version": "2.8.3",
+   "scope": "runtime",
+   "source_kind": "registry",
+   "to": "pkg:cargo/memchr@2.8.3#"
   },
   {
    "condition": null,
@@ -17133,11 +17575,11 @@
    "path": "Makefile"
   },
   {
-   "blob": "ca4c8f386a7d05a3524f4d00543bc62800e0fe58",
+   "blob": "c64f8305d13f4d1abf42c367f56d69627041bd88",
    "path": "agent/Cargo.lock"
   },
   {
-   "blob": "9b22154213c5a894c5062fa15cb756af9a99d42c",
+   "blob": "b801ea0e578e450df250d6b1d68d05d5956dfc65",
    "path": "agent/Cargo.toml"
   },
   {
@@ -17177,7 +17619,7 @@
    "path": "rust-toolchain.toml"
   }
  ],
- "inputs_fingerprint": "50e69ba38fef6669cfa023cf8a30f82e39d55b32de87ba3c5de7f84742a887a3",
+ "inputs_fingerprint": "aee5b5f3dc8df5b04a19d6a064ceab6087ca036c6acc425f12cd20e88cb7ff53",
  "instances": [
   {
    "commit": null,
@@ -17233,6 +17675,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/assert_matches",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/assert_matches@1.5.0#",
+   "purl": "pkg:cargo/assert_matches@1.5.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.5.0"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/autocfg",
    "context": "",
    "first_party": false,
@@ -17243,6 +17698,32 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "1.5.1"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/aya-obj",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/aya-obj@0.6.0#",
+   "purl": "pkg:cargo/aya-obj@0.6.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.6.0"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/aya",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/aya@0.16.0#",
+   "purl": "pkg:cargo/aya@0.16.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.16.0"
   },
   {
    "commit": null,
@@ -17441,6 +17922,19 @@
   },
   {
    "commit": null,
+   "component": "pkg:cargo/crc32fast",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/crc32fast@1.5.5#",
+   "purl": "pkg:cargo/crc32fast@1.5.5",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.5.5"
+  },
+  {
+   "commit": null,
    "component": "pkg:cargo/defmt-macros",
    "context": "",
    "first_party": false,
@@ -17568,6 +18062,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.1.15"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/foldhash",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/foldhash@0.2.0#",
+   "purl": "pkg:cargo/foldhash@0.2.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.2.0"
   },
   {
    "commit": null,
@@ -17958,6 +18465,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.2.19"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/object",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/object@0.40.0#",
+   "purl": "pkg:cargo/object@0.40.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "0.40.0"
   },
   {
    "commit": null,
@@ -18361,6 +18881,19 @@
    "source_kind": "registry",
    "vcs_url": null,
    "version": "0.1.30"
+  },
+  {
+   "commit": null,
+   "component": "pkg:cargo/scopeguard",
+   "context": "",
+   "first_party": false,
+   "id": "pkg:cargo/scopeguard@1.2.0#",
+   "purl": "pkg:cargo/scopeguard@1.2.0",
+   "registry_url": "https://github.com/rust-lang/crates.io-index",
+   "repository_url": null,
+   "source_kind": "registry",
+   "vcs_url": null,
+   "version": "1.2.0"
   },
   {
    "commit": null,
