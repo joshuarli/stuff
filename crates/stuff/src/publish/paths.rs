@@ -31,6 +31,10 @@ impl Paths {
         Paths { config_root, cache_root, state_root }
     }
 
+    pub fn publishing_credentials_file(&self) -> PathBuf {
+        self.config_root.join("credentials.json")
+    }
+
     pub fn config_file(&self) -> PathBuf {
         self.config_root.join("config.json")
     }

@@ -16,6 +16,13 @@ pub fn resolve(
     profile: &str,
     bucket: &str,
 ) -> Result<Credentials, PublishError> {
+    if let Some(service) = crate::publish::service::PublishingService::configured(env)? {
+        return Ok(Credentials {
+            endpoint: format!("{}/_s3", service.endpoint),
+            access_key_id: service.access_key_id, secret_access_key: service.secret_access_key,
+            region: service.region, session_token: None,
+        });
+    }
     if let Some(credentials) = direct_credentials(env) {
         return Ok(credentials);
     }
@@ -289,6 +296,31 @@ fn config(detail: impl Into<String>) -> PublishError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn coordinator_mode_requires_the_service_key_and_ignores_backend_credentials() {
+        let missing = Environment::from_pairs([
+            ("STUFF_COORDINATOR_URL", "http://127.0.0.1:8787"),
+            ("R2_S3_ENDPOINT", "http://backend"),
+            ("R2_S3_ACCESS_KEY_ID", "backend-key"),
+            ("R2_S3_SECRET_ACCESS_KEY", "backend-secret"),
+        ]);
+        assert!(resolve(&missing, "stuff", "bucket").is_err());
+        let configured = Environment::from_pairs([
+            ("STUFF_COORDINATOR_URL", "http://127.0.0.1:8787"),
+            ("STUFF_S3_GATEWAY_URL", "http://127.0.0.1:8787/_s3"),
+            ("STUFF_COORDINATOR_TOKEN", "service-token"),
+            ("STUFF_S3_ACCESS_KEY_ID", "service-key"),
+            ("STUFF_S3_SECRET_ACCESS_KEY", "service-secret"),
+            ("R2_S3_ENDPOINT", "http://backend"),
+            ("R2_S3_ACCESS_KEY_ID", "backend-key"),
+            ("R2_S3_SECRET_ACCESS_KEY", "backend-secret"),
+        ]);
+        let credentials = resolve(&configured, "stuff", "bucket").unwrap();
+        assert_eq!(credentials.endpoint, "http://127.0.0.1:8787/_s3");
+        assert_eq!(credentials.access_key_id, "service-key");
+        assert_eq!(credentials.secret_access_key, "service-secret");
+    }
 
     #[test]
     fn direct_credentials_skip_any_cf_lookup() {

@@ -571,3 +571,30 @@ also checks every declared blob in the separate blob bucket. GC must extend its
 durable retirement protocol to shared objects and blob retention. Until those controls exist,
 unrestricted R2 credentials and the legacy writers can bypass this authority;
 lease checks alone cannot protect an external request already in flight at a crash.
+
+## Coordinated publishing service
+
+A configured publishing service owns the registry revision and grants one
+renewable upload lease per registry. Native publication and rollback use that
+revision, upload immutable objects through the service's signed `/_s3` route,
+and activate the exact manifest through the coordinator. A lost activation
+response retries the same receipt identity. Dry runs acquire no upload lease.
+
+Store service credentials in `~/.config/stuff/credentials.json` with mode 600
+(or select a file with `STUFF_CREDENTIAL_FILE`). `STUFF_CONFIG_HOME` and
+`XDG_CONFIG_HOME` follow the existing configuration directory rules. The JSON
+has schema 1 and requires `endpoint`, `coordinator_token`, `access_key_id`,
+`secret_access_key`, and `region`. The endpoint is the management origin, for
+example `https://stuff.17166969.xyz`; its S3 route is derived from that origin.
+These are service credentials, distinct from the backing store credentials.
+The service must be enabled and verified before installing this file.
+
+For isolated runs the equivalent bindings are `STUFF_COORDINATOR_URL`,
+`STUFF_COORDINATOR_TOKEN`, `STUFF_S3_ACCESS_KEY_ID`, `STUFF_S3_SECRET_ACCESS_KEY`,
+and optional `STUFF_S3_REGION` (default `auto`). Partial service configuration
+fails before publishing. Endpoint URLs require HTTPS except for local test
+servers. Service tokens and secret keys are omitted from debug output.
+
+The legacy GC scripts refuse service configuration; collection must use the
+coordinator's lease and retirement protocol. Backend credentials must never
+be given to an ordinary publisher.

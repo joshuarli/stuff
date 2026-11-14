@@ -47,6 +47,7 @@ pub fn publish(
         transaction_state,
         snapshot_cache,
         TransactionOptions {
+            coordinator: crate::publish::coordinator::Coordinator::configured(environment, Registry::Pypi)?,
             dry_run: options.dry_run,
             ..TransactionOptions::default()
         },

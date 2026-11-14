@@ -37,6 +37,7 @@ pub fn rollback(
         None => Ok(()),
     };
     let report = transaction::rollback(
+        crate::publish::coordinator::Coordinator::configured(environment, registry)?,
         credentials,
         RollbackTarget { registry, bucket: &bucket, generation, verify: &verify_target },
         paths.publish_state_dir(registry),

@@ -37,6 +37,7 @@ impl OciPaths {
 }
 
 pub struct Context {
+    pub coordinator: Option<crate::publish::coordinator::Coordinator>,
     pub config: Config,
     pub credentials: Credentials,
     pub paths: OciPaths,
@@ -54,6 +55,7 @@ pub fn publish(
         source,
         options,
         &Context {
+            coordinator: crate::publish::coordinator::Coordinator::configured(environment, Registry::Oci)?,
             config,
             credentials,
             paths,
@@ -90,6 +92,7 @@ pub fn publish_with(
         paths.transaction_state_dir.clone(),
         snapshot_cache,
         TransactionOptions {
+            coordinator: context.coordinator.clone(),
             dry_run: options.dry_run,
             ..TransactionOptions::default()
         },

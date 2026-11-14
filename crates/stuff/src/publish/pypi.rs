@@ -48,7 +48,11 @@ pub fn run(
         publish,
         &paths.publish_state_dir(Registry::Pypi),
         &paths.cache_dir("pypi"),
-        options,
+        TransactionOptions {
+            coordinator: crate::publish::coordinator::Coordinator::configured(environment, Registry::Pypi)?,
+            dry_run: options.dry_run,
+            ..TransactionOptions::default()
+        },
     )
 }
 
@@ -101,7 +105,7 @@ fn publish_internal(
     publish: &PypiPublish,
     state_dir: &Path,
     cache_dir: &Path,
-    options: &Options,
+    options: TransactionOptions,
 ) -> Result<Outcome, PublishError> {
     let catalog = resolved_catalog(&publish.specs, settings, cache_dir)?;
     let _platform = local_platform()?;
@@ -126,10 +130,7 @@ fn publish_internal(
         config,
         transaction_state,
         snapshot_cache,
-        TransactionOptions {
-            dry_run: options.dry_run,
-            ..TransactionOptions::default()
-        },
+        options,
     )?;
     let mut acquired = false;
     let report = pending.publish(|pending| {

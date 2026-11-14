@@ -34,6 +34,13 @@ def load_sibling(name, filename):
     return module
 
 
+def require_legacy_gc():
+    root = os.environ.get("STUFF_CONFIG_HOME") or os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "stuff")
+    credential_file = os.environ.get("STUFF_CREDENTIAL_FILE") or os.path.join(root, "credentials.json")
+    if os.path.exists(credential_file) or os.environ.get("STUFF_COORDINATOR_URL") or os.environ.get("STUFF_COORDINATOR_ENABLED") == "true":
+        fail("legacy GC is unavailable when the publication coordinator is configured")
+
+
 def mint_s3_credentials(bucket):
     stuff = os.environ.get("STUFF", "stuff")
     try:

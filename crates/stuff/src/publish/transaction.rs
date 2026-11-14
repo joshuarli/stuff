@@ -7,6 +7,7 @@ use std::time::Duration;
 use stuff_store::{FileLock, LockError};
 
 use crate::publish::config::Config;
+use crate::publish::coordinator::{Coordinator, Lease};
 use crate::publish::r2::client::{Credentials, ObjectMeta, R2Client};
 use crate::publish::r2::guard;
 use crate::publish::r2::promote;
@@ -25,6 +26,7 @@ const DEFAULT_LOCK_WAIT: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone)]
 pub struct TransactionOptions {
+    pub coordinator: Option<Coordinator>,
     pub dry_run: bool,
     pub allow_drops: bool,
     pub expected: Option<String>,
@@ -37,6 +39,7 @@ pub struct TransactionOptions {
 impl Default for TransactionOptions {
     fn default() -> Self {
         TransactionOptions {
+            coordinator: None,
             dry_run: false,
             allow_drops: false,
             expected: None,
@@ -111,6 +114,7 @@ pub struct Pending {
     config: Config,
     cache_dir: PathBuf,
     _lock: Option<FileLock>,
+    lease: Option<Lease>,
 }
 
 pub struct Transaction {
@@ -126,6 +130,7 @@ pub struct Transaction {
     marker: Option<promote::Marker>,
     plan: SitePlan,
     _lock: Option<FileLock>,
+    lease: Option<Lease>,
 }
 
 impl Transaction {
@@ -181,11 +186,17 @@ impl Pending {
             expected,
             lock,
         } = source;
-        let client = build_client(&credentials, &options);
-        let snapshot_client = build_client(&credentials, &options);
+        let coordinator = options.coordinator.clone();
+        let lease = if options.dry_run { None } else { coordinator.as_ref().map(Coordinator::begin).transpose()? };
+        let mut scoped = credentials.clone();
+        if let Some(lease) = &lease { scoped.session_token = Some(lease.token.clone()); }
+        let client = build_client(&scoped, &options);
+        let snapshot_client = build_client(&scoped, &options);
         let snapshot = Snapshot::open(snapshot_client, registry, &config, cache_dir.clone())?;
         let metadata_bucket = snapshot::metadata_bucket(registry, &config);
-        let marker = promote::read_marker(&client, &metadata_bucket)?;
+        let marker = if let Some(coordinator) = &coordinator {
+            coordinator.current()?.1.map(|generation| promote::Marker { generation, etag: String::new() })
+        } else { promote::read_marker(&client, &metadata_bucket)? };
         let blobs_bucket = (registry == Registry::Oci).then(|| config.oci.blobs_bucket.clone());
         Ok(Pending {
             client,
@@ -201,6 +212,7 @@ impl Pending {
             config,
             cache_dir,
             _lock: lock,
+            lease,
         })
     }
 
@@ -327,6 +339,7 @@ impl Pending {
             marker: self.marker,
             plan,
             _lock: self._lock,
+            lease: self.lease,
         })
     }
 }
@@ -384,19 +397,21 @@ impl Transaction {
         if !executed.uploaded.is_empty() {
             uploaded += executed.uploaded.len();
         }
-        let promotion = match promote::promote_attempt(
-            &self.client,
-            &self.metadata_bucket,
-            &self.generation,
-            self.expected.as_deref(),
-        )? {
-            promote::PromotionAttempt::Promoted(promotion) => promotion,
-            promote::PromotionAttempt::Precondition => {
-                report.status = Status::Conflict;
-                return Ok(Attempt::Precondition(report));
+        let promoted = if let Some(lease) = &self.lease {
+            let manifest_key = format!("manifests/{}.json", self.generation);
+            let manifest = self.client.get_object(&self.metadata_bucket, &manifest_key)?;
+            lease.activate("activate", &self.generation, &manifest)?;
+            !self.current_is_generation()
+        } else {
+            match promote::promote_attempt(&self.client, &self.metadata_bucket, &self.generation, self.expected.as_deref())? {
+                promote::PromotionAttempt::Promoted(promotion) => promotion.promoted,
+                promote::PromotionAttempt::Precondition => {
+                    report.status = Status::Conflict;
+                    return Ok(Attempt::Precondition(report));
+                }
             }
         };
-        let changed = promotion.promoted || uploaded > 0;
+        let changed = promoted || uploaded > 0;
         report.status = if changed {
             Status::Published
         } else {
@@ -433,6 +448,7 @@ pub struct RollbackTarget<'a> {
 }
 
 pub fn rollback(
+    coordinator: Option<Coordinator>,
     credentials: Credentials,
     target: RollbackTarget<'_>,
     state_dir: PathBuf,
@@ -448,8 +464,13 @@ pub fn rollback(
         ))
     })?;
     let _lock = acquire_lock(&state_dir, lock_wait)?;
+    let lease = if dry_run { None } else { coordinator.as_ref().map(Coordinator::begin).transpose()? };
+    let mut credentials = credentials;
+    if let Some(lease) = &lease { credentials.session_token = Some(lease.token.clone()); }
     let client = R2Client::new(credentials);
-    let marker = promote::read_marker(&client, bucket)?;
+    let marker = if let Some(coordinator) = &coordinator {
+        coordinator.current()?.1.map(|generation| promote::Marker { generation, etag: String::new() })
+    } else { promote::read_marker(&client, bucket)? };
     let would_change = marker
         .as_ref()
         .map(|marker| marker.generation.as_str())
@@ -460,9 +481,13 @@ pub fn rollback(
         false
     } else {
         verify_target(&client)?;
-        let promotion = promote::promote(&client, bucket, generation, None)?;
+        let promoted = if let Some(lease) = &lease {
+            let manifest = client.get_object(bucket, &format!("manifests/{generation}.json"))?;
+            lease.activate("rollback", generation, &manifest)?;
+            would_change
+        } else { promote::promote(&client, bucket, generation, None)?.promoted };
         write_record(&state_dir, generation)?;
-        promotion.promoted
+        promoted
     };
     let status = if dry_run {
         if would_change {

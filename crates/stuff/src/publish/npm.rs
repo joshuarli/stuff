@@ -167,6 +167,7 @@ pub fn run_publication(
         transaction_state,
         snapshot_cache,
         TransactionOptions {
+            coordinator: crate::publish::coordinator::Coordinator::configured(environment, Registry::Npm)?,
             dry_run: options.dry_run,
             ..TransactionOptions::default()
         },

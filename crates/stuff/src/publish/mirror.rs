@@ -107,6 +107,7 @@ fn run_publication(
         transaction_state,
         snapshot_cache,
         TransactionOptions {
+            coordinator: crate::publish::coordinator::Coordinator::configured(environment, Registry::Mirror)?,
             dry_run: options.dry_run,
             allow_drops: request.allow_drops,
             ..TransactionOptions::default()
