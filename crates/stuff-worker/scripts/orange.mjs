@@ -26,6 +26,7 @@ export function generate(destination, release) {
     else if (binding.type === "durable-object") { keys(binding, ["type", "worker", "exportName"], name); if (binding.worker !== worker.name) throw new Error("external durable object"); durable.push({ name, class_name: binding.exportName }); }
     else throw new Error(`unmapped binding ${name}: ${binding.type}`);
   }
+  vars.STUFF_S3_BUCKET_BINDINGS = JSON.stringify(Object.fromEntries(r2_buckets.map(({ binding, bucket_name }) => [binding, bucket_name])));
   vars.STUFF_RELEASE = release;
   if (durable.some(binding => !classes.includes(binding.class_name)) || classes.some(name => !durable.some(binding => binding.class_name === name))) throw new Error("unmapped durable object class");
   const config = { name: worker.name, main: join(output, "bundle", worker.manifest.mainModule), no_bundle: true, compatibility_date: worker.compatibilityDate, compatibility_flags: worker.compatibilityFlags ?? [], vars, r2_buckets, durable_objects: { bindings: durable }, migrations: [{ tag: "v1", new_sqlite_classes: classes }] };
