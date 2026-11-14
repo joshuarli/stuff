@@ -266,13 +266,22 @@ for the Cloudflare plugin).
    `oo-app.NAME` instance, starts it, re-renders and reloads Caddy.
    Other apps are not restarted. Roll an app: build, `oo set-image NAME IMAGE`
    (previous kept as `NAME.image.prev` for rollback), `rc-service oo-app.NAME restart`.
+   `NAME.image` is a versioned JSON deployment record: image and monotonically
+   increasing node version are replaced atomically and fsynced together.
+   Re-selecting the same image is idempotent. To roll back, pass the previous
+   record's `image` to `set-image`; this advances the node version even when
+   the application image moves backward. Existing plain-text image files are
+   read as version zero and upgraded on the next `set-image`.
 4. The app environment: `RIVET_ENDPOINT RIVET_NAMESPACE RIVET_TOKEN`,
    `GATEWAY_SECRET` (declared in `ORANGE_WORKER_SECRETS`, so it appears as a
    Worker secret binding), `S3_*`, and `ORANGE_R2_<BUCKET>_S3_*` for each R2
    binding. Extra secrets: list the names in `secrets = [...]` and put the
-   values in `/etc/openorange/apps/NAME.extra.env`. `RIVET_NODE_VERSION` is not
-   set (Orange logs a warning that actors will not drain automatically across
-   deploys).
+   values in `/etc/openorange/apps/NAME.extra.env`. `RIVET_NODE_VERSION` comes
+   from the app deployment record, so Rivet can drain actors across deploys.
+   The OpenRC unit sends TERM, permits 30 seconds for the container to drain,
+   then kills it; clients must retry interrupted requests. Verify application
+   state after every deployment rather than treating container readiness as
+   proof of acknowledged-write durability.
 5. Remove: `oo remove NAME [--purge-store]`. Rivet 3.1.x has no namespace
    delete, so the namespace and the app's Actor state remain in the Engine
    volumes.

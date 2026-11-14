@@ -8,11 +8,13 @@ the ingress configuration is derived here from `apps.toml` and
 from __future__ import annotations
 
 import ipaddress
+import fcntl
 import json
 import os
 import re
 import secrets
 import subprocess
+import tempfile
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -39,6 +41,69 @@ PRIMARY_POOL = "default"
 
 class ConfigError(Exception):
     pass
+
+
+@dataclass(frozen=True)
+class AppDeployment:
+    image: str
+    version: int
+
+
+def read_app_deployment(path: Path) -> AppDeployment:
+    text = path.read_text().strip()
+    if not text.startswith("{"):
+        if not text or any(c.isspace() for c in text):
+            raise ConfigError(f"invalid legacy image reference in {path}")
+        return AppDeployment(text, 0)
+    try:
+        value = json.loads(text)
+    except ValueError as error:
+        raise ConfigError(f"invalid deployment record in {path}") from error
+    if (not isinstance(value, dict) or set(value) != {"schema", "image", "version"}
+            or type(value["schema"]) is not int or value["schema"] != 1
+            or not isinstance(value["image"], str) or not value["image"]
+            or any(c.isspace() for c in value["image"])
+            or type(value["version"]) is not int or not 0 <= value["version"] <= 0xffffffff):
+        raise ConfigError(f"invalid deployment record in {path}")
+    return AppDeployment(value["image"], value["version"])
+
+
+def _replace_deployment(path: Path, deployment: AppDeployment) -> None:
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w") as out:
+            json.dump({"schema": 1, "image": deployment.image, "version": deployment.version}, out)
+            out.write("\n")
+            out.flush()
+            os.fsync(out.fileno())
+        os.replace(temporary, path)
+        directory = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def set_app_deployment(path: Path, image: str) -> AppDeployment:
+    if not image or any(c.isspace() for c in image):
+        raise ConfigError("image must be a nonempty reference without whitespace")
+    with path.with_suffix(".image.lock").open("a") as lockfile:
+        fcntl.flock(lockfile, fcntl.LOCK_EX)
+        current = read_app_deployment(path) if path.exists() else None
+        if current and current.image == image and current.version > 0:
+            return current
+        version = (current.version if current else 0) + 1
+        if version > 0xffffffff:
+            raise ConfigError("app deployment version exhausted")
+        if current:
+            previous = path.with_suffix(".image.prev")
+            _replace_deployment(previous, current)
+        deployment = AppDeployment(image, version)
+        _replace_deployment(path, deployment)
+        return deployment
 
 
 def _only(d: dict, allowed: set[str], where: str) -> None:
@@ -400,13 +465,13 @@ def run_args(cfg: Config, service: str, app: str | None = None) -> list[str]:
         if a is None or a.kind != "orange":
             raise ConfigError(f"unknown orange app {app!r}")
         img_file = cfg.app_image_file(a)
-        ref = img_file.read_text().strip() if img_file.exists() else ""
-        if not ref:
+        if not img_file.exists():
             raise ConfigError(f"no image deployed for {a.name}: run `oo set-image {a.name} IMAGE`")
+        deployment = read_app_deployment(img_file)
         return COMMON + ["--name", a.container, *_net(cfg, a.ip), "--read-only", "--stop-timeout", "30",
                          "--user", "1000:1000", "--memory", a.memory, "--cpus", str(a.cpus), "--pids-limit", "512",
                          "--env-file", str(cfg.app_env(a)), *(["--env-file", str(cfg.app_extra_env(a))] if cfg.app_extra_env(a).exists() else []), "--tmpfs", "/tmp", "--tmpfs", "/app/.open-orange", "--tmpfs", "/home/node:uid=1000,gid=1000",
-                         "--env", f"PORT={a.port}", ref]
+                         "--env", f"PORT={a.port}", "--env", f"RIVET_NODE_VERSION={deployment.version}", deployment.image]
     raise ConfigError(f"unknown service {service!r}")
 
 

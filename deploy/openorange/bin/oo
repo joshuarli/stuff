@@ -359,12 +359,8 @@ def cmd_set_image(cfg, app: str, image: str) -> None:
     if not a or a.kind != "orange":
         die(f"unknown orange app {app}")
     f = cfg.app_image_file(a)
-    if f.exists():
-        prev = f.with_suffix(".image.prev")
-        prev.write_text(f.read_text())
-    f.write_text(image.strip() + "\n")
-    os.chmod(f, 0o600)
-    print(f"{app}: image -> {image} (previous kept in {f.with_suffix('.image.prev').name})")
+    deployment = oolib.set_app_deployment(f, image.strip())
+    print(f"{app}: image -> {deployment.image}, node version {deployment.version} (previous kept in {f.with_suffix('.image.prev').name})")
 
 
 # ------------------------------------------------------------------ remove

@@ -104,9 +104,11 @@ def main():
             raise SystemExit(1)
         if a.app:
             app = cfg.apps[a.app]
-            ref = cfg.app_image_file(app).read_text().strip()
+            deployment = oolib.read_app_deployment(etc / "apps" / f"{a.app}.image")
+            ref = deployment.image
             aenv = oolib.read_env(etc / "apps" / f"{a.app}.env")
             aenv["RIVET_ENDPOINT"] = url
+            aenv["RIVET_NODE_VERSION"] = str(deployment.version)
             tmp = root / "app.env"
             oolib.write_env(tmp, aenv)
             aip = str(list(net.hosts())[-4])
