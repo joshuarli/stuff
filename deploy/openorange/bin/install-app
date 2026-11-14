@@ -9,6 +9,8 @@ set -eu
 NAME=${1:?usage: install-app NAME [IMAGE]}
 OO=/opt/openorange/bin/oo
 "$OO" validate >/dev/null
+SECRETS=/etc/openorange/ingress.env
+before=$(sha256sum "$SECRETS" 2>/dev/null || true)
 "$OO" provision "$NAME"
 [ -z "${2:-}" ] || "$OO" set-image "$NAME" "$2"
 [ -e "/etc/init.d/oo-app.$NAME" ] || ln -s oo-app "/etc/init.d/oo-app.$NAME"
@@ -17,5 +19,8 @@ if [ -f "/etc/openorange/apps/$NAME.image" ]; then
 	rc-update add "oo-app.$NAME" default >/dev/null 2>&1 || true
 	rc-service "oo-app.$NAME" restart
 fi
-if rc-service oo-ingress status >/dev/null 2>&1; then "$OO" reload-ingress; fi
+if rc-service oo-ingress status >/dev/null 2>&1; then
+	# Caddy reads gateway secrets from its environment, which a reload does not refresh.
+	if [ "$(sha256sum "$SECRETS" 2>/dev/null || true)" != "$before" ]; then rc-service oo-ingress restart; else "$OO" reload-ingress; fi
+fi
 echo "install-app: $NAME ok"
