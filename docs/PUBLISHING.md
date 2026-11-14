@@ -506,3 +506,18 @@ Generation GC holds its helper lock while planning and deleting; the package-reg
 | `publish: waiting for active writer` | Another publish, rollback, or gc holds the lock | Wait for it to finish |
 | `remote current is '...', expected '...'; refusing to overwrite a competing publication` | Another machine published, or rolled back, since this machine's last promotion | Publish again; `stuff` prepares the change against the new live generation |
 | `generation ... drops N versions served by live generation ...` | The proposed catalog lacks served versions | Re-plan against the current publication; use explicit rollback for a deliberate generation switch |
+
+## Copy a registry bucket to another store
+
+`deploy/store-copy.py copy SOURCE DEST --ledger FILE` copies every object of a bucket to another
+S3-compatible store and records each verified object in a JSON Lines ledger (key, size, SHA-256,
+source and destination ETags). Source credentials come from `STUFF_COPY_SOURCE_S3_*` or, when unset,
+`stuff credentials SOURCE`; destination credentials come from `STUFF_COPY_DEST_S3_*`. Objects stream
+through a temporary file. A multipart object is re-uploaded with the source's part sizes (read with
+`HEAD ?partNumber=N`, or the 64 MiB publication part size), so its ETag and every manifest that
+records it stay valid; the ledger's `etagPreserved` says whether that held. A rerun skips ledger
+entries whose source and destination still match and re-copies changed sources.
+
+`deploy/store-copy.py verify SOURCE DEST --ledger FILE [--deep]` compares both listings, sizes and
+ETags with the ledger and, with `--deep`, re-downloads the destination and checks SHA-256. It exits 1
+naming each missing, extra, changed or corrupted key. `make test-store-copy` proves both offline.
