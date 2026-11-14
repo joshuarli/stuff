@@ -12,11 +12,15 @@ from STUFF_COPY_DEST_S3_*. Credentials are never printed or passed in argv.
 Exit codes: 0 copied or verified, 1 a mismatch or transfer failure, 2 usage.
 """
 import argparse
+from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
 import contextlib
+import fcntl
 import hashlib
 import json
+import multiprocessing
 import os
 import shlex
+import signal
 import subprocess
 import sys
 import tempfile
@@ -188,14 +192,25 @@ def default_parts(size):
     return [min(PART_SIZE, size - offset) for offset in range(0, size, PART_SIZE)]
 
 
-def read_ledger(path):
+def read_ledger(path, *, repair_tail=False):
     entries = {}
+    committed = 0
+    partial = False
     if os.path.exists(path):
-        with open(path, encoding="utf-8") as f:
+        with open(path, "rb") as f:
             for line in f:
+                if not line.endswith(b"\n"):
+                    partial = True
+                    break
                 if line.strip():
                     entry = json.loads(line)
                     entries[entry["key"]] = entry
+                committed += len(line)
+        if partial and repair_tail:
+            with open(path, "r+b") as f:
+                f.truncate(committed)
+                f.flush()
+                os.fsync(f.fileno())
     return entries
 
 
@@ -230,13 +245,49 @@ def copy_object(source, dest, src_bucket, dst_bucket, key, size, etag, scratch):
     return {"key": key, "size": size, "sha256": got["sha256"], "sourceEtag": etag, "destEtag": dest_etag, "etagPreserved": dest_etag == etag, "contentType": got["headers"].get("Content-Type"), "copiedAtMs": int(time.time() * 1000)}
 
 
+def copy_task(work):
+    source, dest, src_bucket, dst_bucket, key, size, etag, scratch = work
+    with tempfile.TemporaryDirectory(prefix="object-", dir=scratch) as directory:
+        return copy_object(source, dest, src_bucket, dst_bucket, key, size, etag, directory)
+
+
+def deep_task(work):
+    dest, bucket, key, expected, scratch = work
+    with tempfile.TemporaryDirectory(prefix="object-", dir=scratch) as directory:
+        got = retrying(lambda: download(dest, bucket, key, os.path.join(directory, "object")), f"downloading {key}")
+    return key, got["sha256"] == expected
+
+
+def completed_tasks(action, work, jobs):
+    iterator = iter(work)
+    with ProcessPoolExecutor(max_workers=jobs, mp_context=multiprocessing.get_context("spawn")) as executor:
+        pending = set()
+        try:
+            for _ in range(jobs):
+                item = next(iterator, None)
+                if item is None:
+                    break
+                pending.add(executor.submit(action, item))
+            while pending:
+                finished, pending = wait(pending, return_when=FIRST_COMPLETED)
+                for future in finished:
+                    yield future.result()
+                    item = next(iterator, None)
+                    if item is not None:
+                        pending.add(executor.submit(action, item))
+        finally:
+            for future in pending:
+                future.cancel()
+
+
 def copy(args):
     source = credentials("STUFF_COPY_SOURCE_S3_", args.source)
     dest = credentials("STUFF_COPY_DEST_S3_", args.dest)
-    ledger = read_ledger(args.ledger)
+    ledger = read_ledger(args.ledger, repair_tail=True)
     objects = listing(source, args.source)
     present = listing(dest, args.dest)
     copied = skipped = changed = 0
+    needed = []
     with tempfile.TemporaryDirectory(prefix="store-copy-", dir=os.environ.get("TMPDIR")) as scratch:
         for key in sorted(objects):
             size, etag, _ = objects[key]
@@ -246,7 +297,8 @@ def copy(args):
                 continue
             if done is not None:
                 changed += 1
-            entry = copy_object(source, dest, args.source, args.dest, key, size, etag, scratch)
+            needed.append((source, dest, args.source, args.dest, key, size, etag, scratch))
+        for entry in completed_tasks(copy_task, needed, args.jobs):
             append_ledger(args.ledger, entry)
             copied += 1
             if copied % 500 == 0:
@@ -261,6 +313,7 @@ def verify(args):
     objects = listing(source, args.source)
     present = listing(dest, args.dest)
     problems = []
+    deep = []
     for key in sorted(set(objects) | set(present)):
         if key not in present:
             problems.append(f"missing at destination: {key}")
@@ -277,10 +330,13 @@ def verify(args):
             problems.append(f"destination differs from the ledger: {key}")
             continue
         if args.deep:
-            with tempfile.TemporaryDirectory(prefix="store-verify-", dir=os.environ.get("TMPDIR")) as scratch:
-                got = retrying(lambda: download(dest, args.dest, key, os.path.join(scratch, "object")), f"downloading {key}")
-            if got["sha256"] != entry["sha256"]:
-                problems.append(f"destination bytes differ from the source digest: {key}")
+            deep.append((key, entry["sha256"]))
+    if deep:
+        with tempfile.TemporaryDirectory(prefix="store-verify-", dir=os.environ.get("TMPDIR")) as scratch:
+            work = ((dest, args.dest, key, expected, scratch) for key, expected in deep)
+            for key, matches in completed_tasks(deep_task, work, args.jobs):
+                if not matches:
+                    problems.append(f"destination bytes differ from the source digest: {key}")
     preserved = sum(1 for key in objects if key in ledger and ledger[key]["etagPreserved"])
     print(json.dumps({"bucket": args.source, "objects": len(objects), "destination": len(present), "etagPreserved": preserved, "problems": len(problems), "deep": args.deep}))
     for problem in problems[:50]:
@@ -296,14 +352,24 @@ def main():
         command.add_argument("source")
         command.add_argument("dest")
         command.add_argument("--ledger", required=True)
+        command.add_argument("--jobs", type=int, choices=range(1, 17), default=8, metavar="1..16")
         if name == "verify":
             command.add_argument("--deep", action="store_true")
     args = parser.parse_args()
+    def interrupt(_signum, _frame):
+        raise Failure("interrupted; verified progress is retained for resume")
+    for signum in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP, signal.SIGQUIT):
+        signal.signal(signum, interrupt)
     try:
-        if args.command == "copy":
-            copy(args)
-            return 0
-        return verify(args)
+        with open(args.ledger + ".lock", "a") as guard:
+            try:
+                fcntl.flock(guard, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as error:
+                raise Failure("another copy or verification owns this ledger") from error
+            if args.command == "copy":
+                copy(args)
+                return 0
+            return verify(args)
     except Failure as error:
         print(f"store-copy: {error}", file=sys.stderr)
         return 1

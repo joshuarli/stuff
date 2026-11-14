@@ -54,6 +54,9 @@ first=$(copy 2>"$work/copy.err") || { cat "$work/copy.err" >&2; fail "first copy
 out=$(verify --deep) || fail "verify after copy"
 [ "$(echo "$out" | field etagPreserved)" = 251 ] || fail "multipart ETag was not preserved: $out"
 [ "$(copy | field copied)" = 0 ] || fail "rerun copied verified objects"
+printf '{"key":"interrupted' >> "$work/ledger.jsonl"
+[ "$(copy | field copied)" = 0 ] || fail "recovery of a torn ledger copied verified objects"
+[ "$(jaq -s length "$work/ledger.jsonl")" = 251 ] || fail "torn ledger tail was not removed"
 head -n 100 "$work/ledger.jsonl" > "$work/partial" && mv "$work/partial" "$work/ledger.jsonl"
 [ "$(copy | field copied)" = 151 ] || fail "resume did not copy exactly the unverified objects"
 python3 - "$src" <<'PY'
