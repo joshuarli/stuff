@@ -1,0 +1,30 @@
+packages: []
+allowBuilds:
+  '@google/genai': false
+  better-sqlite3: false
+  cbor-extract: false
+  esbuild: true
+  protobufjs: false
+  workerd: true
+minimumReleaseAgeExclude:
+  - '@rivet-dev/durable-object-migrator@1.0.2'
+  - '@rivetkit/engine-api-full@3.1.2-rc.1'
+  - '@rivetkit/engine-cli-darwin-arm64@3.1.2-rc.1'
+  - '@rivetkit/engine-cli-darwin-x64@3.1.2-rc.1'
+  - '@rivetkit/engine-cli-linux-arm64-musl@3.1.2-rc.1'
+  - '@rivetkit/engine-cli-linux-x64-musl@3.1.2-rc.1'
+  - '@rivetkit/engine-cli@3.1.2-rc.1'
+  - '@rivetkit/engine-envoy-protocol@3.1.2-rc.1'
+  - '@rivetkit/rivetkit-napi-darwin-arm64@3.1.2-rc.1'
+  - '@rivetkit/rivetkit-napi-darwin-x64@3.1.2-rc.1'
+  - '@rivetkit/rivetkit-napi-linux-arm64-gnu@3.1.2-rc.1'
+  - '@rivetkit/rivetkit-napi-linux-arm64-musl@3.1.2-rc.1'
+  - '@rivetkit/rivetkit-napi-linux-x64-gnu@3.1.2-rc.1'
+  - '@rivetkit/rivetkit-napi-linux-x64-musl@3.1.2-rc.1'
+  - '@rivetkit/rivetkit-napi@3.1.2-rc.1'
+  - '@rivetkit/rivetkit-wasm@3.1.2-rc.1'
+  - '@rivetkit/traces@3.1.2-rc.1'
+  - '@rivetkit/virtual-websocket@3.1.2-rc.1'
+  - '@rivetkit/workflow-engine@3.1.2-rc.1'
+  - open-orange@1.0.2
+  - rivetkit@3.1.2-rc.1
