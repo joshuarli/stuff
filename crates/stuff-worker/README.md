@@ -106,6 +106,13 @@ stages a portable descriptor and bundle, and builds `stuff:<commit>` on HOST
 for Linux amd64 over SSH. Supply runtime secrets separately on the host. Run
 `make worker-orange-package-test` to verify the relocated staging paths.
 
+The image `stuff:463f8d96a4bd` is staged on `lisa` (2026-11-14), with
+production DNS unchanged. A temporary object in the real S3 store verified
+HTTPS GET bytes, HEAD length and ranged reads through the tailnet ingress.
+The object was removed and its URL returned 404. Registry data migration,
+publication coordination, blob-host routing and deployment drain still need
+verification before cutover.
+
 Cloudflare-specific surfaces and what replaced them:
 
 | Surface | On OpenOrange |
