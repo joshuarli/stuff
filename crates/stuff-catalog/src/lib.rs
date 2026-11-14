@@ -5,6 +5,7 @@ pub mod html;
 pub mod identity;
 pub mod llms;
 pub mod model;
+mod ui;
 pub mod version;
 
 pub use diff::{CatalogDiff, PackageDiff, PackageRef, diff_catalogs};

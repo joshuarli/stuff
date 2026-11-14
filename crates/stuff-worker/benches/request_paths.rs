@@ -90,7 +90,7 @@ fn heavy_argument() -> &'static str {
 }
 
 fn render_page(argument: &str) -> String {
-    let rendered = api::render_unified_index_json(argument);
+    let rendered = api::render_unified_index_json(argument, ROUTES, "https://stuff.17166969.xyz");
     assert!(rendered.starts_with("{\"kind\":\"html\""), "unified render failed: {}", &rendered[..rendered.len().min(200)]);
     rendered
 }

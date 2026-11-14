@@ -75,6 +75,19 @@ mod tests {
     }
 
     #[test]
+    fn stored_files_reproduce_the_sealed_fingerprint_for_full_length_ids() {
+        let mut catalog = catalog("1.0.0");
+        catalog.generation = "0fd089545b93e4a6294d8cd2".to_string();
+        let stored = stored_catalog_fingerprint(
+            &catalog.generation,
+            &render_catalog_json(&catalog),
+            &render_html(&catalog),
+            &render_llms_txt(&catalog, DEFAULT_CARGO_ORIGIN),
+        );
+        assert_eq!(stored, catalog_fingerprint(&catalog, DEFAULT_CARGO_ORIGIN));
+    }
+
+    #[test]
     fn fingerprint_ignores_generation_but_covers_rendered_content() {
         let first = catalog("1.0.0");
         let second = catalog("1.0.1");

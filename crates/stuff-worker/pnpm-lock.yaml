@@ -181,6 +181,9 @@ importers:
       '@cloudflare/vite-plugin':
         specifier: 2.0.0-beta.v.8
         version: 2.0.0-beta.v.8(vite@8.3.8(esbuild@0.28.2))(workerd@1.20261110.1)
+      '@laputa-systems/ui-dashboard':
+        specifier: 0.9.1
+        version: 0.9.1
       cf:
         specifier: ^1.0.0-beta.30
         version: 1.0.0-beta.30
@@ -639,6 +642,18 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
+
+  '@laputa-systems/ui-dashboard@0.9.1':
+    resolution: {integrity: sha512-u0yjk+wkJsbUiP3+Jly5zr4327lj4mhr6PN37l2q7L7cptmq7AvUhJ6zJRjIMDEcih61jjTEYUQYdbFn3V5eIw==, tarball: https://npm.17166969.xyz/current/-/tarballs/bb4ca393ec2426c6d488fdfe265cb9cebe37dbb963e2686be8f377ee5daaecbedca6d9aaec0bd4849eb32518c830311c8a1eb58e34c461441875b167dd5e5e23.tgz}
+    engines: {node: '>=26.13.0'}
+    peerDependencies:
+      '@solidjs/web': '>=2.0.0-rc.18'
+      solid-js: '>=2.0.0-rc.18'
+    peerDependenciesMeta:
+      '@solidjs/web':
+        optional: true
+      solid-js:
+        optional: true
 
   '@napi-rs/wasm-runtime@1.2.6':
     resolution: {integrity: sha512-mRyDmEw9/fCDXCGfL1sbgIw/GUK0PVxRW4YwgPN61F3LQ+fSyoBFarJVzgGyhF6kRzEQZ0FejDqm4WLXSeqQmw==}
@@ -1583,6 +1598,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  '@laputa-systems/ui-dashboard@0.9.1': {}
 
   '@napi-rs/wasm-runtime@1.2.6(@emnapi/core@2.0.0-beta.2)(@emnapi/runtime@2.0.0-beta.2)':
     dependencies:

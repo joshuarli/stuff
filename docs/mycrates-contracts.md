@@ -161,7 +161,7 @@ The promotion guard in `crates/stuff/src/publish/r2/guard.rs` reads `packages[].
 
 ## index.html and llms.txt
 
-Both are templates over the catalog and `public_base_url`; the golden generation holds their bytes. `index.html` embeds `crates/stuff-catalog/assets/search.js` and the stylesheet. The stylesheet contains a literal backslash-n sequence between two rules inherited from the Rust renderer; it is kept because the page is part of the fingerprint, and removing it is a coordinated change with `stuff-catalog`.
+Both are templates over the catalog and `public_base_url`; the golden generation holds their bytes. `index.html` embeds `crates/stuff-catalog/assets/search.js` and one stylesheet: `tokens.css`, `styles.css` without its `@import` line, and `layout.css` from `crates/stuff-catalog/assets/ui-dashboard/`, then `crates/stuff-catalog/assets/catalog.css`, joined by newlines. The page names its generation only in full, because the stored fingerprint replaces the full id with `fingerprint`. Any change to the page changes the fingerprint and the generation id, so change both renderers and the golden generation together.
 
 ## Known differences from the Rust implementation
 

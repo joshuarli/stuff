@@ -1,65 +1,14 @@
 #![forbid(unsafe_code)]
 
+use crate::llms::{CatalogOrigins, host_of, setup};
 use crate::model::{Catalog, DependencyKind, Package, PackagesByName, Registry};
+use crate::ui::{
+    self, NavLink, Tile, breadcrumbs, count, escape, group, inline_code, page_header, panel, plural, row, short_list,
+    snippet, status_strip,
+};
 use rustc_hash::FxHashMap;
 
-fn escape_html(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    for c in text.chars() {
-        match c {
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            '"' => out.push_str("&quot;"),
-            '\'' => out.push_str("&#x27;"),
-            _ => out.push(c),
-        }
-    }
-    out
-}
-
-const SEARCH_JS: &str = include_str!("../assets/search.js");
-
-const CSS: &str = r#"
-:root { color-scheme: light dark; --bg: #fff; --fg: #171717; --mute: #6b6b6b; --line: #ebebeb; --void: #b42318; }
-@media (prefers-color-scheme: dark) { :root { --bg: #0d0d0d; --fg: #ededed; --mute: #9b9b9b; --line: #242424; --void: #f97066; } }
-* { box-sizing: border-box; }
-html { background: var(--bg); color: var(--fg); }
-body { margin: 0 auto; max-width: 46rem; padding: 0 1.5rem 4rem; font: 400 0.9375rem/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; overflow-wrap: anywhere; }
-a { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
-a:hover { text-decoration-color: currentColor; }
-:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; border-radius: 2px; }
-code, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.875em; }
-.mute { color: var(--mute); }
-header { padding: 2rem 0 4rem; font-weight: 600; letter-spacing: -0.01em; }
-h1 { font-size: 1.5rem; line-height: 1.3; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 0.5rem; max-width: 30rem; }
-h2 { font-size: 0.9375rem; font-weight: 600; margin: 2.5rem 0 0.5rem; }
-.lede { margin: 0 0 3rem; color: var(--mute); }
-.notice { margin: -1.5rem 0 1.5rem; color: var(--void); }
-input[type="search"]:not([hidden]) { display: block; width: 100%; margin: 0 0 1.5rem; padding: 0.6rem 0.8rem; font: inherit; color: inherit; background: transparent; border: 1px solid var(--line); border-radius: 6px; }
-input[type="search"]::placeholder { color: var(--mute); }
-.registries { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1.5rem; margin: 0 0 3.5rem; padding: 0; list-style: none; }
-.registries b { display: block; font-weight: 600; }
-.registries span { color: var(--mute); }
-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-th { text-align: left; font-weight: 400; color: var(--mute); padding: 0 1rem 0.6rem 0; border-bottom: 1px solid var(--line); }
-td { padding: 0.65rem 1rem 0.65rem 0; border-bottom: 1px solid var(--line); vertical-align: baseline; }
-th:last-child, td:last-child { padding-right: 0; }
-.r { text-align: right; }
-.pkg { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.875rem; }
-.vers { color: var(--mute); font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.8125rem; line-height: 1.7; }
-.vers b { color: var(--fg); }
-.yanked { color: var(--void); text-decoration: line-through; }
-.detail { display: none; }
-.detail:target { display: block; }
-main:has(.detail:target) .index { display: none; }
-.back { margin: 0 0 2rem; }
-.refs { margin: 0; padding: 0; list-style: none; }
-.refs li { padding: 0.35rem 0; border-bottom: 1px solid var(--line); }
-.refs .mute { margin-left: 0.75rem; }\ndetails { margin: 1rem 0 0; }\nsummary { cursor: pointer; font-weight: 600; }\ndetails[open] summary { margin-bottom: 0.5rem; }
-footer { margin-top: 3rem; display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; color: var(--mute); font-size: 0.875rem; }
-@media (max-width: 640px) { header { padding-bottom: 2.5rem; } .hide { display: none; } }
-"#;
+const SHORT_LIST: usize = 12;
 
 fn registry_label(registry: Registry) -> &'static str {
     match registry {
@@ -69,6 +18,10 @@ fn registry_label(registry: Registry) -> &'static str {
         Registry::Oci => "OCI",
         Registry::Mirror => "Mirror",
     }
+}
+
+fn section_id(registry: Registry) -> String {
+    format!("r-{}", registry.as_str())
 }
 
 fn anchor(registry: Registry, package: &Package) -> String {
@@ -94,34 +47,33 @@ fn fragment_href(anchor: &str) -> String {
 fn package_link(registry: Registry, package: &Package) -> String {
     format!(
         "<a href=\"{}\">{}</a>",
-        escape_html(&fragment_href(&anchor(registry, package))),
-        escape_html(&package.name)
+        escape(&fragment_href(&anchor(registry, package))),
+        escape(&package.name)
     )
 }
 
-fn versions_markup(package: &Package) -> String {
-    package
-        .versions
-        .iter()
-        .map(|v| {
-            let version = escape_html(&v.version);
-            if v.yanked {
-                format!("<span class=\"yanked\" title=\"Yanked\">{version}</span>")
-            } else if v.version == package.latest {
-                format!("<b>{version}</b>")
-            } else {
-                version
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
+fn is_published_here(registry: Registry, package: &Package) -> bool {
+    registry == Registry::Cargo && package.source.as_deref() == Some("native")
 }
 
-fn document(title: &str, body: &str) -> String {
-    format!(
-        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{}</title>\n<style>{CSS}</style>\n</head>\n<body>\n{body}<script>{SEARCH_JS}</script>\n</body>\n</html>\n",
-        escape_html(title)
-    )
+/// The command that installs one package once the registry is set up, when
+/// the registry has one that names a package.
+fn install_command(registry: Registry, package: &Package, origins: Option<&CatalogOrigins>) -> Option<String> {
+    match registry {
+        Registry::Cargo => Some(format!("cargo add {}@{}", package.name, package.latest)),
+        Registry::Npm => Some(format!("npm install {}@{}", package.name, package.latest)),
+        Registry::Pypi => Some(match origins {
+            Some(origins) => format!(
+                "pip install --index-url {}/current/simple/ {}=={}",
+                origins.pypi, package.name, package.latest
+            ),
+            None => format!("pip install {}=={}", package.name, package.latest),
+        }),
+        Registry::Oci => {
+            origins.map(|origins| format!("docker pull {}/{}:{}", host_of(&origins.oci), package.name, package.latest))
+        }
+        Registry::Mirror => None,
+    }
 }
 
 struct Dependent<'a> {
@@ -146,213 +98,328 @@ fn dependents_of<'a>(catalog: &'a Catalog, by_name: &PackagesByName<'a>) -> FxHa
     dependents
 }
 
-fn search_box() -> &'static str {
-    "<input type=\"search\" data-package-search hidden placeholder=\"Find a package\" aria-label=\"Find a package\" autocomplete=\"off\">\n"
-}
-
-fn no_match_note() -> &'static str {
-    "<p class=\"mute\" data-no-match hidden>No packages match.</p>\n"
-}
-
-fn row_open(registry: Registry, package: &Package) -> String {
-    format!(
-        "<tr data-name=\"{}\" data-registry=\"{}\" data-source=\"{}\">",
-        escape_html(&package.name),
-        registry.as_str(),
-        escape_html(package.source.as_deref().unwrap_or(""))
-    )
-}
-
-fn detail_sections(catalogs: &[&Catalog]) -> String {
-    let mut out = String::new();
+fn find_panel(catalogs: &[&Catalog]) -> String {
+    let total: usize = catalogs.iter().map(|c| c.package_count()).sum();
+    let mut rows = String::new();
     for catalog in catalogs {
-        let by_name = catalog.packages_by_name();
-        let dependents = dependents_of(catalog, &by_name);
+        let label = registry_label(catalog.registry);
         for package in &catalog.packages {
-            let id = anchor(catalog.registry, package);
-            out.push_str(&format!("<section class=\"detail\" id=\"{}\">\n", escape_html(&id)));
-            out.push_str("<p class=\"back\"><a href=\"#\">All packages</a></p>\n");
-            let source = package.source.as_deref().map(|s| format!(", {s}")).unwrap_or_default();
-            out.push_str(&format!(
-                "<h1 class=\"pkg\">{}</h1>\n<p class=\"lede\">{}{}. Latest {}.</p>\n",
-                escape_html(&package.name),
-                registry_label(catalog.registry),
-                escape_html(&source),
-                escape_html(&package.latest)
-            ));
-            if catalog.registry == Registry::Oci {
-                out.push_str("<p class=\"mute\">Tags resolve to OCI manifests through the registry API.</p>\n");
-            } else if catalog.schema_version < 2 {
-                out.push_str("<p class=\"mute\">This generation was published before dependencies were recorded.</p>\n");
-            } else {
-                out.push_str(&dependency_sections(catalog, &by_name, package, dependents.get(&id)));
-            }
-            out.push_str(&format!(
-                "<h2>Versions</h2>\n<p class=\"vers\">{}</p>\n</section>\n",
-                versions_markup(package)
+            let note = match package.source.as_deref() {
+                Some(source) => format!("{label} · {source}"),
+                None => label.to_string(),
+            };
+            rows.push_str(&format!(
+                "<li data-name=\"{}\" data-registry=\"{}\" data-source=\"{}\"><span class=\"row-name\">{}<span class=\"row-note\">{}</span></span><span class=\"row-value\">{}</span></li>",
+                escape(&package.name),
+                catalog.registry.as_str(),
+                escape(package.source.as_deref().unwrap_or("")),
+                package_link(catalog.registry, package),
+                escape(&note),
+                escape(&package.latest)
             ));
         }
     }
-    out
+    let body = format!(
+        "<div class=\"find\">\
+<label class=\"ui-search\" data-package-search-box hidden>{icon}<input type=\"search\" data-package-search placeholder=\"Find a package by name\" aria-label=\"Find a package\" autocomplete=\"off\"></label>\
+<details class=\"browse\" data-browse><summary>Browse all {total}</summary><ol class=\"rows\" data-packages>{rows}</ol></details>\
+<p class=\"note\" data-no-match hidden>No package matches.</p>\
+<button class=\"ui-btn\" type=\"button\" data-more hidden></button>\
+</div>",
+        icon = ui::SEARCH_ICON,
+        total = plural(total, "package", "packages"),
+    );
+    panel(Some("find"), "Find a package", &plural(total, "package", "packages"), &body)
 }
 
-fn name_list(catalog: &Catalog, by_name: &PackagesByName<'_>, names: &[String]) -> String {
-    let mut hosted = String::new();
+fn published_here_panel(catalog: &Catalog) -> String {
+    let rows: Vec<String> = catalog
+        .packages
+        .iter()
+        .filter(|p| is_published_here(catalog.registry, p))
+        .map(|p| row(&package_link(catalog.registry, p), "", &escape(&p.latest)))
+        .collect();
+    if rows.is_empty() {
+        return String::new();
+    }
+    let mirrored = catalog.package_count() - rows.len();
+    panel(
+        Some("published"),
+        &format!("Published here · {}", count(rows.len())),
+        &format!("{} mirrored", count(mirrored)),
+        &format!("<div class=\"columns\">{}</div>", short_list(&rows, 24)),
+    )
+}
+
+fn version_note(catalog: &Catalog) -> String {
+    plural(catalog.version_count(), "version", "versions")
+}
+
+fn registry_panel(catalog: &Catalog, origins: Option<&CatalogOrigins>) -> String {
+    let label = registry_label(catalog.registry);
+    let generation = escape(&catalog.generation);
+    let mut body = String::new();
+    let base = origins.map(|o| o.for_registry(catalog.registry)).unwrap_or("");
+    // A sealed page may name its generation only in full: verification maps the full id back to the fingerprint.
+    match origins {
+        Some(origins) => {
+            let setup = setup(catalog.registry, origins.for_registry(catalog.registry));
+            body.push_str(&format!("<p class=\"lead\">{}</p>{}", inline_code(setup.lead), snippet(&setup.code)));
+        }
+        None => body.push_str(&format!(
+            "<p class=\"lead\">Setup for this registry, with the client configuration, is in <a href=\"/generations/{generation}/llms.txt\">llms.txt</a>.</p>"
+        )),
+    }
+    match origins {
+        Some(_) => body.push_str(&format!(
+            "<p class=\"panel-foot\">Generation <code>{short}</code> · <a href=\"{base}/generations/{generation}/catalog.json\">catalog.json</a></p>",
+            short = escape(catalog.generation.get(..12).unwrap_or(&catalog.generation)),
+            base = escape(base),
+        )),
+        None => body.push_str(&format!(
+            "<p class=\"panel-foot\"><a href=\"/generations/{generation}/catalog.json\">catalog.json</a></p>"
+        )),
+    }
+    match origins {
+        Some(_) => panel(
+            Some(&section_id(catalog.registry)),
+            label,
+            &plural(catalog.package_count(), "package", "packages"),
+            &body,
+        ),
+        None => panel(Some(&section_id(catalog.registry)), "Setup", "", &body),
+    }
+}
+
+fn name_rows(catalog: &Catalog, by_name: &PackagesByName<'_>, names: &[String]) -> String {
+    let mut hosted = Vec::new();
     let mut elsewhere = Vec::new();
     for name in names {
         match by_name.resolve(name) {
-            Some(target) => hosted.push_str(&format!("<li class=\"pkg\">{}</li>\n", package_link(catalog.registry, target))),
-            None => elsewhere.push(format!("<span class=\"pkg\">{}</span>", escape_html(name))),
+            Some(target) => hosted.push(format!("<li>{}</li>", package_link(catalog.registry, target))),
+            None => elsewhere.push(format!("<code>{}</code>", escape(name))),
         }
     }
     let mut out = String::new();
     if !hosted.is_empty() {
-        out.push_str(&format!("<ul class=\"refs\">\n{hosted}</ul>\n"));
+        out.push_str(&short_list(&hosted, SHORT_LIST));
     }
     if !elsewhere.is_empty() {
-        out.push_str(&format!("<p class=\"mute\">Not hosted here: {}</p>\n", elsewhere.join(", ")));
+        out.push_str(&format!("<p class=\"note\">Not hosted here: {}</p>", elsewhere.join(", ")));
     }
     out
 }
 
 fn kind_title(kind: DependencyKind) -> &'static str {
     match kind {
-        DependencyKind::Runtime => "Dependencies",
-        DependencyKind::Peer => "Peer dependencies",
-        DependencyKind::Build => "Build dependencies",
-        DependencyKind::Dev => "Dev dependencies",
+        DependencyKind::Runtime => "Runtime",
+        DependencyKind::Peer => "Peer",
+        DependencyKind::Build => "Build",
+        DependencyKind::Dev => "Dev",
     }
 }
 
-fn dependency_sections(
-    catalog: &Catalog,
-    by_name: &PackagesByName<'_>,
-    package: &Package,
-    users: Option<&Vec<Dependent<'_>>>,
-) -> String {
-    let mut out = String::from("<h2>Depends on</h2>\n");
+fn depends_on_panel(catalog: &Catalog, by_name: &PackagesByName<'_>, package: &Package) -> String {
+    let mut body = String::new();
     if package.dependencies.runtime.is_empty() {
-        out.push_str(&format!("<p class=\"mute\">No dependencies in {}.</p>\n", escape_html(&package.latest)));
+        body.push_str(&format!("<p class=\"note\">No runtime dependencies in {}.</p>", escape(&package.latest)));
     } else {
-        out.push_str(&name_list(catalog, by_name, &package.dependencies.runtime));
+        body.push_str(&name_rows(catalog, by_name, &package.dependencies.runtime));
     }
     if catalog.schema_version < 3 {
-        out.push_str("<p class=\"mute\">Peer, build and dev dependencies were not recorded for this generation.</p>\n");
+        body.push_str("<p class=\"note\">Peer, build and dev dependencies were not recorded for this generation.</p>");
     } else {
         for kind in [DependencyKind::Peer, DependencyKind::Build, DependencyKind::Dev] {
             let names = package.dependencies.of(kind);
             if !names.is_empty() {
-                out.push_str(&format!(
-                    "<details>\n<summary>{} ({})</summary>\n{}</details>\n",
-                    kind_title(kind),
-                    names.len(),
-                    name_list(catalog, by_name, names)
+                body.push_str(&group(
+                    &format!("{} · {}", kind_title(kind), names.len()),
+                    &name_rows(catalog, by_name, names),
                 ));
             }
         }
     }
+    let total: usize = DependencyKind::ALL.iter().map(|k| package.dependencies.of(*k).len()).sum();
+    panel(None, "Depends on", &plural(total, "package", "packages"), &body)
+}
 
-    out.push_str("<h2>Used by</h2>\n");
-    match users {
-        None => out.push_str("<p class=\"mute\">No package here depends on it.</p>\n"),
-        Some(users) => {
-            out.push_str("<ul class=\"refs\">\n");
-            for user in users {
-                let note = match user.kind {
+fn used_by_panel(catalog: &Catalog, users: Option<&Vec<Dependent<'_>>>) -> String {
+    let users = users.map(Vec::as_slice).unwrap_or(&[]);
+    let body = if users.is_empty() {
+        "<p class=\"note\">No package here depends on it.</p>".to_string()
+    } else {
+        let rows: Vec<String> = users
+            .iter()
+            .map(|user| {
+                let kind = match user.kind {
                     DependencyKind::Runtime => String::new(),
-                    kind => format!("<span class=\"mute\">{}</span>", kind.as_str()),
+                    kind => format!("<span class=\"row-note\">{}</span>", kind.as_str()),
                 };
-                out.push_str(&format!("<li class=\"pkg\">{}{note}</li>\n", package_link(catalog.registry, user.package)));
+                format!("<li>{}{kind}</li>", package_link(catalog.registry, user.package))
+            })
+            .collect();
+        short_list(&rows, SHORT_LIST)
+    };
+    panel(None, "Used by", &plural(users.len(), "package", "packages"), &body)
+}
+
+fn versions_panel(package: &Package) -> String {
+    let rows: Vec<String> = package
+        .versions
+        .iter()
+        .rev()
+        .map(|v| {
+            let state = if v.yanked {
+                "<span class=\"state state-bad\">Yanked</span>"
+            } else if v.version == package.latest {
+                "<span class=\"row-note\">latest</span>"
+            } else {
+                ""
+            };
+            format!("<li><span class=\"mono\">{}</span>{state}</li>", escape(&v.version))
+        })
+        .collect();
+    let yanked = package.versions.iter().filter(|v| v.yanked).count();
+    let mut meta = plural(package.versions.len(), "version", "versions");
+    if yanked > 0 {
+        meta.push_str(&format!(", {yanked} yanked"));
+    }
+    panel(None, "Versions", &meta, &short_list(&rows, 8))
+}
+
+/// Package views; the unified page passes `origins` and places each registry under "stuff".
+fn detail_sections(catalogs: &[&Catalog], origins: Option<&CatalogOrigins>) -> String {
+    let mut out = String::new();
+    for catalog in catalogs {
+        let by_name = catalog.packages_by_name();
+        let dependents = dependents_of(catalog, &by_name);
+        let label = registry_label(catalog.registry);
+        let registry_href = format!("#{}", section_id(catalog.registry));
+        for package in &catalog.packages {
+            let id = anchor(catalog.registry, package);
+            out.push_str(&format!("<section class=\"detail page\" id=\"{}\">\n", escape(&id)));
+            match origins {
+                Some(_) => out.push_str(&breadcrumbs(&[("#", "stuff"), (&registry_href, label)], &package.name)),
+                None => out.push_str(&breadcrumbs(&[("#", label)], &package.name)),
             }
-            out.push_str("</ul>\n");
+            let source = package.source.as_deref().map(|s| format!(" · {}", escape(s))).unwrap_or_default();
+            out.push_str(&page_header(
+                &package.name,
+                &format!("{label}{source} · latest <b>{}</b>", escape(&package.latest)),
+            ));
+            if let Some(command) = install_command(catalog.registry, package, origins) {
+                out.push_str(&format!("<div class=\"install\">{}</div>\n", snippet(&command)));
+            }
+            out.push_str("<div class=\"ui-dashboard-grid\">\n");
+            out.push_str(&versions_panel(package));
+            if catalog.registry == Registry::Oci {
+                out.push_str(&panel(
+                    None,
+                    "Tags",
+                    "",
+                    "<p class=\"note\">Tags resolve to OCI manifests through the registry API.</p>",
+                ));
+            } else if catalog.schema_version < 2 {
+                out.push_str(&panel(
+                    None,
+                    "Dependencies",
+                    "not recorded",
+                    "<p class=\"note\">This generation was published before dependencies were recorded.</p>",
+                ));
+            } else {
+                out.push_str(&depends_on_panel(catalog, &by_name, package));
+                out.push_str(&used_by_panel(catalog, dependents.get(&id)));
+            }
+            out.push_str("</div>\n</section>\n");
         }
     }
     out
 }
 
+fn registry_tile(catalog: &Catalog) -> Tile {
+    Tile {
+        label: registry_label(catalog.registry).to_string(),
+        value: count(catalog.package_count()),
+        note: version_note(catalog),
+        href: format!("#{}", section_id(catalog.registry)),
+    }
+}
+
 pub fn render_html(catalog: &Catalog) -> String {
     let label = registry_label(catalog.registry);
-    let mut out = String::new();
-    out.push_str(&format!("<header>{}</header>\n<main>\n", escape_html(label)));
-    out.push_str(&format!(
-        "<div class=\"index\">\n<h1>{} registry</h1>\n<p class=\"lede\">{} packages, {} versions</p>\n",
-        escape_html(label),
-        catalog.package_count(),
-        catalog.version_count()
+    let mut page = String::from("<div class=\"index\">\n");
+    page.push_str(&page_header(
+        &format!("{label} registry"),
+        &format!(
+            "{} packages served as static files from generation <code>{}</code>.",
+            count(catalog.package_count()),
+            escape(&catalog.generation)
+        ),
     ));
-    let has_source = catalog.registry == Registry::Cargo;
-    out.push_str(search_box());
-    out.push_str("<table data-packages>\n<thead><tr><th>Package</th>");
-    if has_source {
-        out.push_str("<th class=\"hide\">Source</th>");
+    let mut tiles = vec![Tile {
+        label: "Packages".to_string(),
+        value: count(catalog.package_count()),
+        note: version_note(catalog),
+        href: "#find".to_string(),
+    }];
+    let native = catalog.packages.iter().filter(|p| is_published_here(catalog.registry, p)).count();
+    if native > 0 {
+        tiles.push(Tile {
+            label: "Published here".to_string(),
+            value: count(native),
+            note: format!("{} mirrored", count(catalog.package_count() - native)),
+            href: "#published".to_string(),
+        });
     }
-    out.push_str("<th>Versions</th></tr></thead>\n<tbody>\n");
-    for package in &catalog.packages {
-        out.push_str(&row_open(catalog.registry, package));
-        out.push_str(&format!("<td class=\"pkg\">{}</td>", package_link(catalog.registry, package)));
-        if has_source {
-            out.push_str(&format!(
-                "<td class=\"mute hide\">{}</td>",
-                escape_html(package.source.as_deref().unwrap_or(""))
-            ));
-        }
-        out.push_str(&format!("<td class=\"vers\">{}</td></tr>\n", versions_markup(package)));
+    page.push_str(&status_strip(&tiles));
+    page.push_str(&find_panel(&[catalog]));
+    page.push_str(&published_here_panel(catalog));
+    page.push_str(&registry_panel(catalog, None));
+    page.push_str("</div>\n");
+    page.push_str(&detail_sections(&[catalog], None));
+    let section = format!("#{}", section_id(catalog.registry));
+    let mut nav = vec![NavLink { href: "#find", label: "Find" }];
+    if native > 0 {
+        nav.push(NavLink { href: "#published", label: "Published here" });
     }
-    out.push_str("</tbody>\n</table>\n");
-    out.push_str(no_match_note());
-    out.push_str("</div>\n");
-    out.push_str(&detail_sections(&[catalog]));
-    out.push_str("</main>\n");
-    out.push_str(&format!(
-        "<footer><span>Generation <code>{generation}</code></span><a href=\"/generations/{generation}/catalog.json\">catalog.json</a><span>Schema version {schema}</span></footer>\n",
-        generation = escape_html(&catalog.generation),
-        schema = catalog.schema_version
-    ));
-    document(&format!("{label} registry browser"), &out)
+    nav.push(NavLink { href: &section, label: "Setup" });
+    ui::document(&format!("{label} registry browser"), label, &nav, &page)
 }
 
-pub fn render_unified(catalogs: &[Catalog]) -> String {
-    render_unified_with_notices(catalogs, &[])
+pub fn render_unified(catalogs: &[Catalog], origins: &CatalogOrigins) -> String {
+    render_unified_with_notices(catalogs, origins, &[])
 }
 
-pub fn render_unified_with_notices(catalogs: &[Catalog], notices: &[String]) -> String {
-    let mut out = String::from("<header>stuff</header>\n<main>\n<div class=\"index\">\n");
-    out.push_str("<h1>Cargo, npm, PyPI and OCI packages, served as static files.</h1>\n");
-    out.push_str("<p class=\"lede\">Each publish creates a new generation. The current one is live.</p>\n");
+pub fn render_unified_with_notices(catalogs: &[Catalog], origins: &CatalogOrigins, notices: &[String]) -> String {
+    let mut page = String::from("<div class=\"index\">\n");
+    page.push_str(&page_header(
+        "stuff",
+        "Cargo, npm, PyPI and OCI packages, served as static files. Each publish creates a new generation; the current one is live.",
+    ));
     for notice in notices {
-        out.push_str(&format!("<p class=\"notice\" role=\"status\">{}</p>\n", escape_html(notice)));
+        page.push_str(&format!("<p class=\"ui-notice ui-notice-bad\" role=\"status\">{}</p>\n", escape(notice)));
     }
-    out.push_str("<ul class=\"registries\">\n");
-    for catalog in catalogs {
-        out.push_str(&format!(
-            "<li><b>{}</b><span>{} packages, {} versions</span></li>\n",
-            escape_html(registry_label(catalog.registry)),
-            catalog.package_count(),
-            catalog.version_count()
-        ));
-    }
-    out.push_str("</ul>\n");
-    out.push_str(search_box());
-    out.push_str("<table data-packages>\n<thead><tr><th>Package</th><th>Registry</th><th class=\"hide\">Source</th><th class=\"r\">Latest</th></tr></thead>\n<tbody>\n");
-    for catalog in catalogs {
-        for package in &catalog.packages {
-            out.push_str(&row_open(catalog.registry, package));
-            out.push_str(&format!(
-                "<td class=\"pkg\">{}</td><td>{}</td><td class=\"mute hide\">{}</td><td class=\"r mono\">{}</td></tr>\n",
-                package_link(catalog.registry, package),
-                escape_html(registry_label(catalog.registry)),
-                escape_html(package.source.as_deref().unwrap_or("")),
-                escape_html(&package.latest)
-            ));
-        }
-    }
-    out.push_str("</tbody>\n</table>\n");
-    out.push_str(no_match_note());
-    out.push_str("</div>\n");
+    let tiles: Vec<Tile> = catalogs.iter().map(registry_tile).collect();
+    page.push_str(&status_strip(&tiles));
     let all: Vec<&Catalog> = catalogs.iter().collect();
-    out.push_str(&detail_sections(&all));
-    out.push_str("</main>\n");
-    document("stuff registry browser", &out)
+    page.push_str(&find_panel(&all));
+    for catalog in catalogs {
+        page.push_str(&published_here_panel(catalog));
+    }
+    page.push_str("<div class=\"ui-dashboard-grid setup\">\n");
+    for catalog in catalogs {
+        page.push_str(&registry_panel(catalog, Some(origins)));
+    }
+    page.push_str("</div>\n</div>\n");
+    page.push_str(&detail_sections(&all, Some(origins)));
+    let sections: Vec<(String, &str)> =
+        catalogs.iter().map(|c| (format!("#{}", section_id(c.registry)), registry_label(c.registry))).collect();
+    let mut nav = vec![NavLink { href: "#find", label: "Find" }];
+    if catalogs.iter().any(|c| c.packages.iter().any(|p| is_published_here(c.registry, p))) {
+        nav.push(NavLink { href: "#published", label: "Published here" });
+    }
+    nav.extend(sections.iter().map(|(href, label)| NavLink { href, label }));
+    ui::document("stuff registry browser", "stuff", &nav, &page)
 }
 
 #[cfg(test)]
@@ -371,24 +438,42 @@ mod tests {
         }
     }
 
+    fn upstream(name: &str, version: &str) -> CargoInput {
+        CargoInput { source: CargoSource::Upstream, ..cargo_input(name, version, &[]) }
+    }
+
+    fn npm_input(name: &str, dependencies: &[&str]) -> NpmInput {
+        NpmInput {
+            name: name.to_string(),
+            version: "1.0.0".to_string(),
+            dependencies: Dependencies::runtime_only(dependencies.iter().map(|d| d.to_string()).collect()),
+        }
+    }
+
     fn section<'a>(html: &'a str, id: &str) -> &'a str {
-        let start = html.find(&format!("<section class=\"detail\" id=\"{id}\">")).expect("detail section");
+        let start = html.find(&format!("<section class=\"detail page\" id=\"{id}\">")).expect("detail section");
         let rest = &html[start..];
-        &rest[..rest.find("</section>").expect("section end")]
+        &rest[..rest.find("</div>\n</section>\n").expect("section end")]
+    }
+
+    fn panel_body<'a>(section: &'a str, title: &str) -> &'a str {
+        let start = section.find(&format!("<h2>{title}</h2>")).expect("panel");
+        let rest = &section[start..];
+        &rest[..rest.find("</section>").unwrap_or(rest.len())]
+    }
+
+    fn hrefs(html: &str) -> Vec<&str> {
+        html.split("href=\"").skip(1).filter_map(|rest| rest.split('"').next()).collect()
     }
 
     #[test]
-    fn registry_page_lists_packages_and_links_catalog() {
+    fn registry_page_links_stay_in_its_generation() {
         let catalog = cargo_catalog("gen1", vec![cargo_input("h12tiny", "0.6.0", &[])]).unwrap();
         let html = render_html(&catalog);
         assert!(html.contains("h12tiny"));
-        assert!(html.contains("catalog.json"));
-        assert!(html.contains("gen1"));
-        let hrefs: Vec<&str> = html
-            .split("href=\"")
-            .skip(1)
-            .filter_map(|rest| rest.split('"').next())
-            .collect();
+        assert!(html.contains("href=\"/generations/gen1/catalog.json\""));
+        assert!(html.contains("href=\"/generations/gen1/llms.txt\""));
+        let hrefs = hrefs(&html);
         assert!(!hrefs.is_empty());
         for href in hrefs {
             assert!(
@@ -400,45 +485,81 @@ mod tests {
 
     #[test]
     fn pages_carry_a_search_box_that_only_scripts_reveal() {
-        let catalog = npm_catalog(
-            "gen1",
-            vec![NpmInput { name: "@scope/a".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::default() }],
-            &FxHashMap::default(),
-        )
-        .unwrap();
-        for html in [render_html(&catalog), render_unified(std::slice::from_ref(&catalog))] {
-            assert!(html.contains("<input type=\"search\" data-package-search hidden"));
-            assert!(html.contains("<table data-packages>"));
-            assert!(html.contains("<tr data-name=\"@scope/a\" data-registry=\"npm\" data-source=\"\">"));
+        let catalog = npm_catalog("gen1", vec![npm_input("@scope/a", &[])], &FxHashMap::default()).unwrap();
+        for html in [render_html(&catalog), render_unified(std::slice::from_ref(&catalog), &CatalogOrigins::default())] {
+            assert!(html.contains("<label class=\"ui-search\" data-package-search-box hidden>"));
+            assert!(html.contains("<input type=\"search\" data-package-search"));
+            assert!(html.contains("<ol class=\"rows\" data-packages>"));
+            assert!(html.contains("<li data-name=\"@scope/a\" data-registry=\"npm\" data-source=\"\">"));
             assert!(html.contains("data-no-match hidden"));
+            assert!(html.contains("data-more hidden"));
             assert_eq!(html.matches("<script>").count(), 1);
+            assert!(html.contains("<div class=\"ui-shell\">"));
         }
-    }
-
-    #[test]
-    fn the_inline_search_script_cannot_close_its_own_tag() {
-        assert!(!SEARCH_JS.is_empty());
-        assert!(!SEARCH_JS.to_ascii_lowercase().contains("</script"));
     }
 
     #[test]
     fn unified_page_shows_notices_for_registries_it_could_not_read() {
         let catalog = cargo_catalog("gen1", vec![cargo_input("h12tiny", "0.6.0", &[])]).unwrap();
+        let origins = CatalogOrigins::default();
         let html = render_unified_with_notices(
             std::slice::from_ref(&catalog),
+            &origins,
             &["PyPI is not listed <because> its catalog could not be read.".to_string()],
         );
-        assert!(html.contains("<p class=\"notice\" role=\"status\">PyPI is not listed &lt;because&gt; its catalog could not be read.</p>"));
+        assert!(html.contains(
+            "<p class=\"ui-notice ui-notice-bad\" role=\"status\">PyPI is not listed &lt;because&gt; its catalog could not be read.</p>"
+        ));
         assert!(html.contains("h12tiny"));
-        assert!(!render_unified(std::slice::from_ref(&catalog)).contains("class=\"notice\""));
+        assert!(!render_unified(std::slice::from_ref(&catalog), &origins).contains("<p class=\"ui-notice"));
     }
 
     #[test]
-    fn unified_page_aggregates_registries() {
-        let catalog = cargo_catalog("gen1", vec![cargo_input("h12tiny", "0.6.0", &[])]).unwrap();
-        let html = render_unified(std::slice::from_ref(&catalog));
-        assert!(html.contains("stuff"));
-        assert!(html.contains("h12tiny"));
+    fn unified_page_has_one_tile_and_one_setup_panel_per_registry() {
+        let cargo = cargo_catalog("cargo-gen", vec![cargo_input("mine", "1.0.0", &[]), upstream("serde", "1.0.0")]).unwrap();
+        let npm = npm_catalog("npm-gen", vec![npm_input("a", &[]), npm_input("b", &[])], &FxHashMap::default()).unwrap();
+        let origins = CatalogOrigins::new("https://c.test", "https://n.test", "https://p.test", "https://o.test", "https://m.test", "https://u.test");
+        let html = render_unified(&[cargo, npm], &origins);
+        assert_eq!(html.matches("<a class=\"tile\"").count(), 2);
+        assert!(html.contains("<a class=\"tile\" href=\"#r-cargo\"><span class=\"tile-label\">Cargo</span><span class=\"tile-value\">2</span><span class=\"tile-note\">2 versions</span></a>"));
+        assert!(html.contains("<a class=\"tile\" href=\"#r-npm\"><span class=\"tile-label\">npm</span><span class=\"tile-value\">2</span>"));
+        let cargo_panel = &html[html.find("id=\"r-cargo\"").unwrap()..];
+        assert!(cargo_panel.contains("registry = &quot;sparse+https://c.test/current/registry/&quot;"));
+        assert!(cargo_panel.contains("href=\"https://c.test/generations/cargo-gen/catalog.json\""));
+        let npm_panel = &html[html.find("id=\"r-npm\"").unwrap()..];
+        assert!(npm_panel.contains("registry=https://n.test/current/"));
+        assert!(html.contains("<a href=\"#r-npm\">npm</a>"), "the sidebar links each registry");
+    }
+
+    #[test]
+    fn only_crates_published_here_are_listed_and_mirrors_are_counted() {
+        let catalog = cargo_catalog(
+            "g",
+            vec![cargo_input("mine", "1.0.0", &[]), upstream("serde", "1.0.0"), upstream("rand", "0.9.0")],
+        )
+        .unwrap();
+        let html = render_html(&catalog);
+        let panel = &html[html.find("id=\"published\"").unwrap()..];
+        let panel = &panel[..panel.find("</section>").unwrap()];
+        assert!(panel.contains("<h2>Published here · 1</h2></div><span class=\"ui-panel-meta\">2 mirrored</span>"));
+        assert!(panel.contains("href=\"#cargo/native/mine\""));
+        assert!(!panel.contains("serde"));
+        assert!(html.contains("<span class=\"tile-label\">Published here</span><span class=\"tile-value\">1</span><span class=\"tile-note\">2 mirrored</span>"));
+
+        let npm = npm_catalog("g", vec![npm_input("a", &[])], &FxHashMap::default()).unwrap();
+        assert!(!render_html(&npm).contains("Published here"));
+    }
+
+    #[test]
+    fn long_lists_show_a_short_head_and_reveal_the_tail() {
+        let names: Vec<String> = (0..20).map(|i| format!("lib{i:02}")).collect();
+        let refs: Vec<&str> = names.iter().map(String::as_str).collect();
+        let mut inputs = vec![cargo_input("app", "1.0.0", &refs)];
+        inputs.extend(names.iter().map(|name| cargo_input(name, "1.0.0", &[])));
+        let html = render_html(&cargo_catalog("g", inputs).unwrap());
+        let depends = panel_body(section(&html, "cargo/native/app"), "Depends on");
+        assert_eq!(depends.matches("<li>").count(), 20);
+        assert!(depends.contains("<summary>Show 8 more</summary>"));
     }
 
     #[test]
@@ -456,18 +577,32 @@ mod tests {
 
         let app = section(&html, "cargo/native/app");
         assert!(app.contains("href=\"#cargo/native/lib\""));
-        assert!(app.contains("Not hosted here: <span class=\"pkg\">outside</span>"));
+        assert!(app.contains("Not hosted here: <code>outside</code>"));
         assert!(!app.contains("href=\"#cargo/native/outside\""));
         assert!(app.contains("No package here depends on it."));
+        assert!(app.contains("<ol><li><a href=\"#\">Cargo</a>"), "breadcrumbs lead back to the registry");
+        let unified = render_unified(std::slice::from_ref(&catalog), &CatalogOrigins::default());
+        assert!(section(&unified, "cargo/native/app").contains("<ol><li><a href=\"#\">stuff</a><span class=\"ui-breadcrumb-separator\" aria-hidden=\"true\">/</span></li><li><a href=\"#r-cargo\">Cargo</a>"));
 
         let lib = section(&html, "cargo/native/lib");
-        assert!(lib.contains("href=\"#cargo/native/app\""));
-        assert!(lib.contains("href=\"#cargo/native/tool\""));
-        assert!(lib.contains("No dependencies in 2.0.0."));
+        assert!(panel_body(lib, "Used by").contains("href=\"#cargo/native/app\""));
+        assert!(panel_body(lib, "Used by").contains("href=\"#cargo/native/tool\""));
+        assert!(lib.contains("No runtime dependencies in 2.0.0."));
     }
 
     #[test]
-    fn non_runtime_kinds_get_their_own_sections_and_labels() {
+    fn install_commands_name_the_latest_version() {
+        let cargo = cargo_catalog("g", vec![cargo_input("app", "1.2.0", &[])]).unwrap();
+        let npm = npm_catalog("g", vec![npm_input("@scope/a", &[])], &FxHashMap::default()).unwrap();
+        let origins = CatalogOrigins::default();
+        let html = render_unified(&[cargo.clone(), npm], &origins);
+        assert!(section(&html, "cargo/native/app").contains("<code>cargo add app@1.2.0</code>"));
+        assert!(section(&html, "npm/@scope/a").contains("<code>npm install @scope/a@1.0.0</code>"));
+        assert!(section(&render_html(&cargo), "cargo/native/app").contains("<code>cargo add app@1.2.0</code>"));
+    }
+
+    #[test]
+    fn non_runtime_kinds_get_their_own_groups_and_labels() {
         let mut app = cargo_input("app", "1.0.0", &["lib"]);
         app.dependencies.dev = vec!["helper".to_string(), "outside-dev".to_string()];
         app.dependencies.build = vec!["lib".to_string()];
@@ -480,20 +615,20 @@ mod tests {
         let html = render_html(&catalog);
 
         let app = section(&html, "cargo/native/app");
-        assert!(app.contains("<summary>Peer dependencies (1)</summary>"));
-        assert!(app.contains("<summary>Build dependencies (1)</summary>"));
-        assert!(app.contains("<summary>Dev dependencies (2)</summary>"));
-        assert!(app.contains("Not hosted here: <span class=\"pkg\">outside-dev</span>"));
+        assert!(app.contains("<h3>Peer · 1</h3>"));
+        assert!(app.contains("<h3>Build · 1</h3>"));
+        assert!(app.contains("<h3>Dev · 2</h3>"));
+        assert!(app.contains("Not hosted here: <code>outside-dev</code>"));
         assert!(app.contains("href=\"#cargo/native/helper\""));
 
         let lib = section(&html, "cargo/native/lib");
-        let used_by = &lib[lib.find("Used by").unwrap()..];
+        let used_by = panel_body(lib, "Used by");
         assert!(used_by.contains("href=\"#cargo/native/app\""));
-        assert!(!used_by.contains("<span class=\"mute\">build</span>"), "a runtime use outranks a build use");
+        assert!(!used_by.contains(">build<"), "a runtime use outranks a build use");
 
         let helper = section(&html, "cargo/native/helper");
-        assert!(helper.contains("<span class=\"mute\">dev</span>"));
-        assert!(!lib.contains("<summary>"), "kinds with no names get no section");
+        assert!(panel_body(helper, "Used by").contains("<li><a href=\"#cargo/native/app\">app</a><span class=\"row-note\">dev</span></li>"));
+        assert!(!lib.contains("<h3>"), "kinds with no names get no group");
     }
 
     #[test]
@@ -502,17 +637,14 @@ mod tests {
         let html = render_html(&crate::model::parse_catalog_json(text).unwrap());
         let detail = section(&html, "cargo/native/a");
         assert!(detail.contains("Peer, build and dev dependencies were not recorded"));
-        assert!(detail.contains("Not hosted here: <span class=\"pkg\">b</span>"));
+        assert!(detail.contains("Not hosted here: <code>b</code>"));
     }
 
     #[test]
     fn scoped_npm_names_keep_a_working_fragment() {
         let catalog = npm_catalog(
             "gen1",
-            vec![
-                NpmInput { name: "@scope/a".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::runtime_only(vec!["@scope/b".to_string()]) },
-                NpmInput { name: "@scope/b".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::default() },
-            ],
+            vec![npm_input("@scope/a", &["@scope/b"]), npm_input("@scope/b", &[])],
             &FxHashMap::default(),
         )
         .unwrap();
@@ -524,14 +656,8 @@ mod tests {
     #[test]
     fn dependencies_never_cross_registries() {
         let cargo = cargo_catalog("g", vec![cargo_input("shared", "1.0.0", &[])]).unwrap();
-        let npm = npm_catalog(
-            "g",
-            vec![NpmInput { name: "shared".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::default() },
-                 NpmInput { name: "user".to_string(), version: "1.0.0".to_string(), dependencies: Dependencies::runtime_only(vec!["shared".to_string()]) }],
-            &FxHashMap::default(),
-        )
-        .unwrap();
-        let html = render_unified(&[cargo, npm]);
+        let npm = npm_catalog("g", vec![npm_input("shared", &[]), npm_input("user", &["shared"])], &FxHashMap::default()).unwrap();
+        let html = render_unified(&[cargo, npm], &CatalogOrigins::default());
         assert!(section(&html, "cargo/native/shared").contains("No package here depends on it."));
         assert!(section(&html, "npm/shared").contains("href=\"#npm/user\""));
     }
@@ -539,21 +665,25 @@ mod tests {
     #[test]
     fn schema_one_catalogs_do_not_claim_empty_dependencies() {
         let text = r#"{"schema_version":1,"registry":"cargo","generation":"g","packages":[{"name":"a","source":"native","latest":"1.0.0","versions":[{"version":"1.0.0","yanked":false}]}]}"#;
-        let catalog = crate::model::parse_catalog_json(text).unwrap();
-        let html = render_html(&catalog);
+        let html = render_html(&crate::model::parse_catalog_json(text).unwrap());
         let detail = section(&html, "cargo/native/a");
         assert!(detail.contains("published before dependencies were recorded"));
-        assert!(!detail.contains("No dependencies"));
+        assert!(!detail.contains("No runtime dependencies"));
         assert!(!detail.contains("Used by"));
     }
 
     #[test]
-    fn yanked_versions_are_marked_in_listings() {
-        let mut input = cargo_input("a", "1.0.0", &[]);
-        input.yanked = true;
-        let catalog = cargo_catalog("g", vec![input, cargo_input("a", "1.1.0", &[])]).unwrap();
+    fn versions_list_newest_first_and_name_yanked_ones() {
+        let mut old = cargo_input("a", "1.0.0", &[]);
+        old.yanked = true;
+        let catalog = cargo_catalog("g", vec![old, cargo_input("a", "1.1.0", &[])]).unwrap();
         let html = render_html(&catalog);
-        assert!(html.contains("<span class=\"yanked\" title=\"Yanked\">1.0.0</span>"));
-        assert!(html.contains("<b>1.1.0</b>"));
+        let versions = panel_body(section(&html, "cargo/native/a"), "Versions");
+        assert!(versions.contains("2 versions, 1 yanked"));
+        let newest = versions.find("1.1.0").unwrap();
+        let oldest = versions.find("1.0.0").unwrap();
+        assert!(newest < oldest);
+        assert!(versions.contains("<li><span class=\"mono\">1.0.0</span><span class=\"state state-bad\">Yanked</span></li>"));
+        assert!(versions.contains("<li><span class=\"mono\">1.1.0</span><span class=\"row-note\">latest</span></li>"));
     }
 }

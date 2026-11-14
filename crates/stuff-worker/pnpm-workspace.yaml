@@ -12,3 +12,4 @@ minimumReleaseAgeExclude:
   - '@tsrs/linux-x64-musl@0.25.0-ts7.1.0-beta'
   - '@tsrs/win32-arm64@0.25.0-ts7.1.0-beta'
   - '@tsrs/win32-x64@0.25.0-ts7.1.0-beta'
+  - '@laputa-systems/ui-dashboard@0.9.1'

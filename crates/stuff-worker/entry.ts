@@ -229,7 +229,7 @@ function renderUnified(env: WorkerEnv, url: URL, catalogs: string[]): string {
   const rendered = JSON.parse(
     wantMarkdown
       ? render_unified_llms_txt_json(JSON.stringify(catalogs), env.STUFF_ROUTES, url.origin)
-      : render_unified_index_json(JSON.stringify(catalogs)),
+      : render_unified_index_json(JSON.stringify(catalogs), env.STUFF_ROUTES, url.origin),
   ) as UnifiedRendered;
   if (rendered.kind !== (wantMarkdown ? "markdown" : "html") || !rendered.body) {
     throw new Error(rendered.message ?? "unified render");
