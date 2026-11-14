@@ -52,12 +52,12 @@ region = "us-east-1"
 [apps.stats]
 kind = "orange"
 display = "Stats"
-namespace = "stats"
+namespace = "stats-prod"
 ip = "172.29.80.20"
 port = 8080
-hostnames = ["stats.17166969.xyz"]
+hostnames = ["stats.17166969.xyz", "stats-next.17166969.xyz"]
 buckets = ["stats-exports"]
-memory = "1g"
+memory = "3g"
 cpus = 2.0
 
 [apps.stuff]
