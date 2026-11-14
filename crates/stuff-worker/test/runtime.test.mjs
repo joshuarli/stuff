@@ -54,12 +54,27 @@ function catalog(registry, name) {
   });
 }
 
+function mirrorCatalog() {
+  return JSON.stringify({
+    artifacts: [],
+    baseUrl: "https://mirror.test/",
+    generation: "g1",
+    packages: [
+      { name: "tool-1.0", source: "upstream", versions: [{ version: "1.0" }] },
+    ],
+    registry: "mirror",
+    renderer: 1,
+    schemaVersion: 1,
+  });
+}
+
 async function seed(server, { pypiCatalog } = {}) {
   const catalogs = {
     MYCRATES: catalog("cargo", "crate"),
     MYNPM: catalog("npm", "package"),
     PYPI: pypiCatalog ?? catalog("pypi", "wheelpkg"),
     OCI: catalog("oci", "example/app"),
+    MIRROR: mirrorCatalog(),
   };
   for (const [binding, text] of Object.entries(catalogs)) {
     const bucket = (await server.getWorker().getEnv())[binding];
@@ -169,10 +184,26 @@ test("unified llms.txt advertises the configured hosts", async (t) => {
   assert.equal(response.status, 200);
   const text = await response.text();
   assert.match(text, /Aggregate browser: https:\/\/stuff\.test\/ /);
-  for (const origin of ["https://crates.test", "https://npm.test", "https://pypi.test", "https://oci.test"]) {
+  for (const origin of ["https://crates.test", "https://npm.test", "https://pypi.test", "https://oci.test", "https://mirror.test"]) {
     assert.ok(text.includes(`${origin}/llms.txt`), `${origin}/llms.txt`);
   }
   assert.ok(!text.includes("17166969.xyz"));
+});
+
+test("the unified page and llms.txt include the mirror", async (t) => {
+  const server = workerHarness();
+  t.after(() => server.close());
+  await server.listen();
+  await seed(server);
+  const page = await server.getWorker().fetch("https://stuff.test/");
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.ok(html.includes("tool-1.0"), "unified page lists the mirror artifact");
+  assert.ok(html.includes('id="r-mirror"'), "unified page has the mirror section");
+  const llms = await server.getWorker().fetch("https://stuff.test/llms.txt");
+  const text = await llms.text();
+  assert.ok(text.includes("Static artifact mirror"), "unified llms names the mirror");
+  assert.ok(text.includes("- Mirror: https://mirror.test/llms.txt"), "unified llms links the mirror");
 });
 
 test("the unified page and llms.txt include OCI", async (t) => {

@@ -11,6 +11,7 @@ const routes = JSON.stringify([
   { host: "npm.test", bucket_binding: "MYNPM", key_prefix: "" },
   { host: "pypi.test", bucket_binding: "PYPI", key_prefix: "" },
   { host: "oci.test", bucket_binding: "OCI", key_prefix: "" },
+  { host: "mirror.test", bucket_binding: "MIRROR", key_prefix: "" },
 ]);
 
 export function workerHarness(vars = {}) {
@@ -30,7 +31,7 @@ export function workerHarness(vars = {}) {
           { type: "ESModule", globs: ["**/*.js"], fallthrough: true },
           { type: "CompiledWasm", globs: ["**/*.wasm"], fallthrough: true },
         ],
-        r2_buckets: ["MYCRATES", "MYNPM", "PYPI", "OCI", "OCI_BLOBS"].map((binding) => ({
+        r2_buckets: ["MYCRATES", "MYNPM", "PYPI", "OCI", "OCI_BLOBS", "MIRROR"].map((binding) => ({
           binding,
           bucket_name: binding.toLowerCase().replaceAll("_", "-"),
         })),

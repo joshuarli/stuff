@@ -394,7 +394,7 @@ pub fn render_unified_with_notices(catalogs: &[Catalog], origins: &CatalogOrigin
     let mut page = String::from("<div class=\"index\">\n");
     page.push_str(&page_header(
         "stuff",
-        "Cargo, npm, PyPI and OCI packages, served as static files. Each publish creates a new generation; the current one is live.",
+        "Cargo, npm, PyPI, OCI and mirror packages, served as static files. Each publish creates a new generation; the current one is live.",
     ));
     for notice in notices {
         page.push_str(&format!("<p class=\"ui-notice ui-notice-bad\" role=\"status\">{}</p>\n", escape(notice)));

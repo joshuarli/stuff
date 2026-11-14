@@ -197,7 +197,7 @@ function notFound(): Response {
   });
 }
 
-const UNIFIED_BINDINGS = ["MYCRATES", "MYNPM", "PYPI", "OCI"] as const;
+const UNIFIED_BINDINGS = ["MYCRATES", "MYNPM", "PYPI", "OCI", "MIRROR"] as const;
 
 async function currentGeneration(env: WorkerEnv, binding: string): Promise<string | null> {
   const pointer = await bucket(env, binding).get("current");
