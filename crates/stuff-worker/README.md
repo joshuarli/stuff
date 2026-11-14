@@ -90,3 +90,27 @@ numbers. Read those from production with the `stats-improve` workflow.
 CI runs `pnpm run build` and then `pnpm run test:runtime` in the same build
 directory. `cf build` alone cannot work: `entry.ts` imports the wasm glue that
 only `scripts/build.mjs` generates, so the wasm step must run before `tsrs`.
+
+## OpenOrange
+
+The registry runs on self-hosted OpenOrange (pinned in `orange/`; runtime in
+`deploy/openorange`). `scripts/orange.mjs OUTPUT RELEASE` writes the Wrangler
+descriptor from the typed build output and rejects unmapped fields; it maps text
+and R2 bindings and sets `STUFF_RELEASE`. `make worker-orange-test` runs the
+built Worker under the pinned `orange dev` with seeded storage for every
+registry hostname.
+
+Cloudflare-specific surfaces and what replaced them:
+
+| Surface | On OpenOrange |
+| --- | --- |
+| `ctx.exports.Registry.fetch` with `cf.cacheKey` | Removed; one fetch handler. Orange builds `request.url` from the Host header (`runner.js:25926` in 1.0.2), so hostname routing is unchanged |
+| `caches.default` render cache | In-process LRU of rendered unified pages (64 entries, 16 MiB) keyed by origin, release, generation ids and path; artifact bodies always stream from storage |
+| `env.VERSION` | `STUFF_RELEASE` text binding |
+| `.wasm` import + `initSync` | Orange loads `.wasm` imports as `WebAssembly.Module` (`bin.js:8100`); unchanged |
+| Conditional R2 `put` | The S3 facade pins the write with `If-None-Match: *` or `If-Match` (`runner.js:14178`); the self-hosted store honors both |
+
+The facade spools streamed S3 PUT bodies to a temporary file
+(`runner.js:14006`). Publishers upload natively through the Rust S3 client,
+so only Worker-side OCI pushes take that path. GET and range reads stream
+(`runner.js:14134`).

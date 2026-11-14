@@ -1,7 +1,7 @@
-import { bindings, defineConfig, exports } from "cf/config";
+import { bindings, defineConfig } from "cf/config";
 import * as entrypoint from "./entry.ts" with { type: "cf-worker" };
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(() => ({
 	worker: {
 		name: "stuff",
 		compatibilityDate: "2026-10-30",
@@ -52,20 +52,7 @@ export default defineConfig(({ mode }) => ({
 			OCI_BLOBS: bindings.r2({
 				name: "stuff-oci-blobs",
 			}),
-			VERSION: bindings.versionMetadata(),
+			STUFF_RELEASE: bindings.text("development"),
 		},
-		// The Vite plugin treats an exports.default entrypoint as a named export
-		// and emits `export const default`, so omit it while developing.
-		...(mode === "development"
-			? {}
-			: {
-					exports: {
-						default: exports.worker({
-							cache: {
-								enabled: false,
-							},
-						}),
-					},
-				}),
 	},
 }));
