@@ -262,11 +262,15 @@ pub struct UnifiedJson {
     pub message: Option<String>,
 }
 
-pub fn render_unified_index_json(catalogs_json: &str) -> String {
+pub fn render_unified_index_json(catalogs_json: &str, routes_json: &str, request_origin: &str) -> String {
+    let origins = match unified_origins(routes_json, request_origin) {
+        Ok(origins) => origins,
+        Err(message) => return unified_error(message),
+    };
     match parse_catalogs_json(catalogs_json) {
         Ok(parsed) => unified_json(
             "html",
-            stuff_catalog::render_unified_with_notices(&parsed.catalogs, &parsed.notices),
+            stuff_catalog::render_unified_with_notices(&parsed.catalogs, &origins, &parsed.notices),
         ),
         Err(error) => to_json(&error, "error"),
     }
@@ -1000,14 +1004,14 @@ mod tests {
         let cargo = r#"{"schema_version":1,"registry":"cargo","generation":"a","packages":[{"name":"h12tiny","source":"native","latest":"0.6.0","versions":[{"version":"0.6.0","yanked":false}]}]}"#;
         let npm = r#"{"schema_version":1,"registry":"npm","generation":"b","packages":[{"name":"@mine/utils","source":null,"latest":"1.3.0","versions":[{"version":"1.3.0","yanked":false}]}]}"#;
         let input = format!("[{},{}]", deser_json::to_string(&cargo).unwrap(), deser_json::to_string(&npm).unwrap());
-        let parsed: UnifiedJson = deser_json::from_str(&render_unified_index_json(&input)).expect("parses");
+        let parsed: UnifiedJson = deser_json::from_str(&render_unified_index_json(&input, ROUTES, "https://stuff.example.test")).expect("parses");
         assert_eq!(parsed.kind, "html");
         let body = parsed.body.expect("html body");
         assert!(body.contains("h12tiny"));
         assert!(body.contains("@mine/utils"));
 
         let bad: UnifiedJson =
-            deser_json::from_str(&render_unified_index_json("not json")).expect("parses");
+            deser_json::from_str(&render_unified_index_json("not json", ROUTES, "https://stuff.example.test")).expect("parses");
         assert_eq!(bad.kind, "error");
     }
 
@@ -1024,7 +1028,7 @@ mod tests {
     #[test]
     fn unified_render_skips_a_catalog_it_cannot_read_and_says_so() {
         let input = catalogs_input(&[CARGO_V1, PYPI_FROM_THE_FUTURE]);
-        let page: UnifiedJson = deser_json::from_str(&render_unified_index_json(&input)).expect("parses");
+        let page: UnifiedJson = deser_json::from_str(&render_unified_index_json(&input, ROUTES, "https://stuff.example.test")).expect("parses");
         assert_eq!(page.kind, "html");
         let body = page.body.expect("html body");
         assert!(body.contains("h12tiny"));
@@ -1040,14 +1044,14 @@ mod tests {
     #[test]
     fn unified_render_names_the_registry_even_when_the_catalog_is_not_json() {
         let input = catalogs_input(&[CARGO_V1, "not a catalog"]);
-        let body = deser_json::from_str::<UnifiedJson>(&render_unified_index_json(&input)).unwrap().body.unwrap();
+        let body = deser_json::from_str::<UnifiedJson>(&render_unified_index_json(&input, ROUTES, "https://stuff.example.test")).unwrap().body.unwrap();
         assert!(body.contains("A registry is not listed because its catalog could not be read"));
     }
 
     #[test]
     fn unified_render_still_fails_when_no_catalog_is_readable() {
         let input = catalogs_input(&[PYPI_FROM_THE_FUTURE]);
-        let page: UnifiedJson = deser_json::from_str(&render_unified_index_json(&input)).expect("parses");
+        let page: UnifiedJson = deser_json::from_str(&render_unified_index_json(&input, ROUTES, "https://stuff.example.test")).expect("parses");
         assert_eq!(page.kind, "error");
         assert!(page.message.expect("message").contains("no catalog could be read"));
     }

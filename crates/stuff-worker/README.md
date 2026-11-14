@@ -39,7 +39,10 @@ with `cf deploy --prebuilt --dry-run`.
 
 Vite 8 builds with Rolldown. Wrangler is a test dependency and brings esbuild;
 the Worker build does not invoke either. `make search-bundle` uses Vite to
-rebuild `crates/stuff-catalog/assets/search.js`.
+rebuild `crates/stuff-catalog/assets/search.js`. `make catalog-css` copies the
+stylesheets of the pinned `@laputa-systems/ui-dashboard` devDependency, which
+`.npmrc` routes to the stuff npm registry, into
+`crates/stuff-catalog/assets/ui-dashboard/`.
 
 The wasm step runs:
 

@@ -17,7 +17,7 @@
 - `store.py`: content-addressed blob store, native and upstream records, the exclusive store lock (`flock`), name collision and build-metadata identity rules, and SHA-256 verification.
 - `migrate.py`: one-way conversion of the Rust tool's TOML records to JSON (`migrate-state`).
 - `fsutil.py`, `site.py`: durable writes, locks, and atomic generation activation with immutable blob sync.
-- `catalog.py`, `catalog_style.py`: catalog JSON, HTML, `llms.txt`, and fingerprint rendering, byte-compatible with `crates/stuff-catalog`; the search script is read from `crates/stuff-catalog/assets/search.js`.
+- `catalog.py`: catalog JSON, HTML, `llms.txt`, and fingerprint rendering, byte-compatible with `crates/stuff-catalog`; the search script and stylesheets are read from `crates/stuff-catalog/assets/`.
 - `publish.py`: generation rendering, the manifest-derived generation id, and activation.
 - `adopt.py`: rebuild records and blobs from a published site.
 - `wire.py`, `server.py`: framing for `PUT /api/v1/crates/new`, and the loopback-only `serve-publish` server (write API, yank/unyank, sparse index and blob reads).

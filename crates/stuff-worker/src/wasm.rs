@@ -159,8 +159,8 @@ pub fn plan_object_response_json(
 }
 
 #[wasm_bindgen]
-pub fn render_unified_index_json(catalogs_json: &str) -> String {
-    crate::api::render_unified_index_json(catalogs_json)
+pub fn render_unified_index_json(catalogs_json: &str, routes_json: &str, request_origin: &str) -> String {
+    crate::api::render_unified_index_json(catalogs_json, routes_json, request_origin)
 }
 
 #[wasm_bindgen]

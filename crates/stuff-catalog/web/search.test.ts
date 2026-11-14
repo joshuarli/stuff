@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createPackageSearch, type PackageDocument } from "./search.ts";
+import { createPackageSearch, visibleMatches, type PackageDocument } from "./search.ts";
 
 const NAMES: [string, string, string][] = [
   ["serde", "cargo", "upstream"],
@@ -59,4 +59,10 @@ test("a name match outranks a registry match", () => {
 
 test("a query with no matches is empty, not null", () => {
   assert.deepEqual(search("zzzzzz"), []);
+});
+
+test("long result lists show a head and count the rest", () => {
+  assert.deepEqual(visibleMatches(50, 20), { shown: 20, hidden: 30 });
+  assert.deepEqual(visibleMatches(5, 20), { shown: 5, hidden: 0 });
+  assert.deepEqual(visibleMatches(0, 20), { shown: 0, hidden: 0 });
 });

@@ -2,7 +2,6 @@ import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .catalog_style import CSS
 from .errors import OperationError
 from .semver import Version, compare_key
 
@@ -10,10 +9,32 @@ SCHEMA_VERSION = 4
 FINGERPRINT_GENERATION = "fingerprint"
 KINDS = ("runtime", "peer", "build", "dev")
 KIND_ORDER = {kind: index for index, kind in enumerate(KINDS)}
-SEARCH_JS_PATH = Path(__file__).resolve().parents[2] / "stuff-catalog" / "assets" / "search.js"
+ASSETS = Path(__file__).resolve().parents[2] / "stuff-catalog" / "assets"
+SEARCH_JS_PATH = ASSETS / "search.js"
+STYLESHEET_PATHS = (
+    ASSETS / "ui-dashboard" / "tokens.css",
+    ASSETS / "ui-dashboard" / "styles.css",
+    ASSETS / "ui-dashboard" / "layout.css",
+    ASSETS / "catalog.css",
+)
+UI_STYLES_IMPORT = '@import "./tokens.css";\n'
 
 _ESCAPES = {'"': '\\"', "\\": "\\\\", "\n": "\\n", "\r": "\\r", "\t": "\\t"}
 _HTML_ESCAPES = {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#x27;"}
+
+
+def _read_asset(path):
+    try:
+        return path.read_bytes().decode("utf-8")
+    except OSError as error:
+        raise OperationError(f"could not read the catalog asset {path}: {error}") from error
+
+
+def _stylesheet():
+    tokens, styles, layout, app = (_read_asset(path) for path in STYLESHEET_PATHS)
+    if not styles.startswith(UI_STYLES_IMPORT):
+        raise OperationError("ui-dashboard styles.css no longer starts by importing tokens.css")
+    return "\n".join([tokens, styles[len(UI_STYLES_IMPORT) :], layout, app])
 
 
 def _search_js():
@@ -216,25 +237,17 @@ def _package_link(package):
     return f'<a href="{escape_html(_fragment_href(_anchor(package)))}">{escape_html(package.name)}</a>'
 
 
-def _versions_markup(package):
-    parts = []
-    for version in package.versions:
-        text = escape_html(version.version)
-        if version.yanked:
-            parts.append(f'<span class="yanked" title="Yanked">{text}</span>')
-        elif version.version == package.latest:
-            parts.append(f"<b>{text}</b>")
-        else:
-            parts.append(text)
-    return " ".join(parts)
-
-
-def _document(title, body):
+def _document(title, brand, nav, page):
+    links = "".join(f'<a href="{escape_html(href)}">{escape_html(label)}</a>' for href, label in nav)
     return (
         '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        f"<title>{escape_html(title)}</title>\n<style>{CSS}</style>\n</head>\n<body>\n"
-        f"{body}<script>{_search_js()}</script>\n</body>\n</html>\n"
+        f"<title>{escape_html(title)}</title>\n<style>{_stylesheet()}</style>\n</head>\n<body>\n"
+        '<div class="ui-shell">\n<aside class="ui-side">\n'
+        f'<div class="ui-side-top"><a class="ui-side-brand" href="#">{escape_html(brand)}</a></div>\n'
+        f'<div class="ui-side-body"><nav class="ui-side-nav" aria-label="Main">{links}</nav></div>\n'
+        '</aside>\n<main class="ui-main" id="main" tabindex="-1">\n<div class="page">\n'
+        f"{page}</div>\n</main>\n</div>\n<script>{_search_js()}</script>\n</body>\n</html>\n"
     )
 
 
@@ -254,100 +267,232 @@ def _dependents_of(catalog):
     return dependents
 
 
-def _name_list(catalog, names):
+_SHORT_LIST = 12
+_KIND_TITLES = {"peer": "Peer", "build": "Build", "dev": "Dev"}
+_SEARCH_ICON = (
+    '<svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="1.6" stroke-linecap="round" aria-hidden="true">'
+    '<path d="M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z"/><path d="m15.2 15.2 4.3 4.3"/></svg>'
+)
+
+
+def _count(n):
+    return f"{n:,}"
+
+
+def _plural(n, one, many):
+    return f"{_count(n)} {one if n == 1 else many}"
+
+
+def _panel(panel_id, title, meta, body):
+    identity = f' id="{escape_html(panel_id)}"' if panel_id is not None else ""
+    meta_html = f'<span class="ui-panel-meta">{escape_html(meta)}</span>' if meta else ""
+    return (
+        f'<section class="ui-panel"{identity}><div class="ui-panel-head"><div class="ui-panel-title">'
+        f"<h2>{escape_html(title)}</h2></div>{meta_html}</div>"
+        f'<div class="ui-panel-body">{body}</div></section>\n'
+    )
+
+
+def _group(title, body):
+    return f'<div class="group"><div class="group-head"><h3>{escape_html(title)}</h3></div>{body}</div>'
+
+
+def _short_list(rows, shown):
+    out = '<ol class="rows">' + "".join(rows[:shown]) + "</ol>"
+    if len(rows) > shown:
+        out += (
+            f'<details class="more"><summary>Show {_count(len(rows) - shown)} more</summary>'
+            '<ol class="rows">' + "".join(rows[shown:]) + "</ol></details>"
+        )
+    return out
+
+
+def _page_header(title, sub_html):
+    return (
+        f'<header class="ui-page-header"><h1>{escape_html(title)}</h1></header>\n'
+        f'<p class="page-sub">{sub_html}</p>\n'
+    )
+
+
+def _status_strip(tiles):
+    cells = "".join(
+        f'<a class="tile" href="{escape_html(href)}"><span class="tile-label">{escape_html(label)}</span>'
+        f'<span class="tile-value">{escape_html(value)}</span><span class="tile-note">{escape_html(note)}</span></a>'
+        for label, value, note, href in tiles
+    )
+    return f'<div class="status-strip" style="--cells:{max(len(tiles), 1)}">{cells}</div>\n'
+
+
+def _find_panel(catalog):
+    total = _plural(catalog.package_count(), "package", "packages")
+    rows = "".join(
+        f'<li data-name="{escape_html(package.name)}" data-registry="cargo" '
+        f'data-source="{escape_html(package.source)}">'
+        f'<span class="row-name">{_package_link(package)}'
+        f'<span class="row-note">{escape_html("Cargo · " + package.source)}</span></span>'
+        f'<span class="row-value">{escape_html(package.latest)}</span></li>'
+        for package in catalog.packages
+    )
+    body = (
+        '<div class="find">'
+        f'<label class="ui-search" data-package-search-box hidden>{_SEARCH_ICON}'
+        '<input type="search" data-package-search placeholder="Find a package by name" '
+        'aria-label="Find a package" autocomplete="off"></label>'
+        f'<details class="browse" data-browse><summary>Browse all {total}</summary>'
+        f'<ol class="rows" data-packages>{rows}</ol></details>'
+        '<p class="note" data-no-match hidden>No package matches.</p>'
+        '<button class="ui-btn" type="button" data-more hidden></button>'
+        "</div>"
+    )
+    return _panel("find", "Find a package", total, body)
+
+
+def _published_here(catalog):
+    return [package for package in catalog.packages if package.source == "native"]
+
+
+def _published_here_panel(catalog):
+    rows = [
+        f'<li><span class="row-name">{_package_link(package)}</span>'
+        f'<span class="row-value">{escape_html(package.latest)}</span></li>'
+        for package in _published_here(catalog)
+    ]
+    if not rows:
+        return ""
+    return _panel(
+        "published",
+        f"Published here · {_count(len(rows))}",
+        f"{_count(catalog.package_count() - len(rows))} mirrored",
+        f'<div class="columns">{_short_list(rows, 24)}</div>',
+    )
+
+
+def _setup_panel(catalog):
+    generation = escape_html(catalog.generation)
+    body = (
+        '<p class="lead">Setup for this registry, with the client configuration, is in '
+        f'<a href="/generations/{generation}/llms.txt">llms.txt</a>.</p>'
+        f'<p class="panel-foot"><a href="/generations/{generation}/catalog.json">catalog.json</a></p>'
+    )
+    return _panel("r-cargo", "Setup", "", body)
+
+
+def _name_rows(catalog, names):
     hosted = []
     elsewhere = []
     for name in names:
         target = catalog.resolve_dependency(name)
         if target is not None:
-            hosted.append(f'<li class="pkg">{_package_link(target)}</li>\n')
+            hosted.append(f"<li>{_package_link(target)}</li>")
         else:
-            elsewhere.append(f'<span class="pkg">{escape_html(name)}</span>')
+            elsewhere.append(f"<code>{escape_html(name)}</code>")
     out = ""
     if hosted:
-        out += '<ul class="refs">\n' + "".join(hosted) + "</ul>\n"
+        out += _short_list(hosted, _SHORT_LIST)
     if elsewhere:
-        out += f'<p class="mute">Not hosted here: {", ".join(elsewhere)}</p>\n'
+        out += f'<p class="note">Not hosted here: {", ".join(elsewhere)}</p>'
     return out
 
 
-KIND_TITLES = {
-    "peer": "Peer dependencies",
-    "build": "Build dependencies",
-    "dev": "Dev dependencies",
-}
-
-
-def _dependency_sections(catalog, package, users):
-    out = ["<h2>Depends on</h2>\n"]
+def _depends_on_panel(catalog, package):
     if not package.dependencies.runtime:
-        out.append(f'<p class="mute">No dependencies in {escape_html(package.latest)}.</p>\n')
+        body = f'<p class="note">No runtime dependencies in {escape_html(package.latest)}.</p>'
     else:
-        out.append(_name_list(catalog, package.dependencies.runtime))
-    for kind in ("peer", "build", "dev"):
-        names = package.dependencies.of(kind)
-        if names:
-            out.append(
-                f"<details>\n<summary>{KIND_TITLES[kind]} ({len(names)})</summary>\n"
-                f"{_name_list(catalog, names)}</details>\n"
-            )
-    out.append("<h2>Used by</h2>\n")
-    if users is None:
-        out.append('<p class="mute">No package here depends on it.</p>\n')
+        body = _name_rows(catalog, package.dependencies.runtime)
+    if catalog.schema_version < 3:
+        body += '<p class="note">Peer, build and dev dependencies were not recorded for this generation.</p>'
     else:
-        out.append('<ul class="refs">\n')
+        for kind in ("peer", "build", "dev"):
+            names = package.dependencies.of(kind)
+            if names:
+                body += _group(f"{_KIND_TITLES[kind]} · {len(names)}", _name_rows(catalog, names))
+    total = sum(len(package.dependencies.of(kind)) for kind in KINDS)
+    return _panel(None, "Depends on", _plural(total, "package", "packages"), body)
+
+
+def _used_by_panel(users):
+    users = users or []
+    if not users:
+        body = '<p class="note">No package here depends on it.</p>'
+    else:
+        rows = []
         for user, kind in users:
-            note = "" if kind == "runtime" else f'<span class="mute">{kind}</span>'
-            out.append(f'<li class="pkg">{_package_link(user)}{note}</li>\n')
-        out.append("</ul>\n")
-    return "".join(out)
+            note = "" if kind == "runtime" else f'<span class="row-note">{kind}</span>'
+            rows.append(f"<li>{_package_link(user)}{note}</li>")
+        body = _short_list(rows, _SHORT_LIST)
+    return _panel(None, "Used by", _plural(len(users), "package", "packages"), body)
+
+
+def _versions_panel(package):
+    rows = []
+    for version in reversed(package.versions):
+        if version.yanked:
+            state = '<span class="state state-bad">Yanked</span>'
+        elif version.version == package.latest:
+            state = '<span class="row-note">latest</span>'
+        else:
+            state = ""
+        rows.append(f'<li><span class="mono">{escape_html(version.version)}</span>{state}</li>')
+    meta = _plural(len(package.versions), "version", "versions")
+    yanked = sum(1 for version in package.versions if version.yanked)
+    if yanked:
+        meta += f", {yanked} yanked"
+    return _panel(None, "Versions", meta, _short_list(rows, 8))
 
 
 def _detail_sections(catalog):
     out = []
     dependents = _dependents_of(catalog)
+    separator = '<span class="ui-breadcrumb-separator" aria-hidden="true">/</span>'
     for package in catalog.packages:
         anchor = _anchor(package)
-        out.append(f'<section class="detail" id="{escape_html(anchor)}">\n')
-        out.append('<p class="back"><a href="#">All packages</a></p>\n')
+        command = escape_html(f"cargo add {package.name}@{package.latest}")
+        out.append(f'<section class="detail page" id="{escape_html(anchor)}">\n')
         out.append(
-            f'<h1 class="pkg">{escape_html(package.name)}</h1>\n'
-            f'<p class="lede">Cargo{escape_html(", " + package.source)}. Latest {escape_html(package.latest)}.</p>\n'
+            f'<nav class="ui-breadcrumbs" aria-label="Breadcrumb"><ol><li><a href="#">Cargo</a>{separator}</li>'
+            f'<li><span aria-current="page">{escape_html(package.name)}</span></li></ol></nav>\n'
         )
-        out.append(_dependency_sections(catalog, package, dependents.get(anchor)))
-        out.append(f'<h2>Versions</h2>\n<p class="vers">{_versions_markup(package)}</p>\n</section>\n')
+        out.append(
+            _page_header(
+                package.name,
+                f"Cargo · {escape_html(package.source)} · latest <b>{escape_html(package.latest)}</b>",
+            )
+        )
+        out.append(f'<div class="install"><pre class="snippet"><code>{command}</code></pre></div>\n')
+        out.append('<div class="ui-dashboard-grid">\n')
+        out.append(_versions_panel(package))
+        out.append(_depends_on_panel(catalog, package))
+        out.append(_used_by_panel(dependents.get(anchor)))
+        out.append("</div>\n</section>\n")
     return "".join(out)
 
 
 def render_html(catalog):
-    out = [
-        "<header>Cargo</header>\n<main>\n",
-        '<div class="index">\n<h1>Cargo registry</h1>\n'
-        f'<p class="lede">{catalog.package_count()} packages, {catalog.version_count()} versions</p>\n',
-        '<input type="search" data-package-search hidden placeholder="Find a package" '
-        'aria-label="Find a package" autocomplete="off">\n',
-        '<table data-packages>\n<thead><tr><th>Package</th><th class="hide">Source</th><th>Versions</th></tr></thead>\n<tbody>\n',
-    ]
-    for package in catalog.packages:
-        out.append(
-            f'<tr data-name="{escape_html(package.name)}" data-registry="cargo" '
-            f'data-source="{escape_html(package.source)}">'
-        )
-        out.append(f'<td class="pkg">{_package_link(package)}</td>')
-        out.append(f'<td class="mute hide">{escape_html(package.source)}</td>')
-        out.append(f'<td class="vers">{_versions_markup(package)}</td></tr>\n')
-    out.append("</tbody>\n</table>\n")
-    out.append('<p class="mute" data-no-match hidden>No packages match.</p>\n')
-    out.append("</div>\n")
-    out.append(_detail_sections(catalog))
-    out.append("</main>\n")
+    packages = catalog.package_count()
+    native = len(_published_here(catalog))
+    tiles = [("Packages", _count(packages), _plural(catalog.version_count(), "version", "versions"), "#find")]
+    if native:
+        tiles.append(("Published here", _count(native), f"{_count(packages - native)} mirrored", "#published"))
     generation = escape_html(catalog.generation)
-    out.append(
-        f'<footer><span>Generation <code>{generation}</code></span>'
-        f'<a href="/generations/{generation}/catalog.json">catalog.json</a>'
-        f"<span>Schema version {catalog.schema_version}</span></footer>\n"
-    )
-    return _document("Cargo registry browser", "".join(out))
+    page = [
+        '<div class="index">\n',
+        _page_header(
+            "Cargo registry",
+            f"{_count(packages)} packages served as static files from generation <code>{generation}</code>.",
+        ),
+        _status_strip(tiles),
+        _find_panel(catalog),
+        _published_here_panel(catalog),
+        _setup_panel(catalog),
+        "</div>\n",
+        _detail_sections(catalog),
+    ]
+    nav = [("#find", "Find")]
+    if native:
+        nav.append(("#published", "Published here"))
+    nav.append(("#r-cargo", "Setup"))
+    return _document("Cargo registry browser", "Cargo", nav, "".join(page))
 
 
 def _llms_use_section(origin, generation):

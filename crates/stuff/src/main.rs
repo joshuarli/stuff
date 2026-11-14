@@ -313,18 +313,18 @@ fn run_render(parsed: &stuff::cli::Parsed, environment: &Environment) -> Result<
         .ok_or_else(|| Error::usage("--output is required"))?;
     let sources = RegistrySources::from_parsed(parsed, environment)?;
     let catalogs = load_catalogs(&sources, parsed.registry_filter())?;
+    let origins = stuff_catalog::CatalogOrigins::new(
+        &sources.cargo_base,
+        &sources.npm_base,
+        &sources.pypi_base,
+        &sources.oci_base,
+        &sources.mirror_base,
+        stuff_catalog::DEFAULT_UNIFIED_ORIGIN,
+    );
     let body = if output.ends_with(".txt") || output.ends_with(".md") {
-        let origins = stuff_catalog::CatalogOrigins::new(
-            &sources.cargo_base,
-            &sources.npm_base,
-            &sources.pypi_base,
-            &sources.oci_base,
-            &sources.mirror_base,
-            stuff_catalog::DEFAULT_UNIFIED_ORIGIN,
-        );
         stuff_catalog::render_unified_llms_txt(&catalogs, &origins)
     } else {
-        stuff_catalog::render_unified(&catalogs)
+        stuff_catalog::render_unified(&catalogs, &origins)
     };
     std::fs::write(output, body.as_bytes())
         .map_err(|e| Error::Operation(format!("could not write {output}: {e}")))?;

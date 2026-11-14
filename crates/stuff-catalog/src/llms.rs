@@ -76,81 +76,87 @@ fn registry_title(registry: Registry) -> &'static str {
     }
 }
 
-fn use_section(registry: Registry, generation: &str, origin: &str) -> String {
+/// How a client is pointed at one registry: a sentence with Markdown code
+/// spans, then a snippet. Both the llms.txt and HTML pages print it.
+pub(crate) struct Setup {
+    pub lead: &'static str,
+    pub fence: &'static str,
+    pub code: String,
+}
+
+pub(crate) fn setup(registry: Registry, origin: &str) -> Setup {
     let origin = origin.trim_end_matches('/');
+    match registry {
+        Registry::Cargo => Setup {
+            lead: "Configure Cargo against the sparse index under `current/registry/`:",
+            fence: "toml",
+            code: format!(
+                "[source.crates-io]\nreplace-with = \"stuff\"\n[source.stuff]\nregistry = \"sparse+{origin}/current/registry/\""
+            ),
+        },
+        Registry::Npm => Setup {
+            lead: "Point npm at the registry root under `current/`:",
+            fence: "",
+            code: format!("registry={origin}/current/"),
+        },
+        Registry::Pypi => Setup {
+            lead: "Point pip at the PEP 503 simple index under `current/simple/`:",
+            fence: "",
+            code: format!("pip install --index-url {origin}/current/simple/ <package>"),
+        },
+        Registry::Oci => Setup {
+            lead: "Point an OCI client at the registry root:",
+            fence: "",
+            code: format!("docker pull {}/<repository>:<tag>", host_of(origin)),
+        },
+        Registry::Mirror => Setup {
+            lead: "Download `<id>.zip` artifacts from `current/` and verify them against `current/SHA256SUMS`:",
+            fence: "sh",
+            code: format!(
+                "curl -fLO {origin}/current/SHA256SUMS\ncurl -fLO {origin}/current/<id>.zip\nsha256sum --ignore-missing -c SHA256SUMS"
+            ),
+        },
+    }
+}
+
+pub(crate) fn host_of(origin: &str) -> &str {
+    origin.trim_end_matches('/').trim_start_matches("https://").trim_start_matches("http://")
+}
+
+fn use_section(registry: Registry, generation: &str, origin: &str) -> String {
     let catalog = format!("/generations/{generation}/catalog.json");
     let index = format!("/generations/{generation}/index.html");
-    match registry {
+    let pin = "Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`.";
+    let details = match registry {
         Registry::Cargo => format!(
-            "Configure Cargo against the sparse index under `current/registry/`:\n\
-            \n\
-            ```toml\n\
-            [source.crates-io]\n\
-            replace-with = \"stuff\"\n\
-            [source.stuff]\n\
-            registry = \"sparse+{origin}/current/registry/\"\n\
-            ```\n\
-            \n\
-            Index files live at `current/registry/<shard>` (sharded like the crates.io sparse index; mirrored upstream entries under `current/crates-io/`). \
+            "Index files live at `current/registry/<shard>` (sharded like the crates.io sparse index; mirrored upstream entries under `current/crates-io/`). \
             Config: [config.json](/generations/{generation}/registry/config.json). \
             Blobs: `blobs/<sha256>.crate` via the `dl` template. \
-            Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). \
-            Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`."
+            Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). {pin}"
         ),
         Registry::Npm => format!(
-            "Point npm at the registry root under `current/`:\n\
-            \n\
-            ```\n\
-            registry={origin}/current/\n\
-            ```\n\
-            \n\
-            Packuments live at `current/<name>` (scoped names URL-encode `/` as `%2f`, e.g. `current/@scope%2fpkg`). \
+            "Packuments live at `current/<name>` (scoped names URL-encode `/` as `%2f`, e.g. `current/@scope%2fpkg`). \
             Tarballs live at `current/tarballs/<sha512>.tgz` (also `current/-/tarballs/<sha512>.tgz`). \
-            Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). \
-            Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`."
+            Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). {pin}"
         ),
         Registry::Pypi => format!(
-            "Point pip at the PEP 503 simple index under `current/simple/`:\n\
-            \n\
-            ```\n\
-            pip install --index-url {origin}/current/simple/ <package>\n\
-            ```\n\
-            \n\
-            Indexes: [simple](/generations/{generation}/simple/index.html) with per-project pages at `current/simple/<project>/`. \
+            "Indexes: [simple](/generations/{generation}/simple/index.html) with per-project pages at `current/simple/<project>/`. \
             Wheels live at `current/wheels/<filename>` (content-addressed by sha256). \
-            Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). \
-            Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`."
+            Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). {pin}"
         ),
         Registry::Oci => format!(
-            "Point an OCI client at the registry root:\n\
-            \n\
-            ```\n\
-            docker pull {host}/<repository>:<tag>\n\
-            ```\n\
-            \n\
-            Manifests resolve at `current/repositories/<repository>/repository.json` through `/v2/<repository>/manifests/<tag|digest>`; \
+            "Manifests resolve at `current/repositories/<repository>/repository.json` through `/v2/<repository>/manifests/<tag|digest>`; \
             blobs are content-addressed by `sha256/<hex>`. \
-            Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). \
-            Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`.",
-            host = origin.trim_end_matches('/').trim_start_matches("https://").trim_start_matches("http://"),
+            Inventory: [catalog.json]({catalog}). Browser: [index.html]({index}). {pin}"
         ),
-        Registry::Mirror => {
-            let sums = format!("/generations/{generation}/SHA256SUMS");
-            format!(
-                "Download `<id>.zip` artifacts from `current/` and verify them against `current/SHA256SUMS`:\n\
-                \n\
-                ```sh\n\
-                curl -fLO {origin}/current/SHA256SUMS\n\
-                curl -fLO {origin}/current/<id>.zip\n\
-                sha256sum --ignore-missing -c SHA256SUMS\n\
-                ```\n\
-                \n\
-                The pins (upstream URL + upstream SHA-256) live in `mirror/manifest.toml` in the stuff repo; the published zip SHA-256 values live in [SHA256SUMS]({sums}). \n\
-                Inventory: [catalog.json]({catalog}). \n\
-                Pin a generation with `current` (`current -> generations/<id>`); immutable snapshots live under `generations/<id>/`."
-            )
-        }
-    }
+        Registry::Mirror => format!(
+            "The pins (upstream URL + upstream SHA-256) live in `mirror/manifest.toml` in the stuff repo; the published zip SHA-256 values live in [SHA256SUMS](/generations/{generation}/SHA256SUMS). \n\
+            Inventory: [catalog.json]({catalog}). \n\
+            {pin}"
+        ),
+    };
+    let Setup { lead, fence, code } = setup(registry, origin);
+    format!("{lead}\n\n```{fence}\n{code}\n```\n\n{details}")
 }
 
 fn format_package_line(catalog: &Catalog, name: &str, latest: &str, versions: &[crate::model::VersionEntry], source: Option<&str>) -> String {

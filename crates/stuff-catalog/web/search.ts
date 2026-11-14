@@ -35,3 +35,9 @@ export function createPackageSearch(documents: readonly PackageDocument[]): Pack
     return index.search(trimmed, SEARCH_OPTIONS).map((result) => Number(result.id));
   };
 }
+
+/** How many ranked matches to show, and how many stay behind "Show N more". */
+export function visibleMatches(total: number, shown: number): { shown: number; hidden: number } {
+  const visible = Math.min(total, Math.max(0, shown));
+  return { shown: visible, hidden: total - visible };
+}

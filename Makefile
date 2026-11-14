@@ -1,4 +1,4 @@
-.PHONY: help release lint ts-lint repomod-test repomod-lint deps dashboard-ts bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-mirror republish-oci search-bundle test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
+.PHONY: help release lint ts-lint repomod-test repomod-lint deps dashboard-ts bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-mirror republish-oci search-bundle catalog-css test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -87,6 +87,15 @@ SEARCH_DIR ?= crates/stuff-catalog
 
 search-bundle: ## Rebuild the inline search script from web/ (needs pnpm install --frozen-lockfile in crates/stuff-worker)
 	cd $(WORKER_DIR) && node_modules/.bin/vite build --config vite.search.config.ts
+
+UI_DASHBOARD_DIST := $(WORKER_DIR)/node_modules/@laputa-systems/ui-dashboard/dist
+CATALOG_CSS := $(SEARCH_DIR)/assets/ui-dashboard
+
+catalog-css: ## Copy the pinned ui-dashboard stylesheets into stuff-catalog; fail if the committed copies are stale
+	cd $(WORKER_DIR) && pnpm install --frozen-lockfile
+	mkdir -p $(CATALOG_CSS)
+	cp $(UI_DASHBOARD_DIST)/tokens.css $(UI_DASHBOARD_DIST)/styles.css $(UI_DASHBOARD_DIST)/styles/layout.css $(CATALOG_CSS)/
+	@git diff --exit-code -- $(CATALOG_CSS)
 
 test-search: ## Run the package search tests
 	node --test $(SEARCH_DIR)/web/search.test.ts
