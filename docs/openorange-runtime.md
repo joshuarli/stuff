@@ -85,8 +85,13 @@ cloudflared (pending) --> 127.0.0.1:18480 (public listener, same Caddy)
         oo-store .10:7070   oo-engine .11:6420   oo-app-<name> .20+:8080
 ```
 
-* One private bridge `oo0`, `--internal`: containers cannot reach the internet
-  or the LAN. No container publishes a port (`docker ps` shows none; `bin/health`
+* The private bridge `oo0` uses `--internal`. Apps default to this network
+  alone. Discover and its preview additionally use the NAT bridge
+  `openorange-egress` through explicit `internet = true` app configuration,
+  so source watches and image capture can reach public sites. Their source
+  fetcher rejects private, tailnet and reserved DNS answers and pins each
+  approved address for the connection. Stats, Stuff, Engine and the store
+  remain on the private bridge alone. No container publishes a port (`docker ps` shows none; `bin/health`
   asserts it). Engine API, store S3 and app listeners exist only on
   `172.29.80.0/24`; the store admin API is a unix socket in
   `/run/openorange/store-admin`.

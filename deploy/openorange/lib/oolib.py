@@ -135,6 +135,7 @@ class App:
     image: str = ""  # repository name for local builds, e.g. "oo-demo"
     memory: str = "1g"
     cpus: float = 1.0
+    internet: bool = False
     health_path: str = "/"
     secrets: tuple[str, ...] = ()  # extra Worker secret names, values in apps/NAME.extra.env
     # Hostnames (a subset of `hostnames`) also served on the loopback public listener, for traffic
@@ -204,6 +205,10 @@ class Config:
     @property
     def store_env(self) -> Path:
         return self.etc / "store.env"
+
+    @property
+    def egress_network(self) -> str:
+        return f"{self.network['name']}-egress"
 
     @property
     def engine_url(self) -> str:
@@ -288,7 +293,7 @@ def validate(raw: dict) -> Config:
     used_hosts: dict[str, str] = {}
     used_buckets: set[str] = set()
     common = {"kind", "display", "hostnames", "enabled", "health_path", "public_hostnames", "public_deny_paths"}
-    orange_keys = common | {"namespace", "ip", "port", "buckets", "image", "memory", "cpus", "secrets"}
+    orange_keys = common | {"namespace", "ip", "port", "buckets", "image", "memory", "cpus", "secrets", "internet"}
     native_keys = common | {"upstream"}
     for name, a in raw.get("apps", {}).items():
         where = f"apps.{name}"
@@ -342,11 +347,14 @@ def validate(raw: dict) -> Config:
                 if dup:
                     raise ConfigError(f"{where}: buckets {sorted(dup)} already belong to another app")
                 used_buckets |= set(buckets)
+            internet = a.get("internet", False)
+            if type(internet) is not bool:
+                raise ConfigError(f"{where}.internet must be boolean")
             secrets_ = tuple(a.get("secrets", []))
             for sname in secrets_:
                 if not isinstance(sname, str) or not re.match(r"^[A-Z][A-Z0-9_]{1,63}$", sname) or sname.startswith(("RIVET", "ORANGE_", "OO_", "S3_")):
                     raise ConfigError(f"{where}: invalid secret name {sname!r}")
-            kw.update(secrets=secrets_, namespace=ns, ip=ip, port=port, buckets=buckets, image=a.get("image", ""),
+            kw.update(internet=internet, secrets=secrets_, namespace=ns, ip=ip, port=port, buckets=buckets, image=a.get("image", ""),
                       memory=a.get("memory", "1g"), cpus=float(a.get("cpus", 1.0)))
         else:
             up = _req(a, "upstream", str, where)
@@ -468,7 +476,9 @@ def run_args(cfg: Config, service: str, app: str | None = None) -> list[str]:
         if not img_file.exists():
             raise ConfigError(f"no image deployed for {a.name}: run `oo set-image {a.name} IMAGE`")
         deployment = read_app_deployment(img_file)
-        return COMMON + ["--name", a.container, *_net(cfg, a.ip), "--read-only", "--stop-timeout", "30",
+        network = (["--network", f"name={n['name']},ip={a.ip}", "--network", cfg.egress_network]
+                   if a.internet else _net(cfg, a.ip))
+        return COMMON + ["--name", a.container, *network, "--read-only", "--stop-timeout", "30",
                          "--user", "1000:1000", "--memory", a.memory, "--cpus", str(a.cpus), "--pids-limit", "512",
                          "--env-file", str(cfg.app_env(a)), *(["--env-file", str(cfg.app_extra_env(a))] if cfg.app_extra_env(a).exists() else []), "--tmpfs", "/tmp", "--tmpfs", "/app/.open-orange", "--tmpfs", "/home/node:uid=1000,gid=1000",
                          "--env", f"PORT={a.port}", "--env", f"RIVET_NODE_VERSION={deployment.version}", deployment.image]

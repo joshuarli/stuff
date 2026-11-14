@@ -87,6 +87,13 @@ def main():
         rec(f"openrc {rcname}", "PASS" if rc == 0 else "FAIL", "started" if rc == 0 else f"status rc={rc}")
         rc, out, _ = sh("docker", "inspect", cname, "--format", "{{.State.Status}} {{.State.StartedAt}} restarts-by-supervisor-not-tracked")
         rec(f"container {cname}", "PASS" if rc == 0 and out.startswith("running") else "FAIL", out.split(" restarts")[0] if out else "absent")
+        if app:
+            a = cfg.apps[app]
+            rc, out, _ = sh("docker", "inspect", cname, "--format", "{{json .NetworkSettings.Networks}}")
+            networks = json.loads(out) if rc == 0 else {}
+            expected = {cfg.network["name"]} | ({cfg.egress_network} if a.internet else set())
+            isolated = set(networks) == expected and networks.get(cfg.network["name"], {}).get("IPAddress") == a.ip
+            rec(f"app {app}: network isolation", "PASS" if isolated else "FAIL", ", ".join(sorted(networks)) or "absent")
     # store
     st, _ = get(cfg.store_url + "/health")
     rec("store /health", "PASS" if st == 200 else "FAIL", f"http {st}")

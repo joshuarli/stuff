@@ -256,13 +256,22 @@ def cmd_network(cfg) -> None:
         if n["subnet"] not in subs or bool(info["Internal"]) != n["internal"]:
             die(f"network {n['name']} exists with subnet {subs}, internal={info['Internal']}: refusing to change")
         print(f"network: {n['name']} ok")
-        return
-    args = ["network", "create", "--driver", "bridge", "--subnet", n["subnet"],
-            "--opt", f"com.docker.network.bridge.name={n['bridge']}"]
-    if n["internal"]:
-        args.append("--internal")
-    oolib.docker(*args, n["name"])
-    print(f"network: created {n['name']} {n['subnet']} internal={n['internal']}")
+    else:
+        args = ["network", "create", "--driver", "bridge", "--subnet", n["subnet"],
+                "--opt", f"com.docker.network.bridge.name={n['bridge']}"]
+        if n["internal"]:
+            args.append("--internal")
+        oolib.docker(*args, n["name"])
+        print(f"network: created {n['name']} {n['subnet']} internal={n['internal']}")
+    if any(app.internet for app in cfg.orange_apps()):
+        result = oolib.docker("network", "inspect", cfg.egress_network, check=False)
+        if result.returncode == 0:
+            info = json.loads(result.stdout)[0]
+            if info["Internal"] or info["Driver"] != "bridge":
+                die(f"network {cfg.egress_network} must be a non-internal bridge")
+        else:
+            oolib.docker("network", "create", "--driver", "bridge", cfg.egress_network)
+        print(f"network: {cfg.egress_network} ok")
 
 
 # ------------------------------------------------------------------ provision

@@ -1,4 +1,5 @@
 import os
+from dataclasses import replace
 from pathlib import Path
 import sys
 import tempfile
@@ -40,6 +41,27 @@ class DeploymentTests(unittest.TestCase):
             self.path.write_text(value)
             with self.assertRaises(oolib.ConfigError):
                 oolib.read_app_deployment(self.path)
+
+    def test_egress_is_explicit_and_does_not_publish_private_ports(self):
+        cfg = oolib.load()
+        cfg.stack["etc_dir"] = self.directory.name
+        app = replace(cfg.apps["discover"], internet=False)
+        cfg.apps["discover"] = app
+        cfg.app_image_file(app).parent.mkdir()
+        oolib.set_app_deployment(cfg.app_image_file(app), "discover:verified")
+        private = oolib.run_args(cfg, "app", "discover")
+        self.assertNotIn(cfg.egress_network, private)
+        cfg.apps["discover"] = replace(app, internet=True)
+        egress = oolib.run_args(cfg, "app", "discover")
+        self.assertIn(f"name={cfg.network['name']},ip={app.ip}", egress)
+        self.assertIn(cfg.egress_network, egress)
+        for forbidden in ["--publish", "-p", "--publish-all", "--privileged"]:
+            self.assertNotIn(forbidden, egress)
+        self.assertFalse(cfg.apps["stats"].internet)
+        self.assertFalse(cfg.apps["stuff"].internet)
+        cfg.raw["apps"]["discover"]["internet"] = "true"
+        with self.assertRaises(oolib.ConfigError):
+            oolib.validate(cfg.raw)
 
     def test_app_arguments_use_deployment_version_and_image_together(self):
         cfg = oolib.load()
