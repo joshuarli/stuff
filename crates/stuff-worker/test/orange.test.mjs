@@ -34,7 +34,6 @@ test("Orange serves seeded registries and conditional OCI writes", { timeout: 12
   config.vars.STUFF_OCI_PUSH_TOKEN = "token";
   config.vars.STUFF_OCI_PUSH_SECRET = "secret";
   config.vars.STUFF_OCI_WRITER_ORIGIN = "https://oci.17166969.xyz";
-  delete config.vars.STUFF_OCI_BLOB_ORIGIN;
   writeFileSync(configPath, JSON.stringify(config));
   const p = await port();
   const child = spawn(process.execPath, [bin, "dev", "--json", "--ip", "127.0.0.1", "--port", String(p), "--config", configPath], { cwd: dir, stdio: ["ignore", "pipe", "pipe"] });
@@ -65,9 +64,26 @@ test("Orange serves seeded registries and conditional OCI writes", { timeout: 12
     req.on("error", reject);
     req.end(options.body);
   });
+  const digest = OCI_LAYER.slice(7);
+  const layerBytes = readFileSync(join(OCI_FIXTURE, "blobs/sha256", digest));
+  const early = [["OCI_BLOBS", `sha256/${digest}`, layerBytes.toString("base64")], ["MYCRATES", "blobs/early.crate", Buffer.from("early-bytes").toString("base64")], ["MYCRATES", "current", Buffer.from("secret").toString("base64")], ["OCI_BLOBS", "secret", Buffer.from("secret").toString("base64")]];
+  assert.equal((await request("stuff.17166969.xyz", "/__seed", { method: "POST", body: JSON.stringify(early) })).status, 200);
+  assert.equal(await (await request("crates-blobs.17166969.xyz", "/blobs/early.crate")).text(), "early-bytes");
+  for (const options of [{}, { method: "HEAD" }, { headers: { range: "bytes=0-3" } }]) {
+    const redirect = await request("oci.17166969.xyz", `/v2/example/app/blobs/${OCI_LAYER}`, options);
+    assert.equal(redirect.status, 307);
+    assert.equal(redirect.headers.get("location"), `https://oci-blobs.17166969.xyz/sha256/${digest}`);
+    const target = new URL(redirect.headers.get("location"));
+    const response = await request(target.hostname, target.pathname, options);
+    assert.equal(response.status, options.headers ? 206 : 200);
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), options.method === "HEAD" ? Buffer.alloc(0) : options.headers ? layerBytes.subarray(0, 4) : layerBytes);
+  }
+  for (const [host, path] of [["crates-blobs.17166969.xyz", "/current"], ["crates-blobs.17166969.xyz", "/blobs/%2e%2e%2fcurrent"], ["crates-blobs.17166969.xyz", "/blobs/%zz"], ["oci-blobs.17166969.xyz", "/secret"], ["oci-blobs.17166969.xyz", "/sha256/%2e%2e%2fsecret"], ["oci-blobs.17166969.xyz", "/sha256/abc"]]) {
+    assert.equal((await request(host, path)).status, 404, `${host}${path}`);
+  }
   assert.equal((await request("stuff.17166969.xyz", "/__seed", { method: "POST", body: JSON.stringify(puts) })).status, 200);
   for (const path of ["/", "/llms.txt"]) {
-    const page = await request("stuff.17166969.xyz", path); const body = await page.text(); assert.equal(page.status, 200, body); assert.ok(body.includes("crate"));
+    const page = await request("stuff.17166969.xyz", path); const body = await page.text(); assert.equal(page.status, 200, body); assert.ok(body.includes("crate")); assert.ok(body.includes("//crates.17166969.xyz")); assert.ok(!body.includes("//crates-blobs.17166969.xyz"));
     const other = await request("other.test", path); assert.equal(other.status, 200); assert.notEqual(await other.text(), body);
   }
   for (const [host, path, expected] of [
@@ -88,7 +104,7 @@ test("Orange serves seeded registries and conditional OCI writes", { timeout: 12
   const range = await request("pypi.17166969.xyz", wheelPath, { headers: { range: "bytes=0-3" } }); assert.equal(range.status, 206); assert.equal(await range.text(), "whee");
   assert.equal((await request("pypi.17166969.xyz", wheelPath, { headers: { range: "bytes=100-200" } })).status, 416);
   assert.equal((await request("oci.17166969.xyz", "/v2/example/app/manifests/stable")).status, 200);
-  assert.equal((await request("oci.17166969.xyz", `/v2/example/app/blobs/${OCI_LAYER}`)).status, 200);
+  assert.equal((await request("oci.17166969.xyz", `/v2/example/app/blobs/${OCI_LAYER}`)).status, 307);
   assert.equal((await request("oci.17166969.xyz", `/v2/example/app/referrers/${OCI_ARM64}`)).status, 200);
   assert.equal((await request("oci.17166969.xyz", "/v2/example/app/tags/list")).status, 200);
   const manifest = JSON.parse(readFileSync(join(OCI_FIXTURE, "blobs/sha256", OCI_ARM64.slice(7)), "utf8")); manifest.annotations = { title: "orange" };

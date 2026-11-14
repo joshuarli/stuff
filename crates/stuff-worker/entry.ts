@@ -59,6 +59,8 @@ interface WorkerEnv {
   readonly STUFF_ROUTES: string;
   readonly STUFF_UNIFIED_HOST?: string;
   readonly STUFF_OCI_HOST?: string;
+  readonly STUFF_CARGO_BLOB_HOST?: string;
+  readonly STUFF_OCI_BLOB_HOST?: string;
   readonly STUFF_OCI_BLOB_ORIGIN?: string;
   readonly STUFF_OCI_PUSH_TOKEN?: string;
   readonly STUFF_OCI_PUSH_SECRET?: string;
@@ -749,9 +751,15 @@ export default {
     ) {
       return unifiedIndex(req, env);
     }
-    const mapped = JSON.parse(
-      map_asset_json(env.STUFF_ROUTES, url.hostname, url.pathname),
-    ) as Mapped;
+    const cargoBlobHost = url.hostname === env.STUFF_CARGO_BLOB_HOST;
+    if (cargoBlobHost && !url.pathname.startsWith("/blobs/")) {
+      return notFound();
+    }
+    const mapped: Mapped = url.hostname === env.STUFF_OCI_BLOB_HOST
+      ? /^\/sha256\/[0-9a-f]{64}$/.test(url.pathname)
+        ? { kind: "direct", bucket_binding: "OCI_BLOBS", key: url.pathname.slice(1), cache: "immutable" }
+        : { kind: "not_found" }
+      : JSON.parse(map_asset_json(env.STUFF_ROUTES, url.hostname, url.pathname)) as Mapped;
     if (mapped.kind === "error") {
       throw new Error(mapped.message ?? "routes");
     }
