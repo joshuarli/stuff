@@ -35,8 +35,8 @@ from repomod.types import StatusItem, StatusLevel
 
 MARKER = ".repomod-dashboard"
 ASSETS = Path(__file__).with_name("assets")
-UI_DASHBOARD = paths.DASHBOARD_TS / "node_modules" / "@laputa-systems" / "ui-dashboard" / "dist"
-UI_SHEETS = ("styles.css", "tokens.css", "styles/layout.css", "styles/data.css")
+UI_DASHBOARD = paths.ROOT / "crates" / "stuff-catalog" / "assets" / "ui-dashboard"
+UI_SHEETS = ("styles.css", "tokens.css", "layout.css", "data.css")
 _LIST_ROWS = 25
 _PREVIEW_ROWS = 8
 _SHOWN_REPOSITORIES = 4
@@ -108,8 +108,8 @@ def render(
     missing = [sheet for sheet in UI_SHEETS if not (UI_DASHBOARD / sheet).is_file()]
     if missing:
         raise FileNotFoundError(
-            f"@laputa-systems/ui-dashboard is not installed at {UI_DASHBOARD}; "
-            f"run `pnpm install --frozen-lockfile` in {paths.DASHBOARD_TS}"
+            f"the pinned @laputa-systems/ui-dashboard sheets are missing at {UI_DASHBOARD}; "
+            f"run `make catalog-css`"
         )
     site = _site(inventory, graph, root, diff_value, status, hidden, unmanaged)
     if output.is_symlink():

@@ -17,8 +17,6 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-root = ""
-source-exclude = ["repomod/dependencies/dashboard_ts/node_modules"]
-wheel-exclude = ["repomod/dependencies/dashboard_ts/node_modules"]
 
 [dependency-groups]
 dev = [

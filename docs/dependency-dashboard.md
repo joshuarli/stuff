@@ -205,14 +205,13 @@ mistyped `--output` cannot delete unrelated files.
 
 ## Source and verification
 
-The browser scripts are TypeScript under `repomod/dependencies/dashboard_ts/` and compile to
-`assets/app.js`, `assets/search.js`, and `assets/weight.js` (loaded only by the Weight page) with
-`tsrs` (TypeScript 7.1). `make dashboard-ts` verifies a frozen pnpm install, type-checks, lints
-with Oxlint, rebuilds, and fails if the committed JavaScript is stale. The renderer copies the pinned library's base `styles.css` and `tokens.css`
-and the `layout.css` and `data.css` family sheets from the installed package in `node_modules`, so
-rendering needs `pnpm install --frozen-lockfile` once and fails with that instruction otherwise.
-`make deps` syncs the checkouts and re-snapshots the inventory (committing any changes) before
-it renders; it does not run Node.
+The browser scripts under `repomod/dependencies/assets/` (`app.js`, `search.js`, and
+`weight.js`, loaded only by the Weight page) are committed and maintained directly. The renderer
+copies the pinned library's base `styles.css` and `tokens.css` and the `layout.css` and `data.css`
+family sheets from `crates/stuff-catalog/assets/ui-dashboard/`, refreshed from the pinned
+`@laputa-systems/ui-dashboard` in `crates/stuff-worker/package.json` by `make catalog-css`.
+Rendering needs no Node install. `make deps` syncs the checkouts and re-snapshots the inventory
+(committing any changes) before it renders; it does not run Node.
 
 ## Budgets and verification
 

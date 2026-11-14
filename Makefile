@@ -1,4 +1,4 @@
-.PHONY: help release lint ts-lint repomod-test repomod-lint deps dashboard-ts bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-mirror republish-oci search-bundle catalog-css test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve stuff test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
+.PHONY: help release lint ts-lint repomod-test repomod-lint deps bench bench-cli deploy stuff-release install republish-mycrates republish-mynpm republish-mypypi republish-mirror republish-oci search-bundle catalog-css test-search build test test-mycrates test-stuff test-stuff-parity test-stuff-e2e clippy smoke smoke-deployed pipecheck worker-build worker-bundle worker-check worker-deploy worker-test gc serve stuff test-publish-lock test-r2 test-r2-live test-r2-gc-blobs test-oci-conformance-fixture test-oci-conformance test-oci-conformance-push test-oci-pull test-oci-push test-oci-publish oci-bench test-r2-multipart fleet-ingest test-mypypi-native test-mypypi-linux-native
 
 help: ## Show this help
 	@grep -E '^[a-z-]+: ## ' $(MAKEFILE_LIST) | sort | awk -F': ## ' '{printf "  make %-14s %s\n", $$1, $$2}'
@@ -11,11 +11,9 @@ test: test-mycrates repomod-test ## Run the full workspace test suite
 
 lint: clippy repomod-lint ts-lint ## Lint the Rust workspace, repomod, and the TypeScript projects
 
-ts-lint: ## Lint and type-check the Worker and dashboard TypeScript
+ts-lint: ## Lint and type-check the Worker TypeScript
 	pnpm --dir crates/stuff-worker install --frozen-lockfile
 	pnpm --dir crates/stuff-worker run lint
-	pnpm --dir $(DASHBOARD_TS) install --frozen-lockfile
-	pnpm --dir $(DASHBOARD_TS) run check
 
 repomod-test: ## Run the repomod tests
 	@uv run --group dev --quiet pytest
@@ -25,12 +23,9 @@ repomod-lint: ## Lint and type-check repomod
 	@uv run --group dev --quiet ty check
 
 PORT ?= 8765
-PNPM ?= pnpm
 RUNS ?= 3
-DASHBOARD_TS := repomod/dependencies/dashboard_ts
 
 deps: ## Sync, snapshot, and serve the fleet dependency dashboard ([PORT=8765] [PRIVATE=1])
-	@cd $(DASHBOARD_TS) && $(PNPM) install --frozen-lockfile
 	@uv run repomod sync
 	@uv run repomod deps snapshot
 	@git add -A -- fleet/dependencies/v1
@@ -40,10 +35,6 @@ deps: ## Sync, snapshot, and serve the fleet dependency dashboard ([PORT=8765] [
 	fi
 	@uv run repomod deps render --status $(if $(filter 1,$(PRIVATE)),--include-private)
 	@exec srv -p $(PORT) .work/dependencies/dashboard
-
-dashboard-ts: ## Type-check, lint, and rebuild the dashboard scripts; fail if the committed output is stale
-	@cd $(DASHBOARD_TS) && $(PNPM) install --frozen-lockfile && $(PNPM) run check && $(PNPM) run build
-	@git diff --exit-code -- repomod/dependencies/assets/app.js repomod/dependencies/assets/search.js repomod/dependencies/assets/weight.js
 
 bench: ## Measure dependency dashboard render phases, cold and warm ([RUNS=3])
 	@uv run python bench/deps_perf.py phases --mode both --runs $(RUNS)
@@ -94,7 +85,7 @@ CATALOG_CSS := $(SEARCH_DIR)/assets/ui-dashboard
 catalog-css: ## Copy the pinned ui-dashboard stylesheets into stuff-catalog; fail if the committed copies are stale
 	cd $(WORKER_DIR) && pnpm install --frozen-lockfile
 	mkdir -p $(CATALOG_CSS)
-	cp $(UI_DASHBOARD_DIST)/tokens.css $(UI_DASHBOARD_DIST)/styles.css $(UI_DASHBOARD_DIST)/styles/layout.css $(CATALOG_CSS)/
+	cp $(UI_DASHBOARD_DIST)/tokens.css $(UI_DASHBOARD_DIST)/styles.css $(UI_DASHBOARD_DIST)/styles/layout.css $(UI_DASHBOARD_DIST)/styles/data.css $(CATALOG_CSS)/
 	@git diff --exit-code -- $(CATALOG_CSS)
 
 test-search: ## Run the package search tests

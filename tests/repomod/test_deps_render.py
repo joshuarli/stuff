@@ -51,7 +51,7 @@ def test_render_without_the_installed_library_fails_before_writing(
 ) -> None:
     monkeypatch.setattr(render, "UI_DASHBOARD", tmp_path / "missing")
     inventory, built = _fixture(tmp_path)
-    with pytest.raises(FileNotFoundError, match="pnpm install --frozen-lockfile"):
+    with pytest.raises(FileNotFoundError, match="make catalog-css"):
         render.render(inventory, built, tmp_path / "dashboard")
     assert not (tmp_path / "dashboard").exists()
 

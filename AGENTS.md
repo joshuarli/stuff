@@ -19,7 +19,7 @@ Run everything from the repository root.
 - Rust toolchain: `rust-toolchain.toml`; Worker package/tool pins: `crates/stuff-worker/package.json` and `Cargo.lock`.
 - Python oracle: `make test-mycrates` (needs Cargo for the native publication proof).
 - repomod: `uv sync`, then `uv run repomod --help`; `make repomod-test`, `make repomod-lint`. Set `TMPDIR` to `.work/tmp` for commands that create scratch data.
-- Fleet dashboard: `make deps` syncs the checkouts, re-snapshots and commits `fleet/dependencies/v1/`, renders, and serves it; `make dashboard-ts` rebuilds its scripts after changing `repomod/dependencies/dashboard_ts/`; `make bench` measures the render.
+- Fleet dashboard: `make deps` syncs the checkouts, re-snapshots and commits `fleet/dependencies/v1/`, renders, and serves it; `make bench` measures the render.
 - Search: `make test-search`; after changing `crates/stuff-catalog/web/`, run `make search-bundle` and commit `assets/search.js` (install Worker dependencies first).
 - Catalog page styles: after bumping `@laputa-systems/ui-dashboard` in `crates/stuff-worker/package.json`, run `make catalog-css` and commit `crates/stuff-catalog/assets/ui-dashboard/`. App styles live in `crates/stuff-catalog/assets/catalog.css`. Both renderers (`stuff-catalog` and the mycrates oracle) embed them, so regenerate the mycrates golden generation with them.
 - Worker: `make worker-test`, `make worker-check`; build instructions are in its README below.
