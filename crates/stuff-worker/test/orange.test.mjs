@@ -29,7 +29,7 @@ test("Orange serves seeded registries and conditional OCI writes", { timeout: 12
   const configPath = join(dir, "wrangler.jsonc");
   const config = generate(configPath, "test");
   const wrapper = join(dir, "wrapper.mjs");
-  writeFileSync(wrapper, `import worker from ${JSON.stringify(worker)};\nexport default { async fetch(req, env, ctx) {\nconst u = new URL(req.url);\nif (u.pathname === "/__seed") { for (const [binding,key,value] of await req.json()) await env[binding].put(key, Uint8Array.from(atob(value), c => c.charCodeAt(0))); return new Response("ok"); }\nif (u.hostname === "other.test") env = { ...env, STUFF_UNIFIED_HOST: "other.test", STUFF_ROUTES: env.STUFF_ROUTES.replace("crates.17166969.xyz", "other-crates.test") };\nreturn worker.fetch(req, env, ctx); } };\n`);
+  writeFileSync(wrapper, `import worker from ${JSON.stringify(worker)};\nexport { PublicationCoordinator } from ${JSON.stringify(worker)};\nexport default { async fetch(req, env, ctx) {\nconst u = new URL(req.url);\nif (u.pathname === "/__seed") { for (const [binding,key,value] of await req.json()) await env[binding].put(key, Uint8Array.from(atob(value), c => c.charCodeAt(0))); return new Response("ok"); }\nif (u.hostname === "other.test") env = { ...env, STUFF_UNIFIED_HOST: "other.test", STUFF_ROUTES: env.STUFF_ROUTES.replace("crates.17166969.xyz", "other-crates.test") };\nreturn worker.fetch(req, env, ctx); } };\n`);
   config.main = wrapper;
   config.vars.STUFF_OCI_PUSH_TOKEN = "token";
   config.vars.STUFF_OCI_PUSH_SECRET = "secret";

@@ -521,3 +521,53 @@ entries whose source and destination still match and re-copies changed sources.
 `deploy/store-copy.py verify SOURCE DEST --ledger FILE [--deep]` compares both listings, sizes and
 ETags with the ledger and, with `--deep`, re-downloads the destination and checks SHA-256. It exits 1
 naming each missing, extra, changed or corrupted key. `make test-store-copy` proves both offline.
+
+### Publication coordinator (not enabled)
+
+The Worker contains an experimental per-registry Durable Object. It is disabled unless
+`STUFF_COORDINATOR_ENABLED` is `true`; do not set that flag in production yet. Its
+SQLite row owns the activation revision, generation, manifest SHA-256, and pending
+projection state. An activation transaction also stores its idempotency receipt.
+After the SQLite commit the owner writes R2 `current` as a compatibility projection;
+it compares the projection with authority and repairs drift before responding or
+serving a coordinator-backed mutable pointer. SQLite and R2 are not one atomic
+transaction. A request still in flight when an actor dies may finish late; all
+mutable reads use SQLite authority, and the next coordinator operation repairs
+the projection. Direct reads of the compatibility marker must be fenced at
+cutover. Immutable
+downloads continue to use R2 directly.
+
+The authenticated management endpoint is `/_publication/<registry>/<operation>`
+on the stuff host. Registries are `cargo`, `npm`, `pypi`, `oci`, and `mirror`.
+Requests use `Authorization: Bearer <STUFF_COORDINATOR_TOKEN>`; the token is a
+server secret. `GET current` returns `revision`, `generation`, `manifest`, and
+`pending`. All other operations use POST with JSON. `begin` and `gc-claim` return
+an exclusive five-minute lease token, expiry in Unix milliseconds, and the current
+revision. `renew` and `abort` accept `{"token":"..."}`. `activate` and `rollback`
+accept `token`, `key` (an idempotency key), `generation`, `manifest` (lowercase
+SHA-256 of the exact manifest bytes), and `expectedRevision`. Both verify the
+existing version-1 manifest and its metadata-bucket objects before committing. A
+replay of the same key and operation payload returns its original receipt; reuse
+with another payload conflicts. A fresh request with a stale revision or lease
+conflicts. `gc-delete` accepts a GC `token` and `generation`: it only deletes the
+manifest and generation tree, refuses the current generation and references from
+other manifests, and does not collect shared objects. The owner serializes these
+operations and checks lease expiry before activation and each delete. Before
+issuing any delete, it durably retires that generation. Retirement is permanent:
+neither the generation nor references to its tree or manifest may be activated
+again, even if a crashed collector's deletion is still in flight. Re-uploading
+its manifest cannot undo retirement. This makes late external completion safe;
+the immutable generation ID must never be reused for different bytes.
+
+The next integration must replace native publication, rollback, and both GC
+scripts' direct mutations with this API, and remove or route OCI push's direct
+activation. Native uploads should retain their existing streaming and multipart
+implementation: issue narrowly scoped, short-lived upload credentials or a gateway
+that permits only immutable keys associated with an active lease, refuses `current`,
+manifest replacement and deletion, and prevents a stale upload from completing
+after its lease is superseded. A streaming proxy for every object would put the
+actor on the data path and sacrifice the native multipart design. OCI activation
+also checks every declared blob in the separate blob bucket. GC must extend its
+durable retirement protocol to shared objects and blob retention. Until those controls exist,
+unrestricted R2 credentials and the legacy writers can bypass this authority;
+lease checks alone cannot protect an external request already in flight at a crash.
