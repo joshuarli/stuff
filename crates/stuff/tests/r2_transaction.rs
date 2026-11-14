@@ -321,6 +321,7 @@ fn a_second_generation_promotes_with_if_match_and_rolls_back() {
     assert_eq!(conditions[1].body, "g2");
 
     let rollback = transaction::rollback(
+        None,
         credentials(&fake),
         RollbackTarget {
             registry: Registry::Cargo,
@@ -424,6 +425,7 @@ fn rollback_refuses_a_generation_without_a_remote_manifest() {
 
     let writes = mutation_count(&fake);
     let error = transaction::rollback(
+        None,
         credentials(&fake),
         RollbackTarget {
             registry: Registry::Cargo,

@@ -31,6 +31,17 @@ fn recorder() -> (Arc<Mutex<Vec<Duration>>>, impl Fn(Duration) + 'static) {
 }
 
 #[test]
+fn endpoint_prefix_is_included_in_the_independently_verified_signature() {
+    let fake = FakeS3::start_verified();
+    let mut credentials = credentials(&fake);
+    credentials.endpoint.push_str("/_s3");
+    credentials.session_token = Some("signed-upload-lease".into());
+    let client = R2Client::new(credentials);
+    client.put_object("bucket", "blobs/a b", b"artifact", "application/octet-stream", Precondition::None).expect("prefix and lease token are signed");
+    assert_eq!(client.get_object("bucket", "blobs/a b").unwrap(), b"artifact");
+}
+
+#[test]
 fn put_get_head_round_trip_preserves_etag_and_content_type() {
     let fake = FakeS3::start_verified();
     let client = client(&fake);

@@ -32,7 +32,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from r2_common import fail, mint_s3_credentials, object_url, publish_lock, s3_list_meta, s3_ready, safe_object_key
+from r2_common import require_legacy_gc, fail, mint_s3_credentials, object_url, publish_lock, s3_list_meta, s3_ready, safe_object_key
 
 CURRENT_KEY = "current"
 MANIFEST_PREFIX = "manifests/"
@@ -422,6 +422,7 @@ def keep_count(value):
 
 
 def main(argv=None):
+    require_legacy_gc()
     parser = argparse.ArgumentParser(description="Delete R2 objects no retained generation needs")
     parser.add_argument("buckets", nargs="+")
     parser.add_argument("--keep-previous", type=int, default=1)

@@ -28,7 +28,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from r2_common import cf_command, fail, publish_lock, s3_list_meta, s3_ready
+from r2_common import require_legacy_gc, cf_command, fail, publish_lock, s3_list_meta, s3_ready
 
 BLOB_PREFIX = "sha256/"
 BLOB_KEY = re.compile(r"sha256/[0-9a-f]{64}")
@@ -286,6 +286,7 @@ def delete_local(bucket, keys, jobs):
 
 
 def main(argv):
+    require_legacy_gc()
     args = parse_args(argv)
     if args.grace_minutes < 0:
         fail("--grace-minutes must be non-negative")

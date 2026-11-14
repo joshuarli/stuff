@@ -40,8 +40,9 @@ pub fn republish(
     }
 }
 
-fn options_for(allow_drops: bool, options: &Options) -> TransactionOptions {
+fn options_for(allow_drops: bool, options: &Options, coordinator: Option<crate::publish::coordinator::Coordinator>) -> TransactionOptions {
     TransactionOptions {
+        coordinator,
         dry_run: options.dry_run,
         allow_drops,
         ..TransactionOptions::default()
@@ -71,7 +72,7 @@ fn cargo(
         &config,
         transaction_state,
         snapshot_cache,
-        options_for(allow_drops, options),
+        options_for(allow_drops, options, crate::publish::coordinator::Coordinator::configured(environment, Registry::Cargo)?),
     )?
     .against_live_generation();
     build_cargo_site(pending.snapshot(), &config, &site_dir)?;
@@ -216,7 +217,7 @@ fn npm(
         &config,
         transaction_state,
         snapshot_cache,
-        options_for(allow_drops, options),
+        options_for(allow_drops, options, crate::publish::coordinator::Coordinator::configured(environment, Registry::Npm)?),
     )?
     .against_live_generation();
     let mirror = site_dir.join("mirror");
@@ -356,7 +357,7 @@ fn pypi(
         &config,
         transaction_state,
         snapshot_cache,
-        options_for(allow_drops, options),
+        options_for(allow_drops, options, crate::publish::coordinator::Coordinator::configured(environment, Registry::Pypi)?),
     )?
     .against_live_generation();
     pull::pull(pending.client(), &bucket, &site, PullOptions::default())?;
@@ -395,7 +396,7 @@ fn oci(
         &config,
         work.transaction_state_dir.clone(),
         snapshot_cache,
-        options_for(allow_drops, options),
+        options_for(allow_drops, options, crate::publish::coordinator::Coordinator::configured(environment, Registry::Oci)?),
     )?
     .against_live_generation();
     rebuild_oci_state(pending.client(), &config, &work)?;

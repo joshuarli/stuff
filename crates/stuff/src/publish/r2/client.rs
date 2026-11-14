@@ -19,13 +19,19 @@ const DEFAULT_ATTEMPTS: u32 = 6;
 const DEFAULT_LIST_PAGE: usize = 1000;
 const MAX_BACKOFF_SECONDS: u64 = 60;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Credentials {
     pub endpoint: String,
     pub access_key_id: String,
     pub secret_access_key: String,
     pub region: String,
     pub session_token: Option<String>,
+}
+
+impl std::fmt::Debug for Credentials {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Credentials").field("endpoint", &self.endpoint).field("region", &self.region).finish_non_exhaustive()
+    }
 }
 
 impl Credentials {
@@ -344,6 +350,7 @@ impl R2Client {
         } else {
             format!("{}{path}?{query}", self.credentials.endpoint)
         };
+        let uri: http::Uri = url.parse().map_err(|_| PublishError::Config("invalid S3 endpoint URI".into()))?;
         let (datestamp, amz_date) = sigv4::format_amz_date(now_seconds());
         let payload_hash = sigv4::sha256_hex(request.body);
         let signed = sigv4::sign_request(
@@ -356,7 +363,7 @@ impl R2Client {
             &sigv4::SignRequest {
                 method: request.method,
                 host: authority(self.credentials.endpoint.as_str()),
-                path: &path,
+                path: uri.path(),
                 query: &query,
                 payload_hash: &payload_hash,
                 content_type: request.content_type,
@@ -365,7 +372,7 @@ impl R2Client {
                 datestamp: &datestamp,
             },
         );
-        let mut builder = http::Request::builder().method(request.method).uri(&url);
+        let mut builder = http::Request::builder().method(request.method).uri(uri);
         for (name, value) in &signed.headers {
             builder = builder.header(name.as_str(), value.as_str());
         }
