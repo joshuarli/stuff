@@ -1,4 +1,3 @@
-import { WorkerEntrypoint } from "cloudflare:workers";
 import {
   initSync,
   map_asset_json,
@@ -56,10 +55,6 @@ type R2ListingLike =
   | { objects: { key: string }[]; truncated: true; cursor: string }
   | { objects: { key: string }[]; truncated: false };
 
-interface WorkerVersion {
-  readonly id: string;
-}
-
 interface WorkerEnv {
   readonly STUFF_ROUTES: string;
   readonly STUFF_UNIFIED_HOST?: string;
@@ -68,16 +63,8 @@ interface WorkerEnv {
   readonly STUFF_OCI_PUSH_TOKEN?: string;
   readonly STUFF_OCI_PUSH_SECRET?: string;
   readonly STUFF_OCI_WRITER_ORIGIN?: string;
-  readonly VERSION: WorkerVersion;
-  readonly [binding: string]: R2BucketLike | WorkerVersion | string | undefined;
-}
-
-interface WorkerContext {
-  readonly exports: {
-    readonly Registry: {
-      fetch(request: Request, options: { cf: { cacheKey: string } }): Promise<Response>;
-    };
-  };
+  readonly STUFF_RELEASE: string;
+  readonly [binding: string]: R2BucketLike | string | undefined;
 }
 
 interface Mapped {
@@ -188,7 +175,6 @@ function bucket(env: WorkerEnv, binding: string): R2BucketLike {
 }
 
 const NOT_FOUND_CACHE_CONTROL = "public, max-age=60";
-const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 function notFound(): Response {
   return new Response("not found", {
@@ -237,6 +223,11 @@ function renderUnified(env: WorkerEnv, url: URL, catalogs: string[]): string {
   return rendered.body;
 }
 
+const RENDER_CACHE_ENTRIES = 64;
+const RENDER_CACHE_BYTES = 16 * 1024 * 1024;
+const renderedPages = new Map<string, { body: string; size: number }>();
+let renderedPageBytes = 0;
+
 async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
   const url = new URL(req.url);
   const generations = await Promise.all(
@@ -251,13 +242,11 @@ async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
       url.pathname === "/llms.txt" ? "text/markdown; charset=utf-8" : "text/html; charset=utf-8",
     "cache-control": "public, max-age=60",
   });
-  const cache = caches.default;
-  const renderKey = new Request(
-    `${url.origin}/.unified/${env.VERSION.id}/${ids.join("/")}${url.pathname}`,
-    { method: "GET" },
-  );
-  const cached = await cache.match(renderKey);
-  if (cached) {
+  const renderKey = JSON.stringify([url.origin, env.STUFF_RELEASE, ids, url.pathname]);
+  const cached = renderedPages.get(renderKey);
+  if (cached !== undefined) {
+    renderedPages.delete(renderKey);
+    renderedPages.set(renderKey, cached);
     return new Response(req.method === "HEAD" ? null : cached.body, { status: 200, headers });
   }
   const catalogs = await Promise.all(
@@ -267,12 +256,17 @@ async function unifiedIndex(req: Request, env: WorkerEnv): Promise<Response> {
     return unifiedNotReady();
   }
   const body = renderUnified(env, url, catalogs as string[]);
-  await cache.put(
-    renderKey,
-    new Response(body, {
-      headers: { "content-type": headers.get("content-type") ?? "", "cache-control": IMMUTABLE_CACHE_CONTROL },
-    }),
-  );
+  const size = new TextEncoder().encode(body).byteLength;
+  if (size <= RENDER_CACHE_BYTES) {
+    while (renderedPages.size >= RENDER_CACHE_ENTRIES || renderedPageBytes + size > RENDER_CACHE_BYTES) {
+      const oldest = renderedPages.keys().next().value;
+      if (oldest === undefined) break;
+      renderedPageBytes -= renderedPages.get(oldest)!.size;
+      renderedPages.delete(oldest);
+    }
+    renderedPages.set(renderKey, { body, size });
+    renderedPageBytes += size;
+  }
   return new Response(req.method === "HEAD" ? null : body, { status: 200, headers });
 }
 
@@ -729,9 +723,8 @@ async function primaryRead(
   return { generation, object };
 }
 
-export class Registry extends WorkerEntrypoint<WorkerEnv> {
-  async fetch(req: Request): Promise<Response> {
-    const env = this.env;
+export default {
+  async fetch(req: Request, env: WorkerEnv): Promise<Response> {
     const url = new URL(req.url);
     const ociHost = env.STUFF_OCI_HOST;
     if (
@@ -941,13 +934,4 @@ export class Registry extends WorkerEntrypoint<WorkerEnv> {
     }
     return new Response(object.body, { status: plan.status, headers });
   }
-}
-
-export default {
-  async fetch(req: Request, _env: WorkerEnv, ctx: WorkerContext): Promise<Response> {
-    const url = new URL(req.url);
-    return ctx.exports.Registry.fetch(req, {
-      cf: { cacheKey: `${url.hostname}${url.pathname}${url.search}` },
-    });
-  },
 };

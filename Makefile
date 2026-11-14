@@ -103,6 +103,13 @@ worker-bundle: ## Build the Cloudflare worker bundle once for test and deploy
 worker-test: worker-bundle ## Exercise the worker bundle under the workerd runtime
 	cd $(WORKER_DIR) && pnpm run test:runtime
 
+worker-orange-test: ## Run the built registry Worker under the pinned OpenOrange with seeded storage
+	pnpm --dir crates/stuff-worker install --frozen-lockfile
+	cd crates/stuff-worker/orange && pnpm install --frozen-lockfile
+	pnpm --dir crates/stuff-worker run build
+	cd crates/stuff-worker && node --test test/orange.test.mjs
+
+
 worker-deploy: worker-bundle ## Deploy the worker bundle tested by worker-test
 	cd $(WORKER_DIR) && cf deploy --prebuilt --mode production
 
