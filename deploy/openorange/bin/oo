@@ -70,7 +70,7 @@ def cmd_secrets(cfg) -> None:
     for app in cfg.apps.values():
         path = cfg.app_env(app)
         cur = oolib.read_env(path)
-        env: dict[str, str] = {"OO_GATEWAY_SECRET": cur.get("OO_GATEWAY_SECRET") or oolib.token(32)}
+        env: dict[str, str] = {"GATEWAY_SECRET": cur.get("GATEWAY_SECRET") or oolib.token(32)}
         if app.kind == "orange":
             env.update(
                 RIVET_ENDPOINT=cfg.engine_url,
@@ -82,7 +82,7 @@ def cmd_secrets(cfg) -> None:
                 S3_SECRET_ACCESS_KEY=cur.get("S3_SECRET_ACCESS_KEY") or oolib.token(20),
                 S3_BUCKETS=",".join(app.buckets),
                 # open-orange builds Worker secret bindings from the environment variables named here.
-                ORANGE_WORKER_SECRETS=",".join(["OO_GATEWAY_SECRET", *app.secrets]),
+                ORANGE_WORKER_SECRETS=",".join(["GATEWAY_SECRET", *app.secrets]),
             )
             # Orange maps each R2 binding onto an S3 endpoint through these
             # variables (runtime-node r2/s3-backend); the bucket name is the
@@ -192,7 +192,7 @@ def cmd_render(cfg, stdout: bool = False) -> None:
     os.chmod(d / "Caddyfile", 0o644)
     env = {}
     for app in cfg.enabled_apps():
-        sec = oolib.read_env(cfg.app_env(app)).get("OO_GATEWAY_SECRET")
+        sec = oolib.read_env(cfg.app_env(app)).get("GATEWAY_SECRET")
         if not sec:
             die(f"missing gateway secret for {app.name}; run `oo secrets`")
         env[f"GW_SECRET_{app.env_key}"] = sec

@@ -267,7 +267,7 @@ for the Cloudflare plugin).
    Other apps are not restarted. Roll an app: build, `oo set-image NAME IMAGE`
    (previous kept as `NAME.image.prev` for rollback), `rc-service oo-app.NAME restart`.
 4. The app environment: `RIVET_ENDPOINT RIVET_NAMESPACE RIVET_TOKEN`,
-   `OO_GATEWAY_SECRET` (declared in `ORANGE_WORKER_SECRETS`, so it appears as a
+   `GATEWAY_SECRET` (declared in `ORANGE_WORKER_SECRETS`, so it appears as a
    Worker secret binding), `S3_*`, and `ORANGE_R2_<BUCKET>_S3_*` for each R2
    binding. Extra secrets: list the names in `secrets = [...]` and put the
    values in `/etc/openorange/apps/NAME.extra.env`. `RIVET_NODE_VERSION` is not

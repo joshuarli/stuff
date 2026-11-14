@@ -1,12 +1,12 @@
 // Throwaway rehearsal app for the shared OpenOrange stack: one SQLite-backed
 // Durable Object plus an endpoint that reports the gateway headers it sees.
-// OO_GATEWAY_SECRET is the per-app secret Caddy forwards; only a boolean match is
+// GATEWAY_SECRET is the per-app secret Caddy forwards; only a boolean match is
 // ever returned.
 import { DurableObject } from "cloudflare:workers";
 
 interface Env {
   COUNTER: DurableObjectNamespace<Counter>;
-  OO_GATEWAY_SECRET?: string;
+  GATEWAY_SECRET?: string;
   DATA: R2Bucket;
 }
 
@@ -32,7 +32,7 @@ export default {
     if (url.pathname === "/whoami") {
       const secret = h.get("stats-gateway-secret");
       return Response.json({
-        gatewaySecretMatches: Boolean(env.OO_GATEWAY_SECRET) && secret === env.OO_GATEWAY_SECRET,
+        gatewaySecretMatches: Boolean(env.GATEWAY_SECRET) && secret === env.GATEWAY_SECRET,
         tailnetIdentity: h.get("stats-tailnet-identity"),
         tailscaleUserLogin: h.get("tailscale-user-login"),
         xForwardedFor: h.get("x-forwarded-for"),
