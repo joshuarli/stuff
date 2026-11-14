@@ -1,0 +1,34 @@
+#!/sbin/openrc-run
+# OpenOrange Caddy ingress (tailnet only)
+# Installed by bin/install. Foreground `docker run --rm` under supervise-daemon.
+
+. /opt/openorange/openrc/oo-common.sh
+
+description="OpenOrange Caddy ingress (tailnet only)"
+supervisor=supervise-daemon
+command=/usr/bin/docker
+respawn_delay=3
+respawn_max=0
+respawn_period=60
+output_log="$OO_LOGDIR/ingress.log"
+error_log="$OO_LOGDIR/ingress.log"
+retry="TERM/40/KILL/5"
+
+depend() {
+	need docker net oo-identity
+	after tailscale
+}
+
+start_pre() {
+	"$OO_BIN" prepare ingress || return 1
+	oo_remove_container oo-ingress
+	command_args="$("$OO_BIN" run-args ingress)" || return 1
+}
+
+start_post() {
+	oo_wait ingress 60 || { eerror "oo-ingress did not become ready"; oo_fail_stop oo-ingress; return 1; }
+}
+
+stop_post() {
+	oo_remove_container oo-ingress
+}

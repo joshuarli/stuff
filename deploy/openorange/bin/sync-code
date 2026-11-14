@@ -1,0 +1,7 @@
+#!/bin/sh
+# From a workstation: copy this directory to HOST:/opt/openorange.
+#   sync-code HOST
+set -eu
+HOST=${1:?usage: sync-code HOST}
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+rsync -a --delete --exclude '__pycache__' --exclude '.work' --exclude 'demo/node_modules' "$HERE/" "$HOST:/opt/openorange/"

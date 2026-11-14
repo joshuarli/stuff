@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""Verify (or refresh) the digest pins in images.lock.json.
+
+    pin-verify              check registry state and Dockerfile ARG defaults
+    pin-verify --resolve    rewrite the digests from the registry tags (a deliberate bump)
+
+For every image: the registry index for `repository:tag` must still have the
+recorded digest, must contain exactly one linux/amd64 manifest with the
+recorded digest, and (if pulled) the local image must be linux/amd64.
+Needs `docker buildx` and network access.
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(os.path.realpath(__file__)).parent.parent
+LOCK = ROOT / "images.lock.json"
+
+
+def sh(*a):
+    r = subprocess.run(a, capture_output=True, text=True)
+    return r.returncode, r.stdout, r.stderr
+
+
+def manifest(ref):
+    rc, out, err = sh("docker", "buildx", "imagetools", "inspect", ref, "--format", "{{json .Manifest}}")
+    if rc:
+        raise SystemExit(f"cannot inspect {ref}: {err.strip()}")
+    d = json.loads(out)
+    amd = [m["digest"] for m in d.get("manifests", []) if m.get("platform", {}).get("os") == "linux" and m["platform"].get("architecture") == "amd64"]
+    return d["digest"], amd
+
+
+def main():
+    resolve = "--resolve" in sys.argv
+    lock = json.loads(LOCK.read_text())
+    bad = 0
+    for name, img in lock["images"].items():
+        ref = f"{img['repository']}:{img['tag']}"
+        index, amd = manifest(ref)
+        ok = index == img["index_digest"] and amd == [img["amd64_digest"]]
+        local = ""
+        rc, out, _ = sh("docker", "image", "inspect", f"{img['repository']}@{img['index_digest']}", "--format", "{{.Os}}/{{.Architecture}}")
+        if rc == 0:
+            local = f" local={out.strip()}"
+            ok = ok and out.strip() == "linux/amd64"
+        if resolve and len(amd) == 1:
+            img["index_digest"], img["amd64_digest"] = index, amd[0]
+            print(f"RESOLVED {name}: {ref} -> {index} amd64={amd[0]}")
+            continue
+        print(f"{'ok  ' if ok else 'FAIL'} {name:15} {ref} index={index[:19]}.. amd64={amd[0][:19] if amd else 'none'}..{local}")
+        bad += not ok
+    if resolve:
+        LOCK.write_text(json.dumps(lock, indent=2) + "\n")
+        return
+    # Dockerfile ARG defaults must match the lock.
+    want = {
+        "ingress/Dockerfile": {"BUILDER": "caddy_builder", "RUNTIME": "caddy_runtime"},
+        "identity/Dockerfile": {"BASE": "identity_base"},
+    }
+    for f, args in want.items():
+        text = (ROOT / f).read_text()
+        for arg, key in args.items():
+            m = re.search(rf"^ARG {arg}=\S+@(sha256:[0-9a-f]{{64}})$", text, re.M)
+            good = bool(m) and m.group(1) == lock["images"][key]["index_digest"]
+            print(f"{'ok  ' if good else 'FAIL'} {f} ARG {arg} matches lock[{key}]")
+            bad += not good
+    sys.exit(1 if bad else 0)
+
+
+if __name__ == "__main__":
+    main()

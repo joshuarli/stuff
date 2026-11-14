@@ -1,0 +1,54 @@
+{
+  "platform": "linux/amd64",
+  "note": "Every reference is pinned by the multi-arch index digest; `bin/pin-verify` re-checks that the index contains exactly this linux/amd64 manifest. Update with `bin/pin-verify --resolve` after a deliberate bump.",
+  "images": {
+    "engine": {
+      "repository": "docker.io/rivetdev/engine",
+      "tag": "3.1.2-rc.1",
+      "version": "3.1.2-rc.1 (binary self-reports `Rivet 3.1.1`, like @rivetkit/engine-cli 3.1.2-rc.1)",
+      "index_digest": "sha256:6e585002b700dd4d3630808eb67884aa15d1a602d83781984edac47023b6d40f",
+      "amd64_digest": "sha256:66de9f77cde47be3cd7af2c001e8083784f6b91ca58b0ab5d7878677cff5bd5d"
+    },
+    "store": {
+      "repository": "docker.io/versity/versitygw",
+      "tag": "v1.11.0",
+      "version": "1.11.0 (posix backend; chosen by tests/s3-backend-results.json)",
+      "index_digest": "sha256:8319a530d08d537426e2f855bae5280709795dc73a3f0c347973ef915d6343c5",
+      "amd64_digest": "sha256:5da5e2cd887eec7ae6ab1cd6f5099207c754964358ab6351da2a9d6b80507e4e"
+    },
+    "caddy_builder": {
+      "repository": "docker.io/library/caddy",
+      "tag": "2.11.9-builder-alpine",
+      "version": "2.11.9",
+      "index_digest": "sha256:646fee578e680989ca5c7fd1ce6f1de574d19fd71ef2221810cc0510a9f40c86",
+      "amd64_digest": "sha256:29f98311e17e583811355fa62cc080f71d6f3aa19cf09a9e1494d30579f8bebf"
+    },
+    "caddy_runtime": {
+      "repository": "docker.io/library/caddy",
+      "tag": "2.11.9-alpine",
+      "version": "2.11.9",
+      "index_digest": "sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0",
+      "amd64_digest": "sha256:fc9cbc100585871d18d4e451cca7021785c90a7006087427ae5ceb3e4efe6424"
+    },
+    "identity_base": {
+      "repository": "docker.io/library/python",
+      "tag": "3.14-alpine",
+      "version": "3.14",
+      "index_digest": "sha256:5862d971d1f0ae26b258cefa4e893556b1d3aba81bd2ff30888704ad378bab67",
+      "amd64_digest": "sha256:76c65fc8c52c4d375e958298d9f66198b8fb6b06416c0e5500bf710c19cbaa77"
+    }
+  },
+  "local_builds": {
+    "caddy": {
+      "tag": "openorange/caddy:2.11.9-cf0.2.4",
+      "dockerfile": "ingress/Dockerfile",
+      "modules": [
+        "github.com/caddy-dns/cloudflare@v0.2.4"
+      ]
+    },
+    "identity": {
+      "tag": "openorange/identity:1",
+      "dockerfile": "identity/Dockerfile"
+    }
+  }
+}

@@ -1,0 +1,204 @@
+#!/usr/bin/env python3
+"""Probe an S3-compatible endpoint for the semantics the registries depend on.
+
+Standard library only (SigV4 lives in ../lib/oo_s3.py). Usage:
+
+    s3-conformance --endpoint http://HOST:7070 --region us-east-1 \
+        --bucket BUCKET --access-key-env AK --secret-key-env SK [--json out.json] \
+        [--deny-bucket OTHER]   # additionally require 403 on a bucket the key does not own
+
+Credentials come from environment variables, never argv. The bucket must exist
+and be writable; the probe writes only under a unique `conformance/<run>/`
+prefix and deletes it afterwards. Exit status is 0 only if every required
+check passed.
+"""
+import argparse
+import hashlib
+import json
+import os
+import sys
+import xml.etree.ElementTree as ET
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
+from oo_s3 import S3  # noqa: E402
+
+NS = "{http://s3.amazonaws.com/doc/2006-03-01/}"
+
+
+def strip(e):
+    return e.strip('"')
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--endpoint", required=True)
+    ap.add_argument("--region", default="us-east-1")
+    ap.add_argument("--bucket", required=True)
+    ap.add_argument("--access-key-env", default="S3_ACCESS_KEY_ID")
+    ap.add_argument("--secret-key-env", default="S3_SECRET_ACCESS_KEY")
+    ap.add_argument("--json")
+    ap.add_argument("--deny-bucket", help="a bucket this key must NOT be able to read, list or write")
+    ap.add_argument("--backend", default="unknown")
+    ap.add_argument("--create-bucket", action="store_true", help="PUT the bucket first (backends that allow it)")
+    a = ap.parse_args()
+    s3 = S3(a.endpoint, a.region, os.environ[a.access_key_env], os.environ[a.secret_key_env])
+    if a.create_bucket:
+        print("create bucket:", s3.request("PUT", f"/{a.bucket}")[0])
+    run = hashlib.sha256(os.urandom(16)).hexdigest()[:12]
+    base = f"/{a.bucket}/conformance/{run}"
+    results = []
+
+    def rec(name, ok, observed, required=True):
+        results.append({"check": name, "pass": bool(ok), "required": required, "observed": observed})
+        print(f"{'PASS' if ok else 'FAIL'}{'' if required else ' (informational)'}  {name}: {observed}", flush=True)
+
+    created = []
+
+    def put(key, body, headers=None):
+        created.append(key)
+        return s3.request("PUT", f"{base}/{key}", headers=headers, body=body)
+
+    # 1. path-style round trip
+    st, hd, _ = put("plain", b"hello")
+    rec("path-style PUT", st == 200, f"status={st}")
+    st, hd2, body = s3.request("GET", f"{base}/plain")
+    rec("path-style GET", st == 200 and body == b"hello", f"status={st} etag={hd2.get('etag')}")
+    etag_plain = hd.get("etag")
+    rec("single-part ETag is quoted md5", etag_plain == '"' + hashlib.md5(b"hello").hexdigest() + '"', f"etag={etag_plain}")
+
+    # 2. multipart
+    part = 5 * 1024 * 1024
+    parts = [os.urandom(part), os.urandom(part), os.urandom(1234)]
+    st, hd, body = s3.request("POST", f"{base}/mpu", query={"uploads": ""})
+    uid = ET.fromstring(body).findtext(f"{NS}UploadId") or ET.fromstring(body).findtext("UploadId") if st == 200 else None
+    rec("multipart create", st == 200 and uid, f"status={st}")
+    created.append("mpu")
+    etags = []
+    ok = True
+    for i, p in enumerate(parts, 1):
+        st, hd, _ = s3.request("PUT", f"{base}/mpu", query={"partNumber": i, "uploadId": uid}, body=p)
+        ok &= st == 200
+        etags.append(hd.get("etag", ""))
+    rec("multipart upload 3 parts (5MiB,5MiB,1234B)", ok, f"part etags={etags}")
+    xml = "<CompleteMultipartUpload>" + "".join(f"<Part><PartNumber>{i}</PartNumber><ETag>{e}</ETag></Part>" for i, e in enumerate(etags, 1)) + "</CompleteMultipartUpload>"
+    st, hd, body = s3.request("POST", f"{base}/mpu", query={"uploadId": uid}, body=xml.encode())
+    final_etag = None
+    if st == 200:
+        root = ET.fromstring(body)
+        final_etag = root.findtext(f"{NS}ETag") or root.findtext("ETag")
+    expect = '"' + hashlib.md5(b"".join(hashlib.md5(p).digest() for p in parts)).hexdigest() + '-3"'
+    rec("multipart complete", st == 200, f"status={st} etag={final_etag}")
+    rec("multipart ETag is md5-of-part-md5s-N (AWS format)", final_etag == expect, f"got={final_etag} expected={expect}")
+    st, hd, body = s3.request("HEAD", f"{base}/mpu")
+    rec("multipart HEAD ETag equals completion ETag, length correct", hd.get("etag") == final_etag and hd.get("content-length") == str(sum(map(len, parts))), f"head etag={hd.get('etag')} len={hd.get('content-length')}")
+    st, hd, body = s3.request("GET", f"{base}/mpu")
+    rec("multipart content round-trips", st == 200 and body == b"".join(parts), f"status={st} bytes={len(body)}")
+
+    # 3. conditional PUT
+    st, hd, _ = put("cond-new", b"v1", {"If-None-Match": "*"})
+    rec("If-None-Match:* on absent key succeeds", st == 200, f"status={st}")
+    etag1 = hd.get("etag")
+    st, _, body = put("cond-new", b"v2", {"If-None-Match": "*"})
+    rec("If-None-Match:* on existing key -> 412", st == 412, f"status={st} body={body[:120]!r}")
+    st, _, got = s3.request("GET", f"{base}/cond-new")
+    rec("failed If-None-Match left value unchanged", got == b"v1", f"value={got!r}")
+    st, hd, _ = put("cond-new", b"v3", {"If-Match": etag1})
+    rec("If-Match with current ETag succeeds", st == 200, f"status={st}")
+    etag3 = hd.get("etag")
+    st, _, body = put("cond-new", b"v4", {"If-Match": etag1})
+    rec("If-Match with stale ETag -> 412", st == 412, f"status={st} body={body[:120]!r}")
+    st, _, got = s3.request("GET", f"{base}/cond-new")
+    rec("failed If-Match left value unchanged", got == b"v3", f"value={got!r}")
+    st, _, body = put("cond-absent", b"x", {"If-Match": etag3})
+    rec("If-Match on absent key fails (404 or 412)", st in (404, 412), f"status={st}")
+    # race: 8 concurrent If-None-Match creates, exactly one may win
+    import threading
+
+    wins = []
+
+    def racer(i):
+        s = S3(a.endpoint, a.region, os.environ[a.access_key_env], os.environ[a.secret_key_env])
+        st, _, _ = s.request("PUT", f"{base}/race", headers={"If-None-Match": "*"}, body=f"racer-{i}".encode())
+        wins.append(st)
+
+    created.append("race")
+    ts = [threading.Thread(target=racer, args=(i,)) for i in range(8)]
+    [t.start() for t in ts]
+    [t.join() for t in ts]
+    rec("8 concurrent If-None-Match:* creates: exactly one 200, others 409/412", wins.count(200) == 1 and all(w in (200, 409, 412) for w in wins), f"statuses={sorted(wins)}")
+    # conditional multipart completion
+    st, hd, body = s3.request("POST", f"{base}/mpu2", query={"uploads": ""})
+    uid2 = ET.fromstring(body).findtext(f"{NS}UploadId") or ET.fromstring(body).findtext("UploadId")
+    st, hd, _ = s3.request("PUT", f"{base}/mpu2", query={"partNumber": 1, "uploadId": uid2}, body=b"z" * 10)
+    xml2 = f"<CompleteMultipartUpload><Part><PartNumber>1</PartNumber><ETag>{hd.get('etag')}</ETag></Part></CompleteMultipartUpload>".encode()
+    created.append("mpu2")
+    put("mpu2", b"already here")
+    st, _, body = s3.request("POST", f"{base}/mpu2", query={"uploadId": uid2}, headers={"If-None-Match": "*"}, body=xml2)
+    rec("If-None-Match:* on CompleteMultipartUpload of existing key -> 412", st == 412, f"status={st}", required=False)
+    s3.request("DELETE", f"{base}/mpu2", query={"uploadId": uid2})
+
+    # 4. ListObjectsV2 pagination
+    for i in range(25):
+        put(f"list/k{i:03d}", b"x")
+    put("list/sub/a", b"x")
+    seen, token, pages = [], None, 0
+    while True:
+        q = {"list-type": "2", "prefix": f"conformance/{run}/list/k", "max-keys": "10"}
+        if token:
+            q["continuation-token"] = token
+        st, _, body = s3.request("GET", f"/{a.bucket}", query=q)
+        root = ET.fromstring(body)
+        pages += 1
+        seen += [c.findtext(f"{NS}Key") for c in root.findall(f"{NS}Contents")]
+        if root.findtext(f"{NS}IsTruncated") == "true":
+            token = root.findtext(f"{NS}NextContinuationToken")
+        else:
+            break
+    want = [f"conformance/{run}/list/k{i:03d}" for i in range(25)]
+    rec("ListObjectsV2 max-keys=10 over 25 keys: 3 pages, sorted, no dup/miss", pages == 3 and seen == want, f"pages={pages} keys={len(seen)}")
+    st, _, body = s3.request("GET", f"/{a.bucket}", query={"list-type": "2", "prefix": f"conformance/{run}/list/", "delimiter": "/"})
+    root = ET.fromstring(body)
+    cps = [c.findtext(f"{NS}Prefix") for c in root.findall(f"{NS}CommonPrefixes")]
+    rec("ListObjectsV2 delimiter yields CommonPrefixes", cps == [f"conformance/{run}/list/sub/"], f"prefixes={cps}")
+    st, _, body = s3.request("GET", f"/{a.bucket}", query={"list-type": "2", "prefix": f"conformance/{run}/list/k", "start-after": f"conformance/{run}/list/k022"})
+    root = ET.fromstring(body)
+    sa = [c.findtext(f"{NS}Key").rsplit("/", 1)[1] for c in root.findall(f"{NS}Contents")]
+    rec("ListObjectsV2 start-after", sa == ["k023", "k024"], f"keys={sa}")
+
+    # 5. ranged GET (on the 10 MiB+ multipart object and a small one)
+    full = b"".join(parts)
+    for rng, lo, hi in [("bytes=0-9", 0, 9), ("bytes=5242870-5242889", 5242870, 5242889), ("bytes=-5", len(full) - 5, len(full) - 1), (f"bytes={len(full) - 100}-", len(full) - 100, len(full) - 1)]:
+        st, hd, body = s3.request("GET", f"{base}/mpu", headers={"Range": rng})
+        exp_cr = f"bytes {lo}-{hi}/{len(full)}"
+        rec(f"ranged GET {rng} -> 206 + Content-Range + exact bytes", st == 206 and hd.get("content-range") == exp_cr and body == full[lo : hi + 1], f"status={st} content-range={hd.get('content-range')} len={len(body)}")
+    st, hd, body = s3.request("GET", f"{base}/plain", headers={"Range": "bytes=100-200"})
+    rec("unsatisfiable range -> 416", st == 416, f"status={st}")
+    st, hd, body = s3.request("GET", f"{base}/mpu", headers={"Range": "bytes=0-9"}, query={"partNumber": 2})
+    rec("GET ?partNumber=2 returns that part (informational)", st in (200, 206) and body[:16] == parts[1][:16], f"status={st} len={len(body)}", required=False)
+
+    if a.deny_bucket:
+        d = a.deny_bucket
+        stp, _, _ = s3.request("PUT", f"/{d}/conformance-denied", body=b"x")
+        stg, _, _ = s3.request("GET", f"/{d}/conformance-denied")
+        stl, _, _ = s3.request("GET", f"/{d}", query={"list-type": "2"})
+        rec(f"key is denied on foreign bucket {d} (PUT/GET/LIST -> 403)", {stp, stg, stl} == {403}, f"put={stp} get={stg} list={stl}")
+
+    # cleanup
+    cleaned = 0
+    st, _, body = s3.request("GET", f"/{a.bucket}", query={"list-type": "2", "prefix": f"conformance/{run}/"})
+    for c in ET.fromstring(body).findall(f"{NS}Contents"):
+        s3.request("DELETE", f"/{a.bucket}/" + c.findtext(f"{NS}Key"))
+        cleaned += 1
+    print(f"cleaned {cleaned} objects")
+
+    failed = [r for r in results if r["required"] and not r["pass"]]
+    summary = {"backend": a.backend, "endpoint_host": s3.host, "run": run, "passed": len([r for r in results if r["pass"]]), "failed_required": len(failed), "results": results}
+    if a.json:
+        with open(a.json, "w") as f:
+            json.dump(summary, f, indent=2)
+    print(f"{summary['passed']}/{len(results)} checks passed; required failures: {len(failed)}")
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,50 @@
+#!/bin/sh
+# Gracefully stop the stack in dependency order: ingress -> apps -> identity
+# -> engine -> store. Each stop is SIGTERM to the container with the unit's
+# own timeout, then SIGKILL. `drain --start` brings everything back in the
+# reverse order. Run as root.
+#
+#   drain            stop everything
+#   drain --start    start everything (the same list, reversed)
+#   drain --apps     stop only the apps (and ingress, which depends on them)
+set -eu
+OO=/opt/openorange/bin/oo
+# Apps that have an image (and so a running or runnable container).
+apps=$("$OO" apps-list 2>/dev/null || true)
+
+stop_one() {
+	if rc-service "$1" status >/dev/null 2>&1; then
+		printf 'stopping %s ... ' "$1"
+		start=$(date +%s)
+		rc-service "$1" stop >/dev/null 2>&1 || echo "(stop returned non-zero)"
+		echo "done in $(( $(date +%s) - start ))s"
+	fi
+}
+failed=0
+start_one() {
+	if ! rc-service "$1" status >/dev/null 2>&1; then
+		printf 'starting %s ... ' "$1"
+		if rc-service "$1" start >/dev/null 2>&1; then echo ok; else echo FAILED; failed=1; fi
+	fi
+}
+
+case "${1:-}" in
+--start)
+	start_one oo-store; start_one oo-engine; start_one oo-identity
+	for a in $apps; do start_one "oo-app.$a"; done
+	start_one oo-ingress
+	exit "$failed"
+	;;
+--apps)
+	stop_one oo-ingress
+	for a in $apps; do stop_one "oo-app.$a"; done
+	;;
+"")
+	stop_one oo-ingress
+	for a in $apps; do stop_one "oo-app.$a"; done
+	stop_one oo-identity
+	stop_one oo-engine
+	stop_one oo-store
+	;;
+*) echo "usage: drain [--start|--apps]" >&2; exit 2 ;;
+esac

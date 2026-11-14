@@ -1,0 +1,549 @@
+{
+  "tool": "bin/s3-conformance (SigV4, standard library)",
+  "date": "2026-11-13",
+  "host": "lisa (Alpine 3.25, docker 29.9.2), clients on the private docker network",
+  "required_checks": [
+    "path-style PUT/GET",
+    "multipart create/upload/complete with AWS-format ETag",
+    "If-None-Match:* on PUT",
+    "If-Match on PUT",
+    "concurrent If-None-Match race",
+    "ListObjectsV2 pagination/delimiter/start-after",
+    "ranged GET + 416"
+  ],
+  "decision": "versitygw v1.11.0 (posix backend). Garage v2.5.0 silently ignores If-None-Match and If-Match on PutObject (200 instead of 412), so it cannot back registries that publish with conditional writes.",
+  "backends": [
+    {
+      "name": "garage",
+      "image": "dxflrs/garage:v2.5.0@sha256:677e5b758e44...",
+      "verdict": "FAIL (6 required checks)",
+      "run": "b9f89856b075",
+      "passed": 19,
+      "failed_required": 6,
+      "results": [
+        {
+          "check": "path-style PUT",
+          "pass": true,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "path-style GET",
+          "pass": true,
+          "required": true,
+          "observed": "status=200 etag=\"5d41402abc4b2a76b9719d911017c592\""
+        },
+        {
+          "check": "single-part ETag is quoted md5",
+          "pass": true,
+          "required": true,
+          "observed": "etag=\"5d41402abc4b2a76b9719d911017c592\""
+        },
+        {
+          "check": "multipart create",
+          "pass": true,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "multipart upload 3 parts (5MiB,5MiB,1234B)",
+          "pass": true,
+          "required": true,
+          "observed": "part etags=['\"906b42d9909efb07b5f37d2134207ce3\"', '\"2ec2e16a1aa8fa57bc4859e93e4c06ac\"', '\"8578c7862af541f136b41491e90dde2a\"']"
+        },
+        {
+          "check": "multipart complete",
+          "pass": true,
+          "required": true,
+          "observed": "status=200 etag=\"6e5498a6d69dc80da35dcb6068109481-3\""
+        },
+        {
+          "check": "multipart ETag is md5-of-part-md5s-N (AWS format)",
+          "pass": true,
+          "required": true,
+          "observed": "got=\"6e5498a6d69dc80da35dcb6068109481-3\" expected=\"6e5498a6d69dc80da35dcb6068109481-3\""
+        },
+        {
+          "check": "multipart HEAD ETag equals completion ETag, length correct",
+          "pass": true,
+          "required": true,
+          "observed": "head etag=\"6e5498a6d69dc80da35dcb6068109481-3\" len=10486994"
+        },
+        {
+          "check": "multipart content round-trips",
+          "pass": true,
+          "required": true,
+          "observed": "status=200 bytes=10486994"
+        },
+        {
+          "check": "If-None-Match:* on absent key succeeds",
+          "pass": true,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "If-None-Match:* on existing key -> 412",
+          "pass": false,
+          "required": true,
+          "observed": "status=200 body=b''"
+        },
+        {
+          "check": "failed If-None-Match left value unchanged",
+          "pass": false,
+          "required": true,
+          "observed": "value=b'v2'"
+        },
+        {
+          "check": "If-Match with current ETag succeeds",
+          "pass": true,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "If-Match with stale ETag -> 412",
+          "pass": false,
+          "required": true,
+          "observed": "status=200 body=b''"
+        },
+        {
+          "check": "failed If-Match left value unchanged",
+          "pass": false,
+          "required": true,
+          "observed": "value=b'v4'"
+        },
+        {
+          "check": "If-Match on absent key fails (404 or 412)",
+          "pass": false,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "8 concurrent If-None-Match:* creates: exactly one 200, others 409/412",
+          "pass": false,
+          "required": true,
+          "observed": "statuses=[200, 200, 200, 200, 200, 200, 200, 200]"
+        },
+        {
+          "check": "If-None-Match:* on CompleteMultipartUpload of existing key -> 412",
+          "pass": false,
+          "required": false,
+          "observed": "status=404"
+        },
+        {
+          "check": "ListObjectsV2 max-keys=10 over 25 keys: 3 pages, sorted, no dup/miss",
+          "pass": true,
+          "required": true,
+          "observed": "pages=3 keys=25"
+        },
+        {
+          "check": "ListObjectsV2 delimiter yields CommonPrefixes",
+          "pass": true,
+          "required": true,
+          "observed": "prefixes=['conformance/b9f89856b075/list/sub/']"
+        },
+        {
+          "check": "ListObjectsV2 start-after",
+          "pass": true,
+          "required": true,
+          "observed": "keys=['k023', 'k024']"
+        },
+        {
+          "check": "ranged GET bytes=0-9 -> 206 + Content-Range + exact bytes",
+          "pass": true,
+          "required": true,
+          "observed": "status=206 content-range=bytes 0-9/10486994 len=10"
+        },
+        {
+          "check": "ranged GET bytes=5242870-5242889 -> 206 + Content-Range + exact bytes",
+          "pass": true,
+          "required": true,
+          "observed": "status=206 content-range=bytes 5242870-5242889/10486994 len=20"
+        },
+        {
+          "check": "ranged GET bytes=-5 -> 206 + Content-Range + exact bytes",
+          "pass": true,
+          "required": true,
+          "observed": "status=206 content-range=bytes 10486989-10486993/10486994 len=5"
+        },
+        {
+          "check": "ranged GET bytes=10486894- -> 206 + Content-Range + exact bytes",
+          "pass": true,
+          "required": true,
+          "observed": "status=206 content-range=bytes 10486894-10486993/10486994 len=100"
+        },
+        {
+          "check": "unsatisfiable range -> 416",
+          "pass": true,
+          "required": true,
+          "observed": "status=416"
+        },
+        {
+          "check": "GET ?partNumber=2 returns that part (informational)",
+          "pass": false,
+          "required": false,
+          "observed": "status=400 len=237"
+        }
+      ]
+    },
+    {
+      "name": "garage main (unreleased, commit 99923a87)",
+      "image": "dxflrs/garage:99923a87182ae9252b421dda65c935b9c06b1444",
+      "verdict": "not testable: every request returned 500 (`Unable to decode entry of bucket_v2`), an on-disk format break against its own freshly initialised layout; not retried",
+      "results": []
+    },
+    {
+      "name": "versitygw",
+      "image": "versity/versitygw:v1.11.0@sha256:8319a530d08d...",
+      "verdict": "PASS (0 required failures; 1 informational miss: GET ?partNumber=N)",
+      "run": "805a857ebba8",
+      "passed": 26,
+      "failed_required": 0,
+      "results": [
+        {
+          "check": "path-style PUT",
+          "pass": true,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "path-style GET",
+          "pass": true,
+          "required": true,
+          "observed": "status=200 etag=\"5d41402abc4b2a76b9719d911017c592\""
+        },
+        {
+          "check": "single-part ETag is quoted md5",
+          "pass": true,
+          "required": true,
+          "observed": "etag=\"5d41402abc4b2a76b9719d911017c592\""
+        },
+        {
+          "check": "multipart create",
+          "pass": true,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "multipart upload 3 parts (5MiB,5MiB,1234B)",
+          "pass": true,
+          "required": true,
+          "observed": "part etags=['\"59e2b2430dccbacad5c05658e7f4f89d\"', '\"3b5fa0ee18b33fc05a6a1652889128bf\"', '\"c94c86346818a1e5c2b66f743d34249e\"']"
+        },
+        {
+          "check": "multipart complete",
+          "pass": true,
+          "required": true,
+          "observed": "status=200 etag=\"8ca2d3e4ffaa9504aa6f4a54dd22c85e-3\""
+        },
+        {
+          "check": "multipart ETag is md5-of-part-md5s-N (AWS format)",
+          "pass": true,
+          "required": true,
+          "observed": "got=\"8ca2d3e4ffaa9504aa6f4a54dd22c85e-3\" expected=\"8ca2d3e4ffaa9504aa6f4a54dd22c85e-3\""
+        },
+        {
+          "check": "multipart HEAD ETag equals completion ETag, length correct",
+          "pass": true,
+          "required": true,
+          "observed": "head etag=\"8ca2d3e4ffaa9504aa6f4a54dd22c85e-3\" len=10486994"
+        },
+        {
+          "check": "multipart content round-trips",
+          "pass": true,
+          "required": true,
+          "observed": "status=200 bytes=10486994"
+        },
+        {
+          "check": "If-None-Match:* on absent key succeeds",
+          "pass": true,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "If-None-Match:* on existing key -> 412",
+          "pass": true,
+          "required": true,
+          "observed": "status=412 body=b'<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<Error><Code>PreconditionFailed</Code><Message>At least one of the pre-conditions'"
+        },
+        {
+          "check": "failed If-None-Match left value unchanged",
+          "pass": true,
+          "required": true,
+          "observed": "value=b'v1'"
+        },
+        {
+          "check": "If-Match with current ETag succeeds",
+          "pass": true,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "If-Match with stale ETag -> 412",
+          "pass": true,
+          "required": true,
+          "observed": "status=412 body=b'<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<Error><Code>PreconditionFailed</Code><Message>At least one of the pre-conditions'"
+        },
+        {
+          "check": "failed If-Match left value unchanged",
+          "pass": true,
+          "required": true,
+          "observed": "value=b'v3'"
+        },
+        {
+          "check": "If-Match on absent key fails (404 or 412)",
+          "pass": true,
+          "required": true,
+          "observed": "status=404"
+        },
+        {
+          "check": "8 concurrent If-None-Match:* creates: exactly one 200, others 409/412",
+          "pass": true,
+          "required": true,
+          "observed": "statuses=[200, 412, 412, 412, 412, 412, 412, 412]"
+        },
+        {
+          "check": "If-None-Match:* on CompleteMultipartUpload of existing key -> 412",
+          "pass": true,
+          "required": false,
+          "observed": "status=412"
+        },
+        {
+          "check": "ListObjectsV2 max-keys=10 over 25 keys: 3 pages, sorted, no dup/miss",
+          "pass": true,
+          "required": true,
+          "observed": "pages=3 keys=25"
+        },
+        {
+          "check": "ListObjectsV2 delimiter yields CommonPrefixes",
+          "pass": true,
+          "required": true,
+          "observed": "prefixes=['conformance/805a857ebba8/list/sub/']"
+        },
+        {
+          "check": "ListObjectsV2 start-after",
+          "pass": true,
+          "required": true,
+          "observed": "keys=['k023', 'k024']"
+        },
+        {
+          "check": "ranged GET bytes=0-9 -> 206 + Content-Range + exact bytes",
+          "pass": true,
+          "required": true,
+          "observed": "status=206 content-range=bytes 0-9/10486994 len=10"
+        },
+        {
+          "check": "ranged GET bytes=5242870-5242889 -> 206 + Content-Range + exact bytes",
+          "pass": true,
+          "required": true,
+          "observed": "status=206 content-range=bytes 5242870-5242889/10486994 len=20"
+        },
+        {
+          "check": "ranged GET bytes=-5 -> 206 + Content-Range + exact bytes",
+          "pass": true,
+          "required": true,
+          "observed": "status=206 content-range=bytes 10486989-10486993/10486994 len=5"
+        },
+        {
+          "check": "ranged GET bytes=10486894- -> 206 + Content-Range + exact bytes",
+          "pass": true,
+          "required": true,
+          "observed": "status=206 content-range=bytes 10486894-10486993/10486994 len=100"
+        },
+        {
+          "check": "unsatisfiable range -> 416",
+          "pass": true,
+          "required": true,
+          "observed": "status=416"
+        },
+        {
+          "check": "GET ?partNumber=2 returns that part (informational)",
+          "pass": false,
+          "required": false,
+          "observed": "status=400 len=307"
+        }
+      ]
+    },
+    {
+      "name": "versitygw (deployed stack, per-app key)",
+      "image": "same",
+      "verdict": "PASS, plus per-app key isolation (403 on a foreign bucket)",
+      "run": "b3e4ea97ad6d",
+      "passed": 27,
+      "failed_required": 0,
+      "results": [
+        {
+          "check": "path-style PUT",
+          "pass": true,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "path-style GET",
+          "pass": true,
+          "required": true,
+          "observed": "status=200 etag=\"5d41402abc4b2a76b9719d911017c592\""
+        },
+        {
+          "check": "single-part ETag is quoted md5",
+          "pass": true,
+          "required": true,
+          "observed": "etag=\"5d41402abc4b2a76b9719d911017c592\""
+        },
+        {
+          "check": "multipart create",
+          "pass": true,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "multipart upload 3 parts (5MiB,5MiB,1234B)",
+          "pass": true,
+          "required": true,
+          "observed": "part etags=['\"64d274c00ac601b2f29f8e9a21fdf008\"', '\"68c718f0a74fee915a15e37e5719b6d2\"', '\"86385c25b321ae86c40b5edca7acca98\"']"
+        },
+        {
+          "check": "multipart complete",
+          "pass": true,
+          "required": true,
+          "observed": "status=200 etag=\"d6b88fa94e047c4a2e6b97ea4498d371-3\""
+        },
+        {
+          "check": "multipart ETag is md5-of-part-md5s-N (AWS format)",
+          "pass": true,
+          "required": true,
+          "observed": "got=\"d6b88fa94e047c4a2e6b97ea4498d371-3\" expected=\"d6b88fa94e047c4a2e6b97ea4498d371-3\""
+        },
+        {
+          "check": "multipart HEAD ETag equals completion ETag, length correct",
+          "pass": true,
+          "required": true,
+          "observed": "head etag=\"d6b88fa94e047c4a2e6b97ea4498d371-3\" len=10486994"
+        },
+        {
+          "check": "multipart content round-trips",
+          "pass": true,
+          "required": true,
+          "observed": "status=200 bytes=10486994"
+        },
+        {
+          "check": "If-None-Match:* on absent key succeeds",
+          "pass": true,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "If-None-Match:* on existing key -> 412",
+          "pass": true,
+          "required": true,
+          "observed": "status=412 body=b'<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<Error><Code>PreconditionFailed</Code><Message>At least one of the pre-conditions'"
+        },
+        {
+          "check": "failed If-None-Match left value unchanged",
+          "pass": true,
+          "required": true,
+          "observed": "value=b'v1'"
+        },
+        {
+          "check": "If-Match with current ETag succeeds",
+          "pass": true,
+          "required": true,
+          "observed": "status=200"
+        },
+        {
+          "check": "If-Match with stale ETag -> 412",
+          "pass": true,
+          "required": true,
+          "observed": "status=412 body=b'<?xml version=\"1.0\" encoding=\"UTF-8\"?>\\n<Error><Code>PreconditionFailed</Code><Message>At least one of the pre-conditions'"
+        },
+        {
+          "check": "failed If-Match left value unchanged",
+          "pass": true,
+          "required": true,
+          "observed": "value=b'v3'"
+        },
+        {
+          "check": "If-Match on absent key fails (404 or 412)",
+          "pass": true,
+          "required": true,
+          "observed": "status=404"
+        },
+        {
+          "check": "8 concurrent If-None-Match:* creates: exactly one 200, others 409/412",
+          "pass": true,
+          "required": true,
+          "observed": "statuses=[200, 412, 412, 412, 412, 412, 412, 412]"
+        },
+        {
+          "check": "If-None-Match:* on CompleteMultipartUpload of existing key -> 412",
+          "pass": true,
+          "required": false,
+          "observed": "status=412"
+        },
+        {
+          "check": "ListObjectsV2 max-keys=10 over 25 keys: 3 pages, sorted, no dup/miss",
+          "pass": true,
+          "required": true,
+          "observed": "pages=3 keys=25"
+        },
+        {
+          "check": "ListObjectsV2 delimiter yields CommonPrefixes",
+          "pass": true,
+          "required": true,
+          "observed": "prefixes=['conformance/b3e4ea97ad6d/list/sub/']"
+        },
+        {
+          "check": "ListObjectsV2 start-after",
+          "pass": true,
+          "required": true,
+          "observed": "keys=['k023', 'k024']"
+        },
+        {
+          "check": "ranged GET bytes=0-9 -> 206 + Content-Range + exact bytes",
+          "pass": true,
+          "required": true,
+          "observed": "status=206 content-range=bytes 0-9/10486994 len=10"
+        },
+        {
+          "check": "ranged GET bytes=5242870-5242889 -> 206 + Content-Range + exact bytes",
+          "pass": true,
+          "required": true,
+          "observed": "status=206 content-range=bytes 5242870-5242889/10486994 len=20"
+        },
+        {
+          "check": "ranged GET bytes=-5 -> 206 + Content-Range + exact bytes",
+          "pass": true,
+          "required": true,
+          "observed": "status=206 content-range=bytes 10486989-10486993/10486994 len=5"
+        },
+        {
+          "check": "ranged GET bytes=10486894- -> 206 + Content-Range + exact bytes",
+          "pass": true,
+          "required": true,
+          "observed": "status=206 content-range=bytes 10486894-10486993/10486994 len=100"
+        },
+        {
+          "check": "unsatisfiable range -> 416",
+          "pass": true,
+          "required": true,
+          "observed": "status=416"
+        },
+        {
+          "check": "GET ?partNumber=2 returns that part (informational)",
+          "pass": false,
+          "required": false,
+          "observed": "status=400 len=307"
+        },
+        {
+          "check": "key is denied on foreign bucket stuff-oci (PUT/GET/LIST -> 403)",
+          "pass": true,
+          "required": true,
+          "observed": "put=403 get=403 list=403"
+        }
+      ]
+    }
+  ],
+  "not_tested": [
+    "SeaweedFS (not needed once versitygw passed)",
+    "bucket versioning behaviour under conditional writes"
+  ]
+}

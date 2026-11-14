@@ -1,0 +1,126 @@
+# Declarative definition of the shared OpenOrange stack on `lisa`.
+#
+# Consumed by `bin/oo` (validate, render, provision, run-args). Unknown keys are
+# rejected. Secrets never live here: they are generated into /etc/openorange
+# (root-only) by `bin/oo secrets`. Adding an app means adding a [apps.NAME]
+# table here, then `bin/oo provision NAME && bin/oo render && install the
+# oo-app.NAME instance`; no other app's container is touched (see
+# docs/openorange-runtime.md).
+schema = 1
+
+[stack]
+code_dir = "/opt/openorange"
+state_dir = "/var/lib/openorange"
+etc_dir = "/etc/openorange"
+log_dir = "/var/log/openorange"
+run_dir = "/run/openorange"
+
+[network]
+# One private bridge. `internal = true`: containers have no route off the
+# host, and nothing is published to any host interface.
+name = "openorange"
+bridge = "oo0"
+subnet = "172.29.80.0/24"
+internal = true
+# Static addresses. Ingress runs on the host network and reaches upstreams by
+# these addresses (the host can route to a bridge's container addresses).
+store_ip = "172.29.80.10"
+engine_ip = "172.29.80.11"
+
+[ingress]
+# Caddy binds only this tailnet address (443 only; no :80 listener).
+bind = "100.68.104.43"
+# "internal": Caddy's internal CA (rehearsal; clients must trust or -k).
+# "acme": DNS-01 through Cloudflare using /etc/openorange/cloudflare-dns.env.
+tls = "internal"
+dns_env_file = "/etc/openorange/cloudflare-dns.env"
+
+[ingress.public]
+# Second Caddy listener for traffic that reaches the host through an
+# outbound-only cloudflared tunnel (owner action, not created here). Plain
+# HTTP on loopback only: never 0.0.0.0, never the tailnet address, no identity
+# sidecar. An app lists the hostnames it serves here in `public_hostnames`;
+# `public_deny_paths` (default /admin) answer 404 on this listener only.
+bind = "127.0.0.1"
+port = 18480
+
+[store]
+region = "us-east-1"
+# Application bucket data and Engine storage are on different paths with
+# different credentials; the Engine does not use this store (see runbook).
+
+[apps.stats]
+kind = "orange"
+display = "Stats"
+namespace = "stats"
+ip = "172.29.80.20"
+port = 8080
+hostnames = ["stats.17166969.xyz"]
+buckets = ["stats-exports"]
+memory = "1g"
+cpus = 2.0
+
+[apps.stuff]
+kind = "orange"
+display = "Stuff registries"
+namespace = "stuff"
+ip = "172.29.80.21"
+port = 8080
+hostnames = [
+  "stuff.17166969.xyz",
+  "crates.17166969.xyz",
+  "crates-blobs.17166969.xyz",
+  "npm.17166969.xyz",
+  "pypi.17166969.xyz",
+  "oci.17166969.xyz",
+  "oci-blobs.17166969.xyz",
+  "mirror.17166969.xyz",
+]
+buckets = [
+  "stuff-mycrates",
+  "stuff-mynpm",
+  "stuff-mypypi",
+  "stuff-oci",
+  "stuff-mirror",
+  "stuff-oci-blobs",
+]
+memory = "2g"
+cpus = 2.0
+
+# Tansu stays a native host service (OpenRC `tansu`, 127.0.0.1:3001). The
+# ingress only fronts it; nothing here starts, stops or reconfigures it.
+[apps.tansu]
+kind = "native"
+display = "Tansu"
+upstream = "127.0.0.1:3001"
+hostnames = ["tansu.17166969.xyz"]
+
+# Discover (/Users/josh/repos/discover). Every hostname is served on the
+# tailnet listener with identity (including /admin); the same hostnames are
+# also carried by the public listener without identity and without /admin.
+# The preview deployment is a separate app: own namespace, bucket and secret.
+[apps.discover]
+kind = "orange"
+display = "Discover"
+namespace = "discover"
+ip = "172.29.80.22"
+port = 8080
+hostnames = ["hq.17166969.xyz", "research.17166969.xyz"]
+public_hostnames = ["hq.17166969.xyz", "research.17166969.xyz"]
+public_deny_paths = ["/admin"]
+buckets = ["discover-artifacts"]
+memory = "1g"
+cpus = 2.0
+
+[apps.discover-preview]
+kind = "orange"
+display = "Discover (preview)"
+namespace = "discover-preview"
+ip = "172.29.80.23"
+port = 8080
+hostnames = ["hq-preview.17166969.xyz", "research-preview.17166969.xyz"]
+public_hostnames = ["hq-preview.17166969.xyz", "research-preview.17166969.xyz"]
+public_deny_paths = ["/admin"]
+buckets = ["discover-preview-artifacts"]
+memory = "512m"
+cpus = 1.0

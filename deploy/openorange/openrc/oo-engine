@@ -1,0 +1,34 @@
+#!/sbin/openrc-run
+# OpenOrange Rivet Engine
+# Installed by bin/install. Foreground `docker run --rm` under supervise-daemon.
+
+. /opt/openorange/openrc/oo-common.sh
+
+description="OpenOrange Rivet Engine"
+supervisor=supervise-daemon
+command=/usr/bin/docker
+respawn_delay=3
+respawn_max=0
+respawn_period=60
+output_log="$OO_LOGDIR/engine.log"
+error_log="$OO_LOGDIR/engine.log"
+retry="TERM/150/KILL/10"
+
+depend() {
+	need docker net
+	after oo-store
+}
+
+start_pre() {
+	"$OO_BIN" prepare engine || return 1
+	oo_remove_container oo-engine
+	command_args="$("$OO_BIN" run-args engine)" || return 1
+}
+
+start_post() {
+	oo_wait engine 120 || { eerror "oo-engine did not become ready"; oo_fail_stop oo-engine; return 1; }
+}
+
+stop_post() {
+	oo_remove_container oo-engine
+}

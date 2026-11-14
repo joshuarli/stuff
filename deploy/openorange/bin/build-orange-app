@@ -1,0 +1,24 @@
+#!/bin/sh
+# Build an Orange app image for lisa from a Worker directory, without a
+# registry: `open-orange deploy --dry-run` writes the Dockerfile and build
+# context, the context is copied to the host and built natively as
+# linux/amd64 there.
+#
+#   build-orange-app WORKER_DIR IMAGE_NAME HOST [TAG]
+#
+# Prints the image reference to hand to `oo set-image APP REF`. The generated
+# Dockerfile uses an unpinned `node:24-slim` base; pinning is the app repo's
+# decision (see docs/openorange-runtime.md, "Add an app").
+set -eu
+DIR=$(cd "${1:?usage: build-orange-app WORKER_DIR IMAGE_NAME HOST [TAG]}" && pwd)
+NAME=${2:?image name}
+HOST=${3:?host}
+TAG=${4:-$(date -u +%Y%m%d-%H%M%S)}
+OUT=$(mktemp -d "${TMPDIR:-/tmp}/oo-build.XXXXXX")
+trap 'rm -rf "$OUT"' EXIT
+(cd "$DIR" && npx --yes open-orange@1.0.2 deploy --dry-run --outdir "$OUT/out" --image "$NAME" --tag "$TAG" >/dev/null)
+REMOTE=.cache/oo-build/$NAME
+ssh "$HOST" "mkdir -p $REMOTE"
+rsync -a --delete "$OUT/out/" "$HOST:$REMOTE/"
+ssh "$HOST" "docker build --platform linux/amd64 -f $REMOTE/Dockerfile -t $NAME:$TAG $REMOTE/context >&2 && docker image inspect $NAME:$TAG --format '{{.Id}} {{.Os}}/{{.Architecture}}' >&2"
+echo "$NAME:$TAG"

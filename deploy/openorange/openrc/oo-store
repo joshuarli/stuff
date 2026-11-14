@@ -1,0 +1,33 @@
+#!/sbin/openrc-run
+# OpenOrange S3 object store (versitygw)
+# Installed by bin/install. Foreground `docker run --rm` under supervise-daemon.
+
+. /opt/openorange/openrc/oo-common.sh
+
+description="OpenOrange S3 object store (versitygw)"
+supervisor=supervise-daemon
+command=/usr/bin/docker
+respawn_delay=3
+respawn_max=0
+respawn_period=60
+output_log="$OO_LOGDIR/store.log"
+error_log="$OO_LOGDIR/store.log"
+retry="TERM/30/KILL/5"
+
+depend() {
+	need docker net
+}
+
+start_pre() {
+	"$OO_BIN" prepare store || return 1
+	oo_remove_container oo-store
+	command_args="$("$OO_BIN" run-args store)" || return 1
+}
+
+start_post() {
+	oo_wait store 90 || { eerror "oo-store did not become ready"; oo_fail_stop oo-store; return 1; }
+}
+
+stop_post() {
+	oo_remove_container oo-store
+}

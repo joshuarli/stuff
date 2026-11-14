@@ -1,0 +1,212 @@
+#!/usr/bin/env python3
+"""Readiness and exposure checks for the whole stack. Exit 0 = healthy.
+
+    health [--json] [--quiet]
+
+Run on the host (as root: it reads the Engine token to check namespaces and
+node connections). WARN does not change the exit status; FAIL does.
+"""
+import http.client
+import json
+import os
+import socket
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+sys.path.insert(0, str(Path(os.path.realpath(__file__)).parent.parent / "lib"))
+import oolib  # noqa: E402
+
+results = []
+
+
+def rec(name, status, detail=""):
+    results.append({"check": name, "status": status, "detail": detail})
+
+
+def sh(*cmd, timeout=15):
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        return r.returncode, r.stdout.strip(), r.stderr.strip()
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return 127, "", str(e)
+
+
+def get(url, headers=None, timeout=4):
+    req = urllib.request.Request(url, headers=headers or {})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.status, r.read()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read()
+    except OSError:
+        return 0, b""
+
+
+def listeners():
+    out = set()
+    for f, v6 in (("/proc/net/tcp", False), ("/proc/net/tcp6", True)):
+        try:
+            lines = Path(f).read_text().splitlines()[1:]
+        except OSError:
+            continue
+        for ln in lines:
+            p = ln.split()
+            if p[3] != "0A":
+                continue
+            addr, port = p[1].split(":")
+            port = int(port, 16)
+            if v6:
+                ip = "::" if set(addr) == {"0"} else ("::1" if addr == "00000000000000000000000001000000" else "v6:" + addr)
+            else:
+                b = bytes.fromhex(addr)[::-1]
+                ip = ".".join(map(str, b))
+            out.add((ip, port))
+    return out
+
+
+def main():
+    cfg = oolib.load()
+    token = oolib.read_env(cfg.engine_env).get("RIVET__AUTH__ADMIN_TOKEN", "")
+    auth = {"Authorization": f"Bearer {token}"}
+
+    # network
+    rc, out, _ = sh("docker", "network", "inspect", cfg.network["name"], "--format", "{{.Internal}} {{range .IPAM.Config}}{{.Subnet}}{{end}}")
+    want = f"{str(cfg.network['internal']).lower()} {cfg.network['subnet']}"
+    rec("network", "PASS" if rc == 0 and out == want else "FAIL", out or "missing")
+
+    # services
+    svcs = [("store", None), ("engine", None), ("identity", None), ("ingress", None)] + [("app", a.name) for a in cfg.orange_apps() if cfg.app_image_file(a).exists()]
+    for svc, app in svcs:
+        rcname = f"oo-{svc}" if not app else f"oo-app.{app}"
+        cname = f"oo-{svc}" if not app else f"oo-app-{app}"
+        rc, _, _ = sh("rc-service", rcname, "status")
+        rec(f"openrc {rcname}", "PASS" if rc == 0 else "FAIL", "started" if rc == 0 else f"status rc={rc}")
+        rc, out, _ = sh("docker", "inspect", cname, "--format", "{{.State.Status}} {{.State.StartedAt}} restarts-by-supervisor-not-tracked")
+        rec(f"container {cname}", "PASS" if rc == 0 and out.startswith("running") else "FAIL", out.split(" restarts")[0] if out else "absent")
+    # store
+    st, _ = get(cfg.store_url + "/health")
+    rec("store /health", "PASS" if st == 200 else "FAIL", f"http {st}")
+    # engine
+    st, body = get(cfg.engine_url + "/health")
+    ver = ""
+    try:
+        ver = json.loads(body).get("version", "")
+    except ValueError:
+        pass
+    rec("engine /health", "PASS" if st == 200 else "FAIL", f"http {st} version={ver}")
+    st, _ = get(cfg.engine_url + "/namespaces")
+    rec("engine rejects unauthenticated API calls", "PASS" if st == 401 else "FAIL", f"http {st}")
+    st, body = get(cfg.engine_url + "/namespaces", auth)
+    names = set()
+    if st == 200:
+        names = {n["name"] for n in json.loads(body)["namespaces"]}
+    for a in cfg.orange_apps():
+        ok = a.namespace in names
+        rec(f"namespace {a.namespace}", "PASS" if ok else "FAIL", "present" if ok else "missing")
+        if ok:
+            st, body = get(f"{cfg.engine_url}/pools?namespace={a.namespace}", auth)
+            pools = {p["name"] for p in json.loads(body).get("pools", [])} if st == 200 else set()
+            miss = [p for p in oolib.ORANGE_POOLS if p not in pools]
+            rec(f"pools {a.namespace}/{{{','.join(oolib.ORANGE_POOLS)}}}", "PASS" if not miss else "FAIL", "present" if not miss else f"missing {miss}")
+            if cfg.app_image_file(a).exists():
+                st, body = get(f"{cfg.engine_url}/pools/{oolib.PRIMARY_POOL}/nodes?namespace={a.namespace}", auth)
+                nodes = json.loads(body).get("nodes", []) if st == 200 else []
+                conn = [n for n in nodes if n.get("connected")]
+                rec(f"app {a.name}: node connected to engine", "PASS" if conn else "FAIL", f"{len(conn)}/{len(nodes)} nodes connected")
+                st, _ = get(f"http://{a.ip}:{a.port}{a.health_path}")
+                rec(f"app {a.name}: HTTP on private network", "PASS" if 0 < st < 500 else "FAIL", f"http {st}")
+            else:
+                rec(f"app {a.name}: image", "WARN", "no image deployed yet (ingress answers 503)")
+    # identity
+    sock = cfg.run / "identity" / "identity.sock"
+    try:
+        c = http.client.HTTPConnection("localhost")
+        s = socket.socket(socket.AF_UNIX)
+        s.settimeout(3)
+        s.connect(str(sock))
+        c.sock = s
+        c.request("GET", "/auth", headers={"X-OO-Peer": f"{cfg.ingress['bind']}:1"})
+        r = c.getresponse()
+        ident = r.getheader("Stats-Tailnet-Identity")
+        rec("identity resolves this host's own tailnet address", "PASS" if r.status == 200 else "FAIL", f"http {r.status} {ident}")
+        c.close()
+        s = socket.socket(socket.AF_UNIX)
+        s.settimeout(3)
+        s.connect(str(sock))
+        c = http.client.HTTPConnection("localhost")
+        c.sock = s
+        c.request("GET", "/auth", headers={"X-OO-Peer": "10.0.1.6:1"})
+        r = c.getresponse()
+        rec("identity rejects a non-tailnet peer", "PASS" if r.status == 403 else "FAIL", f"http {r.status}")
+        c.close()
+    except OSError as e:
+        rec("identity socket", "FAIL", str(e))
+    # ingress
+    bind = cfg.ingress["bind"]
+    for a in cfg.enabled_apps():
+        host = a.hostnames[0]
+        rc, out, _ = sh("curl", "-sk", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "5", "--resolve", f"{host}:443:{bind}", f"https://{host}/")
+        code = int(out) if out.isdigit() else 0
+        if a.kind == "orange" and not cfg.app_image_file(a).exists():
+            rec(f"ingress {host}", "PASS" if code == 503 else "FAIL", f"http {code} (not deployed)")
+        else:
+            rec(f"ingress {host}", "PASS" if 0 < code < 500 else "FAIL", f"http {code}")
+    rc, out, _ = sh("sh", "-c", f"echo | openssl s_client -connect {bind}:443 -servername {cfg.enabled_apps()[0].hostnames[0]} 2>/dev/null | openssl x509 -noout -enddate -issuer")
+    rec(f"ingress TLS certificate ({cfg.ingress['tls']})", "PASS" if "notAfter" in out else "FAIL", out.replace("\n", "; ")[:160])
+    # public listener (loopback, tunnel-facing)
+    pub = cfg.public
+    for a in cfg.enabled_apps():
+        for host in a.public_hostnames:
+            base = f"http://{pub['bind']}:{pub['port']}"
+            rc, out, _ = sh("curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "5", "-H", f"Host: {host}", base + "/admin/health-probe")
+            rec(f"public {host}: /admin/* answers 404", "PASS" if out == "404" else "FAIL", f"http {out}")
+            rc, out, _ = sh("curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "--max-time", "5", "-H", f"Host: {host}", base + "/")
+            code = int(out) if out.isdigit() else 0
+            if a.kind == "orange" and not cfg.app_image_file(a).exists():
+                rec(f"public {host}: /", "PASS" if code == 503 else "FAIL", f"http {code} (not deployed)")
+            else:
+                rec(f"public {host}: /", "PASS" if 0 < code < 500 else "FAIL", f"http {code}")
+    # exposure
+    ls = listeners()
+    stack_ports = {6420, 6421, 6422, 6430, 7070, 7071} | {a.port for a in cfg.orange_apps()}
+    if pub:
+        ppub = sorted(ip for ip, p in ls if p == pub["port"])
+        rec(f"public listener port {pub['port']} is bound only on {pub['bind']}", "PASS" if ppub in ([pub["bind"]], []) else "FAIL", str(ppub))
+    bad = sorted((ip, p) for ip, p in ls if p in stack_ports and ip not in ("127.0.0.1", "::1"))
+    rec("no stack port (engine/store/app) listens on a host interface", "PASS" if not bad else "FAIL", str(bad) if bad else "none")
+    on443 = sorted(ip for ip, p in ls if p == 443)
+    rec(f"port 443 is bound only on {bind}", "PASS" if on443 == [bind] else "FAIL", str(on443))
+    rc, out, _ = sh("docker", "ps", "--filter", "name=oo-", "--format", "{{.Names}} {{.Ports}}")
+    published = [ln for ln in out.splitlines() if "->" in ln]
+    rec("no oo-* container publishes a port", "PASS" if not published else "FAIL", "; ".join(published) or "none")
+    # disk
+    st = os.statvfs(cfg.state)
+    free, total = st.f_bavail * st.f_frsize, st.f_blocks * st.f_frsize
+    pct = 100 * free / total
+    level = "PASS" if pct >= 20 and free >= 20 << 30 else ("WARN" if pct >= 10 and free >= 4 << 30 else "FAIL")
+    rec("disk free (Engine refuses to start below 10% / 4 GiB)", level, f"{free >> 30} GiB free, {pct:.0f}%")
+    # backups
+    bdir = cfg.state / "backups"
+    latest = sorted(p for p in bdir.glob("*/manifest.json")) if bdir.exists() else []
+    if latest:
+        age = (time.time() - latest[-1].stat().st_mtime) / 86400
+        rec("last backup age", "PASS" if age <= 8 else "WARN", f"{age:.1f} days ({latest[-1].parent.name})")
+    else:
+        rec("last backup age", "WARN", "no backup recorded")
+
+    failed = [r for r in results if r["status"] == "FAIL"]
+    if "--json" in sys.argv:
+        print(json.dumps({"ok": not failed, "results": results}, indent=2))
+    elif "--quiet" not in sys.argv:
+        for r in results:
+            print(f"{r['status']:4}  {r['check']}: {r['detail']}")
+        print(f"{'HEALTHY' if not failed else 'UNHEALTHY'}: {len([r for r in results if r['status']=='PASS'])} pass, {len([r for r in results if r['status']=='WARN'])} warn, {len(failed)} fail")
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    main()

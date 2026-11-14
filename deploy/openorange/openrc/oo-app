@@ -1,0 +1,37 @@
+#!/sbin/openrc-run
+# Per-app template. Install an instance with:
+#   ln -s oo-app /etc/init.d/oo-app.NAME     (bin/install-app NAME does this)
+# Each instance supervises only its own container, so adding, upgrading or
+# stopping one app never touches another.
+
+. /opt/openorange/openrc/oo-common.sh
+
+OO_APP="${RC_SVCNAME#oo-app.}"
+description="OpenOrange app ${OO_APP}"
+supervisor=supervise-daemon
+command=/usr/bin/docker
+respawn_delay=3
+respawn_max=0
+respawn_period=60
+output_log="$OO_LOGDIR/app-${OO_APP}.log"
+error_log="$OO_LOGDIR/app-${OO_APP}.log"
+retry="TERM/40/KILL/5"
+
+depend() {
+	need docker net oo-engine oo-store
+}
+
+start_pre() {
+	[ "$OO_APP" != "$RC_SVCNAME" ] || { eerror "use an instance: oo-app.NAME"; return 1; }
+	"$OO_BIN" prepare app "$OO_APP" || return 1
+	oo_remove_container "oo-app-$OO_APP"
+	command_args="$("$OO_BIN" run-args app "$OO_APP")" || return 1
+}
+
+start_post() {
+	oo_wait app "$OO_APP" 90 || { eerror "app $OO_APP did not become ready"; oo_fail_stop "oo-app-$OO_APP"; return 1; }
+}
+
+stop_post() {
+	oo_remove_container "oo-app-$OO_APP"
+}

@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""Fenced, consistent backup of Engine and store state. Run as root.
+
+    backup [--dest DIR] [--keep N] [--no-restart]
+
+Method (the only one Rivet documents for a single instance, which has no
+online snapshot): stop the stack in drain order so the Engine flushes and
+releases its log directory and the store holds no open writes, copy the
+directories with rsync (hard-linked against the previous backup, xattrs kept
+for the store), restart in reverse order, then checksum the copy.
+
+Contents of one backup directory `<UTC timestamp>/`:
+    engine/{log,objects}            Engine log directory + object tier (one unit)
+    store/{data,versions,iam}       all application buckets, versions and IAM
+    etc/                            /etc/openorange (SECRETS; the directory is 0700)
+    apps.toml, images.lock.json     the declarations the backup was taken with
+    SHA256SUMS, manifest.json
+
+Loss model: see docs/openorange-runtime.md. The default destination is the same
+disk as the data: it protects against operator error and corruption, not disk
+loss. Use --dest on another device for that.
+"""
+import argparse
+import fcntl
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(os.path.realpath(__file__)).parent.parent / "lib"))
+import oolib  # noqa: E402
+
+HERE = Path(os.path.realpath(__file__)).parent
+
+
+def run(*cmd, check=True):
+    return subprocess.run(cmd, check=check, text=True)
+
+
+def running(svc):
+    return subprocess.run(["rc-service", svc, "status"], capture_output=True).returncode == 0
+
+
+def du(path):
+    r = subprocess.run(["du", "-sk", str(path)], capture_output=True, text=True)
+    return int(r.stdout.split()[0]) * 1024 if r.returncode == 0 else 0
+
+
+def main():
+    sys.stdout.reconfigure(line_buffering=True)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dest")
+    ap.add_argument("--keep", type=int, default=7)
+    ap.add_argument("--no-restart", action="store_true")
+    a = ap.parse_args()
+    if os.geteuid() != 0:
+        sys.exit("backup: run as root")
+    cfg = oolib.load()
+    dest = Path(a.dest or cfg.state / "backups")
+    dest.mkdir(parents=True, exist_ok=True)
+    os.chmod(dest, 0o700)
+    lockf = open(cfg.run / "backup.lock", "w") if cfg.run.exists() else open("/tmp/oo-backup.lock", "w")
+    try:
+        fcntl.flock(lockf, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        sys.exit("backup: another backup is running")
+
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    out = dest / f"{stamp}.partial"
+    prevs = sorted(p for p in dest.glob("*/manifest.json"))
+    prev = prevs[-1].parent if prevs else None
+    need = sum(du(cfg.state / d) for d in ("engine", "store")) if prev is None else sum(du(cfg.state / d) for d in ("engine", "store")) // 4
+    free = shutil.disk_usage(dest).free
+    if free < need + (4 << 30):
+        sys.exit(f"backup: not enough free space on {dest} ({free >> 20} MiB free, need about {(need + (4 << 30)) >> 20} MiB)")
+
+    was = {s: running(s) for s in ["oo-store", "oo-engine", "oo-identity", "oo-ingress"] + [a_.service for a_ in cfg.orange_apps()]}
+    t0 = time.time()
+    print("fencing: draining stack (ingress -> apps -> identity -> engine -> store)")
+    run(str(HERE / "drain"))
+    err = None
+    try:
+        out.mkdir(mode=0o700)
+        links = lambda sub: [f"--link-dest={prev / sub}"] if prev and (prev / sub).exists() else []
+        for sub, src in (("engine/log", cfg.state / "engine" / "log"), ("engine/objects", cfg.state / "engine" / "objects"),
+                         ("store/data", cfg.state / "store" / "data"), ("store/versions", cfg.state / "store" / "versions"),
+                         ("store/iam", cfg.state / "store" / "iam")):
+            (out / sub).mkdir(parents=True)
+            print(f"copy {sub}")
+            run("rsync", "-aHX", "--numeric-ids", "--delete", *links(sub), f"{src}/", f"{out / sub}/")
+        run("rsync", "-a", "--numeric-ids", f"{cfg.etc}/", f"{out / 'etc'}/")
+        for f in ("apps.toml", "images.lock.json"):
+            shutil.copy2(HERE.parent / f, out / f)
+    except Exception as e:  # noqa: BLE001 -- always restart the stack
+        err = e
+    down = time.time() - t0
+    if not a.no_restart:
+        print("restarting stack")
+        r = subprocess.run([str(HERE / "drain"), "--start"], text=True)
+        if r.returncode:
+            err = err or RuntimeError("restart failed")
+        # Only bring back what was running before.
+        for svc, was_up in was.items():
+            if not was_up and running(svc):
+                subprocess.run(["rc-service", svc, "stop"], capture_output=True)
+    if err:
+        print(f"backup FAILED: {err}; partial copy left at {out}", file=sys.stderr)
+        sys.exit(1)
+
+    print("checksumming the copy (stack is back up)")
+    sums = out / "SHA256SUMS"
+    with open(sums, "w") as f:
+        subprocess.run("find engine store etc -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum", shell=True, cwd=out, stdout=f, check=True)
+    nfiles = sum(1 for _ in open(sums))
+    manifest = {
+        "timestamp_utc": stamp,
+        "consistency": "fenced: all services stopped (drain order) while copying",
+        "downtime_seconds": round(down, 1),
+        "files": nfiles,
+        "bytes": du(out),
+        "link_dest": prev.name if prev else None,
+        "services_running_before": [s for s, u in was.items() if u],
+        "images": oolib.lock()["images"],
+        "apps": {n: {"namespace": x.namespace, "buckets": list(x.buckets)} for n, x in ((x.name, x) for x in cfg.orange_apps())},
+        "loss_model": "single host, single disk unless --dest is another device; engine writes acknowledged after the fence are not in this copy",
+    }
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    final = dest / stamp
+    out.rename(final)
+    print(f"backup ok: {final} ({nfiles} files, downtime {down:.0f}s)")
+    done = sorted(p.parent for p in dest.glob("*/manifest.json"))
+    for old in done[: max(0, len(done) - a.keep)]:
+        shutil.rmtree(old)
+        print(f"pruned {old.name}")
+
+
+if __name__ == "__main__":
+    main()

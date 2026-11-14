@@ -1,0 +1,38 @@
+#!/bin/sh
+# Install or refresh the host stack from /opt/openorange. Idempotent. Run as root.
+#
+#   install [--no-boot]
+#
+# Host changes made (all recorded in docs/openorange-runtime.md):
+#   /etc/init.d/oo-{store,engine,identity,ingress}, /etc/init.d/oo-app (template)
+#   /etc/periodic/daily/oo-logrotate
+#   /etc/openorange (0700), /var/lib/openorange, /var/log/openorange, /run/openorange
+#   docker network `openorange`, two locally built images
+#   rc-update add (default runlevel) unless --no-boot
+# No host package is installed; requires docker, python3 >= 3.11, rsync, curl, openssl.
+set -eu
+[ "$(id -u)" = 0 ] || { echo "install: run as root" >&2; exit 1; }
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+[ "$HERE" = /opt/openorange ] || echo "install: note: running from $HERE, units expect /opt/openorange" >&2
+for c in docker python3 rsync curl openssl rc-service; do command -v "$c" >/dev/null || { echo "install: missing $c" >&2; exit 1; }; done
+python3 -c 'import sys; assert sys.version_info >= (3, 11)' || { echo "install: python3 >= 3.11 required (tomllib)" >&2; exit 1; }
+
+"$HERE/bin/oo" validate
+mkdir -p /etc/openorange /var/lib/openorange /var/log/openorange /run/openorange
+chmod 700 /etc/openorange
+for s in oo-store oo-engine oo-identity oo-ingress oo-app; do
+	install -m 0755 "$HERE/openrc/$s" "/etc/init.d/$s"
+done
+install -m 0755 "$HERE/bin/logrotate" /etc/periodic/daily/oo-logrotate
+"$HERE/bin/oo" secrets
+"$HERE/bin/oo" network
+"$HERE/bin/build-images"
+"$HERE/bin/oo" render
+for a in $("$HERE/bin/oo" apps-list --all); do
+	[ -e "/etc/init.d/oo-app.$a" ] || ln -s oo-app "/etc/init.d/oo-app.$a"
+done
+if [ "${1:-}" != "--no-boot" ]; then
+	for s in oo-store oo-engine oo-identity oo-ingress; do rc-update add "$s" default >/dev/null; done
+	for a in $("$HERE/bin/oo" apps-list); do rc-update add "oo-app.$a" default >/dev/null; done
+fi
+echo "install: ok. Next: rc-service oo-store start && rc-service oo-engine start && oo provision && deploy app images (see runbook)"

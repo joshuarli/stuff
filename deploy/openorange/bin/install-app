@@ -1,0 +1,21 @@
+#!/bin/sh
+# Add one app (already declared in apps.toml): provision its namespace, pool,
+# S3 key and buckets, create its OpenRC instance, refresh the ingress config.
+# Touches no other app. Run as root on the host, with store and engine running.
+#
+#   install-app NAME [IMAGE]       IMAGE is a locally available image reference
+set -eu
+[ "$(id -u)" = 0 ] || { echo "install-app: run as root" >&2; exit 1; }
+NAME=${1:?usage: install-app NAME [IMAGE]}
+OO=/opt/openorange/bin/oo
+"$OO" validate >/dev/null
+"$OO" provision "$NAME"
+[ -z "${2:-}" ] || "$OO" set-image "$NAME" "$2"
+[ -e "/etc/init.d/oo-app.$NAME" ] || ln -s oo-app "/etc/init.d/oo-app.$NAME"
+"$OO" render
+if [ -f "/etc/openorange/apps/$NAME.image" ]; then
+	rc-update add "oo-app.$NAME" default >/dev/null 2>&1 || true
+	rc-service "oo-app.$NAME" restart
+fi
+if rc-service oo-ingress status >/dev/null 2>&1; then "$OO" reload-ingress; fi
+echo "install-app: $NAME ok"

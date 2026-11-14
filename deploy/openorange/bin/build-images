@@ -1,0 +1,26 @@
+#!/bin/sh
+# Build the two locally built images (Caddy+Cloudflare DNS module, identity
+# sidecar) from digest-pinned bases recorded in images.lock.json. Needs
+# network for the Go module download (xcaddy). Run on the target host.
+set -eu
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+eval "$(python3 - "$HERE" <<'PY'
+import json, shlex, sys
+d = json.load(open(sys.argv[1] + "/images.lock.json"))
+i, b = d["images"], d["local_builds"]
+ref = lambda k: f'{i[k]["repository"]}:{i[k]["tag"]}@{i[k]["index_digest"]}'
+for k, v in [("BUILDER", ref("caddy_builder")), ("RUNTIME", ref("caddy_runtime")), ("PYBASE", ref("identity_base")),
+             ("CADDY_VERSION", "v" + i["caddy_builder"]["version"]), ("CF_MODULE", b["caddy"]["modules"][0]),
+             ("CADDY_TAG", b["caddy"]["tag"]), ("IDENT_TAG", b["identity"]["tag"])]:
+    print(f"{k}={shlex.quote(v)}")
+PY
+)"
+docker build --platform linux/amd64 -t "$CADDY_TAG" \
+	--build-arg "BUILDER=$BUILDER" --build-arg "RUNTIME=$RUNTIME" \
+	--build-arg "CADDY_VERSION=$CADDY_VERSION" --build-arg "CLOUDFLARE_MODULE=$CF_MODULE" \
+	"$HERE/ingress"
+docker build --platform linux/amd64 -t "$IDENT_TAG" --build-arg "BASE=$PYBASE" "$HERE/identity"
+echo "--- caddy $(docker run --rm --entrypoint caddy "$CADDY_TAG" version)"
+docker run --rm --entrypoint caddy "$CADDY_TAG" list-modules | grep -x 'dns.providers.cloudflare'
+echo "--- binary sha256 $(docker run --rm --entrypoint sha256sum "$CADDY_TAG" /usr/bin/caddy)"
+echo "--- $(docker run --rm --entrypoint getcap "$CADDY_TAG" /usr/bin/caddy)"

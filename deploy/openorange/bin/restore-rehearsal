@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""Restore a backup into a FRESH directory and a throwaway Engine, without
+touching the live stack. Run as root.
+
+    restore-rehearsal [BACKUP_DIR] [--app NAME --probe PATH [--expect TEXT]] [--keep]
+
+1. copies BACKUP_DIR/engine/* into /var/lib/openorange/restore/<ts>/
+2. starts `oo-restore-engine` (private network, spare address, no published
+   port) on the copy with the backed-up config and token
+3. verifies the namespaces and pools declared for the backed-up apps exist
+4. with --app/--probe: starts a throwaway container of that app's image
+   against the restored Engine and GETs PATH from it, printing the body (and
+   failing if --expect text is absent). This is the proof that Actor state
+   came back, not just that /health answers.
+5. removes the containers (the restored directory is kept unless --purge).
+"""
+import argparse
+import ipaddress
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+sys.path.insert(0, str(Path(os.path.realpath(__file__)).parent.parent / "lib"))
+import oolib  # noqa: E402
+
+
+def call(url, token, method="GET", body=None, timeout=10):
+    req = urllib.request.Request(url, method=method, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Content-Type": "application/json", **({"Authorization": f"Bearer {token}"} if token else {})})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.status, r.read()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read()
+    except OSError:
+        return 0, b""
+
+
+def main():
+    sys.stdout.reconfigure(line_buffering=True)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("backup", nargs="?")
+    ap.add_argument("--app")
+    ap.add_argument("--probe")
+    ap.add_argument("--expect")
+    ap.add_argument("--purge", action="store_true")
+    a = ap.parse_args()
+    if os.geteuid() != 0:
+        sys.exit("restore-rehearsal: run as root")
+    cfg = oolib.load()
+    bdir = cfg.state / "backups"
+    src = Path(a.backup) if a.backup else sorted(p.parent for p in bdir.glob("*/manifest.json"))[-1]
+    manifest = json.loads((src / "manifest.json").read_text())
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    root = cfg.state / "restore" / stamp
+    for sub in ("engine/log", "engine/objects"):
+        (root / sub).mkdir(parents=True)
+        subprocess.run(["rsync", "-aH", "--numeric-ids", f"{src / sub}/", f"{root / sub}/"], check=True)
+    print(f"restored copy: {root}  (from {src.name})")
+    net = ipaddress.ip_network(cfg.network["subnet"])
+    ip = str(list(net.hosts())[-3])
+    etc = src / "etc"
+    token = oolib.read_env(etc / "engine.env")["RIVET__AUTH__ADMIN_TOKEN"]
+    name = "oo-restore-engine"
+    subprocess.run(["docker", "rm", "-f", name], capture_output=True)
+    cmd = ["docker", *oolib.engine_args(cfg, name, ip, etc / "engine.env", etc / "engine" / "config.json",
+                                         root / "engine" / "log", root / "engine" / "objects", detach=True)]
+    subprocess.run(cmd, check=True, capture_output=True)
+    url = f"http://{ip}:{oolib.ENGINE_PORT}"
+    ok = False
+    extra = []
+    status = 1
+    try:
+        for _ in range(60):
+            st, _ = call(url + "/health", token, timeout=3)
+            if st == 200:
+                break
+            alive = subprocess.run(["docker", "inspect", "-f", "{{.State.Running}}", name], capture_output=True, text=True).stdout.strip()
+            if alive != "true":
+                logs = subprocess.run(["docker", "logs", "--tail", "5", name], capture_output=True, text=True)
+                raise SystemExit(f"restored engine exited: {(logs.stdout + logs.stderr)[-400:]}")
+            time.sleep(1)
+        else:
+            raise SystemExit("restored engine never became healthy")
+        print(f"restored engine healthy at {url}")
+        st, body = call(url + "/namespaces", token)
+        have = {n["name"] for n in json.loads(body)["namespaces"]}
+        missing = []
+        for n, info in manifest["apps"].items():
+            if info["namespace"] not in have:
+                missing.append(info["namespace"])
+                continue
+            st, body = call(f"{url}/pools?namespace={info['namespace']}", token)
+            pools = {p["name"] for p in json.loads(body)["pools"]}
+            missing += [f"{info['namespace']}/{p}" for p in oolib.ORANGE_POOLS if p not in pools]
+        print("namespaces/pools restored:", "all present" if not missing else f"MISSING {missing}")
+        if missing:
+            raise SystemExit(1)
+        if a.app:
+            app = cfg.apps[a.app]
+            ref = cfg.app_image_file(app).read_text().strip()
+            aenv = oolib.read_env(etc / "apps" / f"{a.app}.env")
+            aenv["RIVET_ENDPOINT"] = url
+            tmp = root / "app.env"
+            oolib.write_env(tmp, aenv)
+            aip = str(list(net.hosts())[-4])
+            cname = "oo-restore-app"
+            subprocess.run(["docker", "rm", "-f", cname], capture_output=True)
+            subprocess.run(["docker", "run", "-d", "--rm", "--name", cname, "--network", cfg.network["name"], "--ip", aip, "--read-only",
+                            "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", "1000:1000", "--env-file", str(tmp),
+                            "--tmpfs", "/tmp", "--tmpfs", "/app/.open-orange", "--env", f"PORT={app.port}", ref], check=True, capture_output=True)
+            extra.append(cname)
+            body = b""
+            for _ in range(60):
+                st, body = call(f"http://{aip}:{app.port}{a.probe}", None)
+                if st == 200:
+                    break
+                time.sleep(1)
+            text = body.decode(errors="replace").strip()
+            print(f"probe GET {a.probe} on restored app -> http {st} {text}")
+            if st != 200 or (a.expect and a.expect not in text):
+                raise SystemExit(f"probe did not return the expected state ({a.expect!r})")
+        ok = True
+        status = 0
+    finally:
+        for c in [name] + extra:
+            subprocess.run(["docker", "rm", "-f", c], capture_output=True)
+        if a.purge:
+            shutil.rmtree(root, ignore_errors=True)
+    print("restore rehearsal:", "PASS" if ok else "FAIL")
+    sys.exit(status)
+
+
+if __name__ == "__main__":
+    main()

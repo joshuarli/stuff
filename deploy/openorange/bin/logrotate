@@ -1,0 +1,19 @@
+#!/bin/sh
+# Rotate /var/log/openorange/*.log by copy-truncate (supervise-daemon keeps
+# the file open). Keeps 5 gzipped generations of files over 20 MiB.
+# Installed into /etc/periodic/daily by bin/install.
+set -eu
+LOGDIR="${OO_LOGDIR:-/var/log/openorange}"
+MAX=$((20 * 1024 * 1024))
+for f in "$LOGDIR"/*.log; do
+	[ -f "$f" ] || continue
+	size=$(wc -c <"$f")
+	[ "$size" -gt "$MAX" ] || continue
+	i=4
+	while [ "$i" -ge 1 ]; do
+		[ -f "$f.$i.gz" ] && mv -f "$f.$i.gz" "$f.$((i + 1)).gz"
+		i=$((i - 1))
+	done
+	gzip -c "$f" >"$f.1.gz"
+	: >"$f"
+done
